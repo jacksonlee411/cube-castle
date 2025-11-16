@@ -33,7 +33,7 @@ cat docs/api/schema.graphql
 
 ### 第三步: 确认CQRS使用
 ```yaml
-查询操作 → GraphQL (端口8090)
+查询操作 → GraphQL (同一进程挂载 /graphql，端口9090)
 命令操作 → REST API (端口9090)
 严禁混用！
 ```
@@ -53,7 +53,7 @@ cat docs/api/schema.graphql
 ### 开发环境启动
 ```bash
 make docker-up          # 启动基础设施 (PostgreSQL + Redis)
-make run-dev            # 启动统一 hrms-server：REST (9090) + GraphQL (8090)
+make run-dev            # 启动统一 hrms-server：REST (9090) + GraphQL (/graphql 挂载在 9090)
 make frontend-dev       # 启动前端开发服务器 (端口3000)
 make status             # 查看所有服务状态
 make db-migrate-all     # 使用 Goose 执行数据库迁移（迁移即真源）

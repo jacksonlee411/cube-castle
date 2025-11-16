@@ -129,8 +129,9 @@ while true; do
     # Check runs (to detect fails/in_progress precisely)
     CHECKS_RESP="$(curl -sS "${AUTH_HEADER[@]}" -H "Accept: application/vnd.github+json" \
       "${API_ROOT}/commits/${SHA}/check-runs?per_page=100")"
-    FAILS="$(echo "${CHECKS_RESP}" | jq '[.check_runs[]? | select((.conclusion // "") | IN("failure","cancelled","timed_out","action_required"))] | length' 2>/dev/null || echo 0)"
-    INPROG="$(echo "${CHECKS_RESP}" | jq '[.check_runs[]? | select((.status // "") | IN("in_progress","queued","requested","waiting"))] | length' 2>/dev/null || echo 0)"
+    # jq: avoid custom functions; check explicit equality
+    FAILS="$(echo "${CHECKS_RESP}" | jq '[.check_runs[]? | select(((.conclusion // "") == "failure") or ((.conclusion // "") == "cancelled") or ((.conclusion // "") == "timed_out") or ((.conclusion // "") == "action_required"))] | length' 2>/dev/null || echo 0)"
+    INPROG="$(echo "${CHECKS_RESP}" | jq '[.check_runs[]? | select(((.status // "") == "in_progress") or ((.status // "") == "queued") or ((.status // "") == "requested") or ((.status // "") == "waiting"))] | length' 2>/dev/null || echo 0)"
 
     print_status_line "${pr}" "${HTML_URL}" "${MERGEABLE_STATE}" "${COMBINED_STATE}" "${FAILS}" "${INPROG}"
 
@@ -153,4 +154,3 @@ while true; do
 
   sleep "${INTERVAL}"
 done
-

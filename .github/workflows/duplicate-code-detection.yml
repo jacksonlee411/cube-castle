@@ -38,10 +38,10 @@ jobs:
         label: [ubuntu, selfhosted]
         include:
           - label: ubuntu
-            runs_on: '["ubuntu-latest"]'
+            runner: [ubuntu-latest]
           - label: selfhosted
-            runs_on: '["self-hosted","cubecastle","docker"]'
-    runs-on: ${{ fromJson(matrix.runs_on) }}
+            runner: [self-hosted, cubecastle, docker]
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       pull-requests: write
@@ -109,8 +109,7 @@ jobs:
       run: mkdir -p reports/duplicate-code
 
     - name: 🔍 执行重复代码检测 (完整扫描)
-      if: steps.changes.outputs.docs_only != 'true'
-      if: env.SCAN_SCOPE == 'full'
+      if: steps.changes.outputs.docs_only != 'true' && env.SCAN_SCOPE == 'full'
       run: |
         echo "🔍 执行完整项目扫描，阈值: ${DUPLICATE_THRESHOLD}%"
         # Plan 261: 忽略第三方与产物，降低误报；临时稳态，11-22 前回收策略
@@ -136,8 +135,7 @@ jobs:
         fi
 
     - name: 🔍 执行重复代码检测 (前端)
-      if: steps.changes.outputs.docs_only != 'true'
-      if: env.SCAN_SCOPE == 'frontend-only'
+      if: steps.changes.outputs.docs_only != 'true' && env.SCAN_SCOPE == 'frontend-only'
       run: |
         echo "🔍 执行前端代码扫描"
         jscpd --threshold=$DUPLICATE_THRESHOLD \
@@ -153,8 +151,7 @@ jobs:
         [ "${exit_code:-0}" -eq 0 ] || (echo "❌ 前端重复代码超过阈值" && exit 1)
 
     - name: 🔍 执行重复代码检测 (后端)
-      if: steps.changes.outputs.docs_only != 'true'
-      if: env.SCAN_SCOPE == 'backend-only'
+      if: steps.changes.outputs.docs_only != 'true' && env.SCAN_SCOPE == 'backend-only'
       run: |
         echo "🔍 执行后端代码扫描"
         jscpd --threshold=$DUPLICATE_THRESHOLD \
@@ -172,7 +169,6 @@ jobs:
 
     - name: 📊 生成详细报告
       if: steps.changes.outputs.docs_only != 'true'
-      if: always()
       run: |
         # 生成JSON报告用于后续处理
         jscpd --threshold=100 --reporters=json --output=./reports/duplicate-code \
@@ -201,7 +197,6 @@ jobs:
         fi
 
     - name: 📤 上传检测报告
-      if: steps.changes.outputs.docs_only != 'true'
       if: always()
       uses: actions/upload-artifact@v4
       with:
@@ -212,8 +207,7 @@ jobs:
         retention-days: 30
 
     - name: 💬 PR评论报告
-      if: steps.changes.outputs.docs_only != 'true'
-      if: github.event_name == 'pull_request' && always()
+      if: github.event_name == 'pull_request' && steps.changes.outputs.docs_only != 'true'
       uses: actions/github-script@v7
       with:
         script: |
@@ -252,7 +246,6 @@ jobs:
 
     - name: ⚠️ 质量门禁检查
       if: steps.changes.outputs.docs_only != 'true'
-      if: always()
       run: |
         if [ -f "./reports/duplicate-code/jscpd-report.json" ]; then
           CURRENT_PERCENTAGE=$(node -e "

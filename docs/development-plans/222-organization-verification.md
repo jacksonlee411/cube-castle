@@ -17,7 +17,7 @@
 
 **关键成果（完成后需附带日志 / CI 证据再勾选）**:
 - [x] organization 模块完整验证（单元、集成、E2E 测试）— 单测/集成/E2E Smoke 已通过（整体覆盖率与 Live 用例后续在 255/256、232 推进）
-- [x] REST/GraphQL 端点回归测试通过 — REST 已通过；GraphQL（默认 8090 查询服务）已通过（需 Authorization + X-Tenant-ID）；如启用“单体挂载 /graphql(9090)”仅作历史兼容，非默认；证据见 `logs/plan222/graphql-query-*.json`
+- [x] REST/GraphQL 端点回归测试通过 — REST 已通过；GraphQL 现已统一挂载到单体进程 `/graphql`（端口 9090，需 Authorization + X-Tenant-ID）；独立 8090 查询容器已移除；证据见 `logs/plan222/graphql-query-*.json`
 - [x] 性能基准测试完成（短压测通过；完整基准按 222B 复跑记录于 logs/219E/）
 - [x] 项目文档更新
 - [x] Phase2 执行验收报告（草案：阶段性通过）
@@ -38,7 +38,7 @@
 
 ## 1.6 最新进展（2025-11-16）
 - ✅ PR #6 合并：Plan 222 文档与 Runner 对齐已合并；报告已记录“合并完成”（参见 `reports/phase2-execution-report.md` 合并记录）。
-- ✅ Runner 增强：`GRAPHQL_BASE` 默认 8090（与 CQRS SSoT 一致；9090 单体 `/graphql` 仅历史兼容）；支持 `ORG_PARENT_CODE=1000000` 引导（父组织缺失时创建根组织，保留 `root-create-*` 证据）；采集 REST 4xx 响应体与 HTTP 状态（`create-status-*`/`put-status-*`）。
+- ✅ Runner 增强：GraphQL 统一为 `http://localhost:9090/graphql`；支持 `ORG_PARENT_CODE=1000000` 引导（父组织缺失时创建根组织，保留 `root-create-*` 证据）；采集 REST 4xx 响应体与 HTTP 状态（`create-status-*`/`put-status-*`）。
 - 🔧 CI 协作优化（临时，2025-11-22 回收）：文档/工作流 PR 启用 docs/ci-only 短路（重门禁跳过/快速通过）；代码改动 PR 仍严格门禁。
 - 📈 覆盖率组合 ~31%（阶段目标≥30%已达成；下一阶段≥55%）；顶层关键包保持 ~84.8%。
 - 🧪 证据补全：`logs/plan222/*`（health/jwks/graphql/创建与更新/覆盖率），`logs/219E/*`（短压测）。
@@ -158,9 +158,9 @@ make test-db-down
 # 通过 Docker 启动命令/查询服务（Make 统一入口）
 make run-dev
 
-# 服务健康检查（9090 = REST，8090 = GraphQL）
+# 服务健康检查（9090 = REST；GraphQL 为 /graphql）
 curl -fsS http://localhost:9090/health
-curl -fsS http://localhost:8090/health
+curl -fsS http://localhost:9090/graphql -X POST -H "Content-Type: application/json" -d '{"query":"{ __typename }"}'
 
 # 执行关键 API 调用
 curl -X GET http://localhost:9090/api/v1/organization-units/1000000
@@ -191,10 +191,10 @@ curl -X PUT http://localhost:9090/api/v1/organization-units/1000000 \
 
 **任务内容**:
 ```bash
-# GraphQL 入口由 make run-dev 启动的 query service 暴露在 8090 端口
+# GraphQL 入口由 make run-dev 启动的单体进程暴露在 9090 /graphql
 
 # 执行 GraphQL 查询
-curl -X POST http://localhost:8090/graphql \
+curl -X POST http://localhost:9090/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ organizations { data { code name parentCode status } pagination { page pageSize total } } }"}'
 

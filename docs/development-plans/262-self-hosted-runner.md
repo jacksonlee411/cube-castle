@@ -2,7 +2,7 @@
 
 文档编号: 262  
 负责人: Codex（AI）  
-目标: 在不违背 AGENTS.md 的“Docker 强制 + 资源唯一性”前提下，引入“容器化、自毁式（ephemeral）”的自托管 Runner，提升 CI 稳定性与可控性。
+目标: 在不违背 AGENTS.md 的“Docker 强制 + 资源唯一性”前提下，引入“容器化自托管 Runner”，优先采用“持久化（persistent）+ 看门狗”方案，确保“永久在线、随时接单”；后续可切换/补充 Ephemeral 以降低脏环境风险。
 
 ---
 
@@ -12,12 +12,13 @@
 - 约束：严格遵循 AGENTS.md——所有服务（含 Runner）以 Docker Compose 管理；密钥存放 secrets/，不入库；临时措施需标注并可回收。
 
 ## 2. 方案概述
-- 架构：基于官方通用方案 myoung34/github-runner（固定版本），通过 docker-compose.runner.yml 拉起“Ephemeral（一次性）” Runner 容器。
+- 架构（已实施：方案A Persistent）：基于 GHCR 官方镜像 `ghcr.io/actions/actions-runner:2.315.0` 启动“持久化 Runner”，通过 `scripts/ci/runner/start-ghcr-runner-persistent.sh` 注册并常驻，结合 `scripts/ci/runner/watchdog.sh` 每 60s 健康巡检，异常自动重拉。
+- 备选（方案B Ephemeral）：基于 `runner/Dockerfile.docker` 自建镜像或 myoung34/github-runner 的 ephemeral 模式，每个 Job 结束自动注销 Runner，降低脏环境风险（可在稳定后切换或双轨）。
 - 注册方式（两选一）：
-  1) 仓库 UI 生成一次性 Registration Token（推荐在初次注册时使用）；
-  2) 使用 PAT（需 repo + workflow 范围；支持自动续期，不建议长存，放 secrets/.env.local）。
-- 标签：self-hosted,cubecastle,linux,x64,docker（按需扩展）；工作流通过 runs-on 指定。
-- 生命周期：每个 Job 结束后自动注销 Runner，避免脏环境；容器由 Compose 统一管控。
+  1) 仓库 Registration Token（脚本自动申请，一次性）；
+  2) PAT（需 repo + workflow 范围；写入 secrets/.env.local，脚本自动读取）。
+- 标签：self-hosted,cubecastle,linux,x64,docker（工作流通过 runs-on 指定）。
+- 生命周期：方案A 持久化在线；方案B Job 结束销毁；均由 Docker 统一管控。
 
 ## 3. 实施步骤
 1) 准备密钥（任一）
@@ -28,13 +29,14 @@
      # 或者一次性注册用
      GH_RUNNER_REG_TOKEN=xxxx
      ```
-2) 启动 Runner（容器化）
-   - 执行：`docker compose -f docker-compose.runner.yml up -d`
-   - 停止：`docker compose -f docker-compose.runner.yml down -v`
+2) 启动 Runner（容器化，方案A）
+   - 启动：`bash scripts/ci/runner/start-ghcr-runner-persistent.sh`
+   - 验证在线后启动看门狗：`nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &`
+   - 停止：`docker rm -f cubecastle-gh-runner`；停止看门狗：`touch .ci/runner-watchdog.stop`
 3) 验证在线
    - GitHub → Settings → Actions → Runners 应看到在线 Runner（labels 包含 cubecastle、docker）
 4) 验证工作流（示例）
-   - 手动触发 `.github/workflows/ci-selfhosted-smoke.yml`；应在自托管 Runner 执行并通过基本检查（go/node/docker/compose）。
+   - 手动触发 `.github/workflows/ci-selfhosted-diagnose.yml`；应在自托管 Runner 执行并通过基本检查（docker/compose/环境）。
 
 ## 4. 工作流使用方式
 - 试点工作流：`.github/workflows/ci-selfhosted-smoke.yml`（runs-on: [self-hosted, cubecastle, docker]）。
@@ -48,7 +50,7 @@
 
 ## 6. 验收标准
 - Runner 在线：Runners 页面可见，标签与配置正确；
-- Smoke 通过：`ci-selfhosted-smoke` 工作流绿；
+- 诊断任务通过：`CI (Self-Hosted Diagnose)` 绿；
 - 能运行 Docker Compose 工作负载（compose --wait + healthcheck）；
 - 不引入端口映射冲突（不更改现有服务端口；仅 Runner 自身，无对外端口）。
 
@@ -75,4 +77,3 @@
 - docker-compose.runner.yml（容器化 Runner；Ephemeral 模式；固定镜像版本）
 - .github/workflows/ci-selfhosted-smoke.yml（自托管 Runner 烟测）
 - scripts/ci/runner/README.md（使用说明与安全提示）
-

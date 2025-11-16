@@ -129,7 +129,7 @@
 - 数据库：`docker compose exec <postgres_service> psql -U <user> -d <db> -c 'SELECT 1'`（只读排障）；变更通过 `make db-migrate-all`。
 
 ### 本次会话一次性授权登记（仅限本地开发会话）
-- 授权时间（UTC）：2025-11-16T12:38:03Z
+- 授权时间（UTC）：2025-11-16T23:06:02Z
 - 授权范围（遵循上方约束与 Docker 强制原则）：
   - 网络访问：允许访问官方依赖仓库（npm、Go、Docker Hub）、GitHub API/网页（原仓库/CI 运行/PR）、远程文档站点；不得引入第二事实来源改变契约。
   - 打开网页：允许在本机通过 `xdg-open`/`open` 打开本地服务页面（Swagger/GraphiQL/健康页）与必要的 GitHub 页面（PR/Actions）。
