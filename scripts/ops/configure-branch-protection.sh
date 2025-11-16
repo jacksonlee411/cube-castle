@@ -36,7 +36,7 @@ echo "🌿 Default branch: ${DEFAULT_BRANCH}"
 # Format: "<workflow_name> / <job_name or job display name>"
 CONTEXTS=(
   "plan-258-gates / Contract Drift Gate (Plan 258)"
-  "plan-253-gates / compose-and-images"
+  "plan-253-gates / Compose/Image Gates (Blocking)"
   "plan-250-gates / gates-250"
   "plan-255-gates / gates-255"
   "CI / build-and-test"
@@ -85,4 +85,3 @@ gh api --method PUT "repos/${OWNER_REPO}/branches/${DEFAULT_BRANCH}/protection" 
 
 rm -f "${TMP_JSON}"
 echo "🎉 Done. Default branch is protected; only squash-merge via PR is allowed."
-
