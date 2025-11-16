@@ -1,0 +1,63 @@
+name: plan-255-gates
+
+on:
+  pull_request:
+  push:
+    branches: [ master, main ]
+
+jobs:
+  gates-255:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Prepare logs directory
+        id: prep
+        shell: bash
+        run: |
+          ts="$(date +%Y%m%d_%H%M%S)"
+          echo "TS=$ts" >> $GITHUB_OUTPUT
+          mkdir -p logs/plan255
+
+      - name: Frontend CQRS/Ports/Forbidden gate (architecture-validator)
+        shell: bash
+        run: |
+          set -e
+          node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden \
+            2>&1 | tee "logs/plan255/architecture-validator-${{ steps.prep.outputs.TS }}.log"
+
+      - name: Install golangci-lint
+        shell: bash
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          golangci-lint version
+
+      - name: Backend boundary and JSON naming gate (golangci-lint)
+        shell: bash
+        run: |
+          set -e
+          golangci-lint run 2>&1 | tee "logs/plan255/golangci-lint-${{ steps.prep.outputs.TS }}.log"
+          test ${PIPESTATUS[0]} -eq 0
+
+      - name: Upload plan-255 logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan255-logs
+          path: |
+            logs/plan255/**
+            reports/architecture/architecture-validation.json
+          if-no-files-found: warn
+          retention-days: 7
+
