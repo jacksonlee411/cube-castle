@@ -176,6 +176,7 @@
   - 本次 CI 运行（登记）：  
     - Run: https://github.com/jacksonlee411/cube-castle/actions/runs/19405921517（结论：success）  
     - 工件：`logs/plan257/ci-artifacts/coverage.json`（coverage=1.25；threshold=0.8；offenders=[tests-only]）  
+  - 状态：已完成（验收通过 · 2025-11-16）
 
 - 258 · 契约漂移校验与门禁（阶段2）  
   - 计划窗口：TBD（W?）  
