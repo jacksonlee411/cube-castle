@@ -58,6 +58,53 @@ jobs:
       - name: Architecture Gate (CQRS/Ports/Forbidden)
         run: |
           node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden
+      - name: Run Playwright E2E (Dev webServer)
+        working-directory: ./frontend
+        env:
+          PW_TENANT_ID: ${{ env.PW_TENANT_ID }}
+          PW_JWT: ${{ env.PW_JWT }}
+          E2E_PLAN_ID: "254"
+          PW_SKIP_SERVER: "0"
+          PW_BASE_URL: "http://localhost:3000"
+        run: |
+          npm run -s test:e2e:254 || (echo "Playwright tests failed" && exit 1)
+      - name: Summarize E2E results (machine-readable)
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          FILE="$(ls -t logs/plan254/results-*.json | head -1)"
+          if [ -z "$FILE" ]; then
+            echo "No results JSON found under logs/plan254/"; exit 0
+          fi
+          echo "Using results file: $FILE"
+          node - "$FILE" <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[1];
+          try {
+            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+            let total = 0, passed = 0, failed = 0, skipped = 0, flaky = 0;
+            const walk = (o) => {
+              if (!o) return;
+              if (Array.isArray(o)) { o.forEach(walk); return; }
+              if (typeof o === 'object') {
+                if (Object.prototype.hasOwnProperty.call(o, 'outcome')) {
+                  total++;
+                  const v = String(o.outcome);
+                  if (v === 'expected' || v === 'passed') passed++;
+                  else if (v === 'unexpected' || v === 'failed') failed++;
+                  else if (v === 'skipped') skipped++;
+                  else if (v === 'flaky') flaky++;
+                }
+                for (const k in o) walk(o[k]);
+              }
+            };
+            walk(data);
+            console.log(`SUMMARY total=${total} passed=${passed} failed=${failed} skipped=${skipped} flaky=${flaky}`);
+          } catch (e) {
+            console.error('Failed to parse results json:', e.message);
+            process.exit(1);
+          }
+          NODE
       - name: Preflight
         run: |
           echo "Plan 254 ubuntu preflight OK on $(uname -a)"
