@@ -60,6 +60,15 @@
   - Token 加载顺序：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量（`GITHUB_TOKEN`/`GH_TOKEN`）
   - 工件与日志仍是验收依据，SUMMARY 便于快速登记/比对
 
+## 自动推送与创建 PR
+- 一键推送当前分支并创建 PR（优先使用 gh；无 gh 则使用 GitHub REST API）：
+  - `bash scripts/ci/auto-pr.sh --title "refactor(health-alerting): migrate JSON tags to camelCase and harden Plan 255 gates" --body-file docs/development-plans/255-soft-gate-PR.md --base master --head feature/plan-255-soft-gate-rollout`
+- Token 说明：
+  - 优先从 `secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` 加载，再回退到环境变量 `GITHUB_TOKEN`/`GH_TOKEN`
+  - 建议将 `GITHUB_TOKEN` 放在 `secrets/.env.local`，避免提交到仓库
+- 日志与证据：
+  - 运行产物会写入 `logs/plan255/pr-<ts>.txt` 与 `logs/plan255/pr-response-<ts>.json`（当使用 REST API 时）
+
 ## 最佳实践
 - 唯一门禁：不要叠加多个扫描器；统一依赖 architecture-validator，减少维护与分叉
 - 证据规范：按计划号将报告/trace 统一落在 `logs/plan<ID>/*`，避免“复制脚本”膨胀
