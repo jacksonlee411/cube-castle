@@ -80,8 +80,26 @@
     - Compose/Image Gates (Blocking)（plan-253-gates）— 运行示例：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403577269>
     - gates-255（plan-255-gates）— 运行示例：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403570892>
   - 证据占位：`logs/plan255/branch-protection-required-checks.md`（截图/说明链接，含失败示例链接）
-- 首次成功运行登记：在本段落补充 CI 运行链接与工件名称（artifact: `plan255-logs`）。  
+  - 首次成功运行登记：在本段落补充 CI 运行链接与工件名称（artifact: `plan255-logs`）。  
   - 运行链接：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403010378>（status=completed, conclusion=success）；artifact: plan255-logs（保留 7 天）
+
+### 新增（2025-11-16 — Plan 259 初次扫描）
+- ✅ [Plan 259] 只读校验已执行（权限映射 + 业务 GET 粗清单）
+  - 执行时间（UTC）：2025-11-16 15:47:25
+  - 输出与证据：
+    - 权限契约与映射报告（复用 Plan 252 脚本产物）：reports/permissions/openapi-scope-usage.json、reports/permissions/openapi-scope-registry.json、reports/permissions/graphql-query-permissions.json、reports/permissions/summary.txt
+    - 运行时映射（go:embed 消费）：cmd/hrms-server/query/internal/auth/generated/graphql-permissions.json
+    - 扫描日志：logs/plan259/permissions-summary-20251116_154725.txt
+    - 业务 GET 清单（按白名单与判定公式）：reports/plan259/business-get-list.txt、reports/plan259/business-get-list.json
+    - 业务 GET 摘要：logs/plan259/business-get-summary-20251116_154725.txt
+  - 结论与发现：
+    - “业务 GET（REST）”总数：1（符合预期，仅 /api/v1/positions/{code}/assignments）
+    - OpenAPI 引用→注册一致性：未注册引用=0（通过）；注册未引用 scopes 若干（信息级）
+    - GraphQL 权限映射生成 entries=25；Resolver 授权调用未匹配映射=2（信息级，后续排查）
+  - 后续动作（与 259 对齐）：
+    - 259‑T2：将权限一致性产物纳入 Plan 258 门禁聚合（CI 软门禁）
+    - 259‑T3：GraphQL 权限统一为 position:assignments:read（灰度→默认）
+    - 259‑T4：将 REST 业务查询端点标注 deprecated 并公告（CHANGELOG），迁移后切硬门禁并移除
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
