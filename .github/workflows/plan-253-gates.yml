@@ -16,6 +16,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Run compose ports/images gate
         shell: bash
+        env:
+          COMPOSE_GLOB: "docker-compose*.yml"
         run: |
           bash scripts/quality/gates-253-compose-ports-and-images.sh
       - name: Upload plan-253 logs
