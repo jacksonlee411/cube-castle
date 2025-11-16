@@ -5,6 +5,11 @@ on:
     branches: [ main, master, develop ]
     types: [opened, synchronize, reopened]
   workflow_dispatch: {}
+  # TODO-TEMPORARY(2025-11-22): enable push trigger for master to guarantee runs during self-hosted rollout
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/e2e-smoke.yml'
 
 jobs:
   e2e-smoke:

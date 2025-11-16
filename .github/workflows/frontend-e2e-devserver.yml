@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [ main, master, develop ]
   workflow_dispatch: {}
+  # TODO-TEMPORARY(2025-11-22): enable push trigger for master to guarantee runs during self-hosted rollout
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/frontend-e2e-devserver.yml'
 
 jobs:
   e2e-devserver:
