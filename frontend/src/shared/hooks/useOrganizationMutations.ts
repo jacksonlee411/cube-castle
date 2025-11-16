@@ -1,6 +1,10 @@
 import { logger } from '@/shared/utils/logger';
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { unifiedRESTClient } from "../api";
+import {
+  createOrganization as facadeCreateOrganization,
+  updateOrganization as facadeUpdateOrganization,
+} from '@/shared/api/facade/organization';
 import { createQueryError } from '../api/queryClient';
 import {
   organizationByCodeQueryKey,
@@ -134,15 +138,10 @@ export const useCreateOrganization = () => {
       data: OrganizationRequest,
     ): Promise<OrganizationUnit> => {
       logger.mutation("[Mutation] Creating organization:", data);
-      const response = await unifiedRESTClient.request<
-        APIResponse<OrganizationUnit>
-      >("/organization-units", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-      });
-      logger.mutation("[Mutation] Create successful:", response);
-      return ensureSuccess(response, "创建组织失败");
+      // Plan 257：通过 Facade 创建组织
+      const unit = await facadeCreateOrganization(data);
+      logger.mutation("[Mutation] Create successful:", unit);
+      return unit;
     },
     onSuccess: (organization) => {
       logger.mutation("[Mutation] Create settled, refreshing caches");
@@ -169,15 +168,11 @@ export const useUpdateOrganization = () => {
       data: OrganizationRequest,
     ): Promise<OrganizationUnit> => {
       logger.mutation("[Mutation] Updating organization:", data);
-      const response = await unifiedRESTClient.request<
-        APIResponse<OrganizationUnit>
-      >(`/organization-units/${data.code}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-      });
-      logger.mutation("[Mutation] Update successful:", response);
-      return ensureSuccess(response, "更新组织失败");
+      // Plan 257：通过 Facade 更新组织（暂不传 ETag；有需要可由调用方传入）
+      const code = data.code || '';
+      const unit = await facadeUpdateOrganization(code, data);
+      logger.mutation("[Mutation] Update successful:", unit);
+      return unit;
     },
     onSuccess: (organization, variables) => {
       logger.mutation("[Mutation] Update settled:", variables.code);

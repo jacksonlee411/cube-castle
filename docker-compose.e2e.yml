@@ -26,29 +26,7 @@ services:
       retries: 20
     restart: unless-stopped
 
-  graphql-service:
-    build:
-      context: .
-      dockerfile: cmd/hrms-server/query/Dockerfile
-    environment:
-      - DATABASE_URL=postgres://user:password@postgres:5432/cubecastle?sslmode=disable
-      - REDIS_ADDR=redis:6379
-      - REDIS_PASSWORD=
-      - PORT=8090
-      - GIN_MODE=release
-    ports:
-      - "8090:8090"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:8090/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
+  # 已合流到单体进程（9090），独立 GraphQL 查询服务容器移除
 
   rest-service:
     build:
@@ -88,8 +66,6 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      graphql-service:
-        condition: service_healthy
       rest-service:
         condition: service_healthy
     healthcheck:

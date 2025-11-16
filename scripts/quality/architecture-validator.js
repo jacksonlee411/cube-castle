@@ -534,13 +534,13 @@ class ArchitectureValidator {
           this.options.rules.cqrsArchitecture.enabled && 
           filePath.includes(this.options.rules.cqrsArchitecture.frontendPath)) {
         // 跳过统一客户端底层实现文件，避免将内部 fetch 误判为业务查询
-        const relative = path.relative(this.options.projectRoot || process.cwd(), filePath).replace(/\\/g, '/');
-        const ignoreCQRSFiles = [
-          'frontend/src/shared/api/unified-client.ts',
-          // Plan 257: 门面层作为合规入口，避免 CQRS 规则对其内部转发产生误报
-          'frontend/src/shared/api/facade/organization.ts'
-        ];
-        if (!ignoreCQRSFiles.includes(relative)) {
+        const relative = path
+          .relative(this.options.projectRoot || process.cwd(), filePath)
+          .replace(/\\/g, '/');
+        const isIgnoredFacade =
+          relative.startsWith('frontend/src/shared/api/facade/') ||
+          relative === 'frontend/src/shared/api/unified-client.ts';
+        if (!isIgnoredFacade) {
           const cqrsViolations = CQRSArchitectureValidator.validate(filePath, content);
           fileViolations.push(...cqrsViolations);
           stats.violations.cqrs += cqrsViolations.length;

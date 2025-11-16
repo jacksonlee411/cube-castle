@@ -196,7 +196,7 @@ run-dev:
 	@echo "🧭 执行数据库迁移（Goose）..."
 	@$(MAKE) db-migrate-all
 	@echo "🐳 拉起应用服务 (rest-service, graphql-service)..."
-	docker compose -f docker-compose.dev.yml up -d --build rest-service graphql-service
+	docker compose -f docker-compose.dev.yml up -d --build rest-service
 	@echo "⏳ 等待服务健康..."
 	-@SUCCESS=0; \
 	for i in 1 2 3 4 5 6 7 8 9 10; do \
@@ -211,21 +211,8 @@ run-dev:
 	if [ $$SUCCESS -ne 1 ]; then \
 	  echo "  ⚠️  command-service 未就绪，查看日志: docker compose -f docker-compose.dev.yml logs -f rest-service"; \
 	fi
-	-@SUCCESS=0; \
-	for i in 1 2 3 4 5 6 7 8 9 10; do \
-	  if curl -fsS http://localhost:8090/health >/dev/null; then \
-	    echo "  ✅ graphql-service 就绪 (http://localhost:8090/health)"; \
-	    SUCCESS=1; \
-	    break; \
-	  fi; \
-	  echo "  ⏳ 等待 graphql-service..."; \
-	  sleep 2; \
-	done; \
-	if [ $$SUCCESS -ne 1 ]; then \
-	  echo "  ⚠️  graphql-service 未就绪，查看日志: docker compose -f docker-compose.dev.yml logs -f graphql-service"; \
-	fi
 	@echo ""
-	@echo "📊 查看日志: docker compose -f docker-compose.dev.yml logs -f rest-service graphql-service"
+	@echo "📊 查看日志: docker compose -f docker-compose.dev.yml logs -f rest-service"
 	@echo "🛑 停止服务: docker compose -f docker-compose.dev.yml down 或 make docker-down"
 	@echo "ℹ️  若需宿主机调试，请使用: make run-dev-debug"
 

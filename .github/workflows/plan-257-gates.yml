@@ -1,0 +1,41 @@
+name: 🛡️ Plan 257 - Facade Coverage Gate
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'frontend/**'
+      - 'scripts/facade/**'
+      - '.github/workflows/plan-257-gates.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'frontend/**'
+      - 'scripts/facade/**'
+      - '.github/workflows/plan-257-gates.yml'
+
+jobs:
+  plan-257-gate:
+    name: 🔍 Facade Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Run coverage scan (report mode, threshold=0.0)
+        run: node scripts/facade/coverage-scan.js --threshold=0.0
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan257-facade-coverage
+          path: reports/facade/coverage.json
+          if-no-files-found: warn
+          retention-days: 7
