@@ -100,6 +100,13 @@
     - 259‑T2：将权限一致性产物纳入 Plan 258 门禁聚合（CI 软门禁）
     - 259‑T3：GraphQL 权限统一为 position:assignments:read（灰度→默认）
     - 259‑T4：将 REST 业务查询端点标注 deprecated 并公告（CHANGELOG），迁移后切硬门禁并移除
+
+### 新增（2025-11-16 — Plan 259‑T3 权限映射对齐）
+- ✅ [Plan 259‑T3] GraphQL 权限与 OpenAPI 对齐（positionAssignments/assignments → position:assignments:read）
+  - 变更：docs/api/schema.graphql 更新两处 docstring“Permissions Required”；运行 `scripts/quality/auth-permission-contract-validator.js` 再生运行时映射
+  - 产物：cmd/hrms-server/query/internal/auth/generated/graphql-permissions.json（positionAssignments/assignments=position:assignments:read）
+  - 提交：d0829f95
+  - 风险与回滚：保留生成脚本与 docstring 改动可回退；无 DB/Compose 变更；后续在 CI 聚合（Plan 258）软门禁验证
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
