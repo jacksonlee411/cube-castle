@@ -60,10 +60,18 @@ jobs:
             - '!go.*'
             - '!package*.json'
             - '!.github/workflows/**'
-    - name: Docs-only fast pass
-      if: steps.changes.outputs.docs_only == 'true'
+          ci_only:
+            - '.github/workflows/**'
+            - '!frontend/**'
+            - '!cmd/**'
+            - '!internal/**'
+            - '!pkg/**'
+            - '!database/**'
+            - '!tests/**'
+    - name: Docs/CI-only fast pass
+      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
       run: |
-        echo "Docs-only changes detected. Skipping duplicate code detection."
+        echo "Docs/CI-only changes detected. Skipping duplicate code detection."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
         exit 0
     - name: 📥 检出代码

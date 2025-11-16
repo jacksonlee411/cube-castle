@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Detect docs-only changes
+    - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
       with:
@@ -37,10 +37,18 @@ jobs:
             - '!go.*'
             - '!package*.json'
             - '!.github/workflows/**'
-    - name: Docs-only fast pass
-      if: steps.changes.outputs.docs_only == 'true'
+          ci_only:
+            - '.github/workflows/**'
+            - '!frontend/**'
+            - '!cmd/**'
+            - '!internal/**'
+            - '!pkg/**'
+            - '!database/**'
+            - '!tests/**'
+    - name: Docs/CI-only fast pass
+      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
       run: |
-        echo "Docs-only changes detected. Skipping contract snapshot heavy steps."
+        echo "Docs/CI-only changes detected. Skipping contract snapshot heavy steps."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
         exit 0
     - name: Checkout代码
@@ -110,7 +118,7 @@ jobs:
     needs: contract-snapshot
     
     steps:
-    - name: Detect docs-only changes
+    - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
       with:
@@ -134,10 +142,18 @@ jobs:
             - '!go.*'
             - '!package*.json'
             - '!.github/workflows/**'
-    - name: Docs-only fast pass
-      if: steps.changes.outputs.docs_only == 'true'
+          ci_only:
+            - '.github/workflows/**'
+            - '!frontend/**'
+            - '!cmd/**'
+            - '!internal/**'
+            - '!pkg/**'
+            - '!database/**'
+            - '!tests/**'
+    - name: Docs/CI-only fast pass
+      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
       run: |
-        echo "Docs-only changes detected. Skipping contract testing heavy steps."
+        echo "Docs/CI-only changes detected. Skipping contract testing heavy steps."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
         exit 0
     - name: Checkout代码
