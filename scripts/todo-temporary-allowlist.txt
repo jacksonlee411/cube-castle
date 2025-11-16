@@ -5,3 +5,4 @@ docs/archive/*
 CLAUDE.md
 .github/pull_request_template.md
 frontend/tests/e2e/activate-suspend-workflow.spec.ts
+frontend/src/features/audit/components/AuditHistorySection.tsx

@@ -328,9 +328,13 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
       case 'CREATE':
         return renderCreateTable();
       case 'DELETE':
+        return renderDeleteTable();
+      // 状态类操作（停用/重新启用/作废）统一按“更新表格”展示 changes
+      // 这些事件通常仅提供 changes（以及可能的 before/after 片段），不依赖删除前快照
       case 'SUSPEND':
       case 'REACTIVATE':
-        return renderDeleteTable();
+      case 'DEACTIVATE':
+        return renderUpdateTable();
       default:
         return null;
     }
@@ -341,14 +345,15 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
     switch (operationType) {
       case 'UPDATE':
         return `字段变更详情 (${changes.length} 项)`;
+      // 状态类操作走更新语义展示
+      case 'SUSPEND':
+      case 'REACTIVATE':
+      case 'DEACTIVATE':
+        return `字段变更详情 (${changes.length} 项)`;
       case 'CREATE':
         return '创建记录 - 初始数据';
       case 'DELETE':
         return '删除记录 - 删除前状态';
-      case 'SUSPEND':
-        return '停用记录 - 操作前状态';
-      case 'REACTIVATE':
-        return '重新启用 - 操作前状态';
       default:
         return '数据变更详情';
     }
