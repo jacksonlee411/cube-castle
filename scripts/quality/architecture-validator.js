@@ -50,6 +50,12 @@ const config = {
         {
           regex: /\/organization-units\/temporal/gi,
           description: '禁止使用未立项的 /organization-units/temporal REST 路径'
+        },
+        {
+          // 直接连接后端固定端口（应通过前端单基址代理访问）
+          // 匹配 http(s)/ws(s) + :9090|:8090 或 localhost/127.0.0.1 + :9090|:8090
+          regex: /(https?:\/\/[^\s"'`]+:(9090|8090)\b)|(wss?:\/\/[^\s"'`]+:(9090|8090)\b)|\b(?:localhost|127\.0\.0\.1)\s*:(9090|8090)\b/gi,
+          description: '禁止直连后端固定端口 (:9090/:8090)，必须通过单基址代理（/api/v1、/graphql）访问'
         }
       ]
     },

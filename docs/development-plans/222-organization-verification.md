@@ -111,7 +111,7 @@ make test-db-down
 
 **任务内容**:
 ```bash
-# 通过 Docker 启动命令/查询服务
+# 通过 Docker 启动命令/查询服务（Make 统一入口）
 make run-dev
 
 # 服务健康检查（9090 = REST，8090 = GraphQL）
@@ -119,11 +119,11 @@ curl -fsS http://localhost:9090/health
 curl -fsS http://localhost:8090/health
 
 # 执行关键 API 调用
-curl -X GET http://localhost:9090/org/organizations/ORG-001
-curl -X POST http://localhost:9090/org/organizations \
+curl -X GET http://localhost:9090/api/v1/organization-units/1000000
+curl -X POST http://localhost:9090/api/v1/organization-units \
   -H "Content-Type: application/json" \
-  -d '{"code":"ORG-002","name":"New Org"}'
-curl -X PUT http://localhost:9090/org/organizations/ORG-001 \
+  -d '{"code":"1031964","name":"New Org","parentCode":"1000000","unitType":"DEPARTMENT","effectiveDate":"2025-11-15"}'
+curl -X PUT http://localhost:9090/api/v1/organization-units/1000000 \
   -H "Content-Type: application/json" \
   -d '{"name":"Updated Org"}'
 
@@ -152,12 +152,10 @@ curl -X PUT http://localhost:9090/org/organizations/ORG-001 \
 # 执行 GraphQL 查询
 curl -X POST http://localhost:8090/graphql \
   -H "Content-Type: application/json" \
-  -d '{"query":"{ organizations { id code name } }"}'
+  -d '{"query":"{ organizations { data { code name parentCode status } pagination { page pageSize total } } }"}'
 
-# 执行 GraphQL 变更（如果有）
-curl -X POST http://localhost:8090/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"mutation { createOrganization(code:\"ORG-003\", name:\"Org3\") { id code } }"}'
+# 说明：本项目严格遵循 PostgreSQL 原生 CQRS（命令=REST、查询=GraphQL），
+# GraphQL 层不提供变更接口。创建/更新/状态流转请使用 REST（参见 2.3）。
 
 # 验证响应
 # - 符合 GraphQL schema
@@ -178,29 +176,33 @@ curl -X POST http://localhost:8090/graphql \
 ```
 测试场景：完整的组织管理流程
 
-1. 创建新的组织单元
-   POST http://localhost:9090/org/organizations
+1. 创建新的组织单元（REST）
+   POST http://localhost:9090/api/v1/organization-units
 
-2. 查询组织单元详情
-   GET http://localhost:9090/org/organizations/{code}
+2. 查询组织单元详情（REST）
+   GET http://localhost:9090/api/v1/organization-units/{code}
 
-3. 创建部门
-   POST http://localhost:9090/org/departments
+3. 创建部门（REST）
+   POST http://localhost:9090/api/v1/organization-units
 
-4. 为部门创建职位
-   POST http://localhost:9090/org/positions
+4. 为部门创建职位（REST）
+   POST http://localhost:9090/api/v1/positions
 
 5. 分配员工到职位（与 workforce 模块交互）
-   POST http://localhost:9090/org/positions/{posCode}/assignments
+   POST http://localhost:9090/api/v1/positions/{posCode}/assignments
 
 6. 查询组织结构（完整树形）
-   GET http://localhost:9090/org/organizations/{code}/structure
+   GET http://localhost:8090/graphql （GraphQL：organizationSubtree/organizationHierarchy）
 
 7. 更新组织信息
-   PUT http://localhost:9090/org/organizations/{code}
+   PUT http://localhost:9090/api/v1/organization-units/{code}
 
 8. 验证审计日志记录
-   GET http://localhost:9090/org/organizations/{code}/audit-logs
+   GraphQL: auditHistory(recordId: "...") / auditLog(auditId: "...")
+   例如：
+   curl -X POST http://localhost:8090/graphql \
+     -H "Content-Type: application/json" \
+     -d '{"query":"{ auditHistory(recordId: \\\"<recordId>\\\") { auditId operation timestamp } }"}'
 ```
 
 **验收条件**:

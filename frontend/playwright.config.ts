@@ -44,16 +44,20 @@ const SKIP_SERVER = process.env.PW_SKIP_SERVER === '1';
 // 允许通过 VITE_PORT_FRONTEND_DEV + PW_BASE_URL 改变端口，避免与现有 dev server 冲突
 const FRONTEND_URL = process.env.PW_BASE_URL || `http://localhost:${SERVICE_PORTS.FRONTEND_DEV}`;
 const SAVE_HAR = process.env.E2E_SAVE_HAR === '1';
-// 240BT: 允许通过 E2E_PLAN=240BT 将 HAR 目录切换到 logs/plan240/BT
-const HAR_SUFFIX = (process.env.E2E_PLAN || '').toUpperCase() === '240BT' ? 'BT' : 'B';
-const HAR_DIR = path.resolve(__dirname, '..', 'logs', 'plan240', HAR_SUFFIX);
+// 行业最佳实践：参数化计划号，统一证据目录命名
+// E2E_PLAN_ID 优先：将 HAR/报告落盘到 logs/plan<id>/，例如 E2E_PLAN_ID=254 -> logs/plan254/
+// 兼容旧参数 E2E_PLAN=240BT 的 BT/B 后缀策略（不推荐，保留兼容）
+const PLAN_ID = process.env.E2E_PLAN_ID && /^\d+$/.test(process.env.E2E_PLAN_ID) ? process.env.E2E_PLAN_ID : '';
+const LEGACY_PLAN = (process.env.E2E_PLAN || '').toUpperCase();
+const HAR_BASE_DIR = PLAN_ID ? path.resolve(__dirname, '..', 'logs', `plan${PLAN_ID}`) 
+  : path.resolve(__dirname, '..', 'logs', 'plan240', (LEGACY_PLAN === '240BT' ? 'BT' : 'B'));
+const EVIDENCE_DIR = HAR_BASE_DIR;
+const HAR_DIR = EVIDENCE_DIR;
 const TS = Date.now();
-if (SAVE_HAR) {
-  try {
-    fs.mkdirSync(HAR_DIR, { recursive: true });
-  } catch {
-    /* ignore fs errors */
-  }
+try {
+  fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+} catch {
+  /* ignore fs errors */
 }
 
 // 通用计划号：用于证据与 JSON 结果归档的目录 logs/plan<ID>/*
