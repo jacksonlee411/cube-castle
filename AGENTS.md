@@ -92,6 +92,7 @@
 > 附：密钥与本地开发约定
 - 仓库通过 `.gitignore` 忽略 `secrets/*`，仅跟踪占位文件（`secrets/.gitkeep`、`secrets/README.md`）；密钥不应出现在任何提交中。
 - 本地开发请使用 `make jwt-dev-setup` 生成 RS256 密钥对（若不存在会自动生成），并结合 `make jwt-dev-mint` 获取会话令牌（保存在 `.cache/dev.jwt`）。
+- CI/Actions 访问令牌：在 `secrets/.env.local` 配置 `GITHUB_TOKEN`（或 `GH_TOKEN`）；脚本 `scripts/ci/monitor-ci.sh`、`scripts/ci/fetch-gh-summary.sh`、`scripts/ci/fetch-gh-artifact.sh` 会按顺序自动加载（`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量）。本地已放置令牌，代理在同一会话内默认具备访问权限，无需重复确认。
 
 ## 单一事实来源索引（权威链接）
 - API 契约：`docs/api/openapi.yaml`（REST + 权限 scopes）、`docs/api/schema.graphql`（GraphQL）

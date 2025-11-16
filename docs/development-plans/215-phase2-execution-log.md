@@ -173,6 +173,9 @@
   - 产物/证据：`logs/plan257/*`、`reports/facade/coverage.json`（覆盖率报告；阻断阈值≥0.8）、E2E/单测通过记录  
   - 工作流：`.github/workflows/plan-257-gates.yml`（已切换为阈值 0.8 阻断；请在受保护分支设置为 Required check）  
   - 文档：`docs/development-plans/257-frontend-domain-api-facade-adoption.md`
+  - 本次 CI 运行（登记）：  
+    - Run: https://github.com/jacksonlee411/cube-castle/actions/runs/19405921517（结论：success）  
+    - 工件：`logs/plan257/ci-artifacts/coverage.json`（coverage=1.25；threshold=0.8；offenders=[tests-only]）  
 
 - 258 · 契约漂移校验与门禁（阶段2）  
   - 计划窗口：TBD（W?）  
