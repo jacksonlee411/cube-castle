@@ -138,3 +138,4 @@
 - 执行登记：docs/development-plans/215-phase2-execution-log.md
 - 变更通告：CHANGELOG.md
 - 原则索引：AGENTS.md
+- 子计划：259A（docs/development-plans/259A-protocol-duplication-and-whitelist-hardening.md）

@@ -1,0 +1,62 @@
+{
+  "timestamp": "20251116_162323",
+  "whitelist": [
+    "/.well-known/jwks.json",
+    "/api/v1/operational/**",
+    "/auth/**"
+  ],
+  "failThreshold": 1,
+  "restGetPathsAll": [
+    "/.well-known/jwks.json",
+    "/.well-known/oidc",
+    "/api/v1/operational/alerts",
+    "/api/v1/operational/health",
+    "/api/v1/operational/metrics",
+    "/api/v1/operational/rate-limit/stats",
+    "/api/v1/operational/tasks",
+    "/api/v1/operational/tasks/status",
+    "/api/v1/positions/{code}/assignments",
+    "/auth/callback",
+    "/auth/login",
+    "/auth/logout",
+    "/auth/session"
+  ],
+  "restBusinessGetPaths": [
+    "/api/v1/positions/{code}/assignments"
+  ],
+  "restBusinessGetCount": 1,
+  "graphqlQueries": [
+    "assignmentHistory",
+    "assignmentStats",
+    "assignments",
+    "auditHistory",
+    "auditLog",
+    "hierarchyStatistics",
+    "jobFamilies",
+    "jobFamilyGroups",
+    "jobLevels",
+    "jobRoles",
+    "organization",
+    "organizationHierarchy",
+    "organizationStats",
+    "organizationSubtree",
+    "organizationVersions",
+    "organizations",
+    "position",
+    "positionAssignmentAudit",
+    "positionAssignments",
+    "positionHeadcountStats",
+    "positionTimeline",
+    "positionTransfers",
+    "positionVersions",
+    "positions",
+    "vacantPositions"
+  ],
+  "heuristicDuplicateMapping": {
+    "/api/v1/positions/{code}/assignments": [
+      "positionAssignments",
+      "assignments"
+    ]
+  },
+  "failed": false
+}

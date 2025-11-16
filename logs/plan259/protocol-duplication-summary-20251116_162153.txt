@@ -1,0 +1,5 @@
+Plan 259A – Protocol Duplication Matrix @ 20251116_162153
+REST GET (all): 13
+REST business GET (filtered): 1 (threshold=1)
+Whitelist: /.well-known/jwks.json, /api/v1/operational/**, /auth/**
+Output JSON: reports/plan259/protocol-duplication-matrix.json

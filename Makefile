@@ -2,9 +2,12 @@
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
 .PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
- .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
+.PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 .PHONY: generate-contracts verify-contracts
 .PHONY: guard-plan258
+.PHONY: guard-plan257
+.PHONY: guard-plan259
+.PHONY: watch-plan258
 
 export SCHEDULER_ENABLED ?= false
 export SCHEDULER_MONITOR_ENABLED ?= true
@@ -66,6 +69,10 @@ help:
 	@echo ""
 	@echo "🛡️ 门禁（Plan 258）:"
 	@echo "  guard-plan258     - 契约漂移字段矩阵门禁（OpenAPI↔GraphQL，阻断；产出报告）"
+	@echo ""
+	@echo "🛡️ 门禁（Plan 259A）:"
+	@echo "  guard-plan259     - 协议重复矩阵 + 白名单固化（报告/可阻断；产出 reports/plan259/**）"
+	@echo "  watch-plan258     - 监听 plan-258-gates 最近一次运行（master），直到完成并打印结果"
 	@echo ""
 	@echo "📋 契约（Plan 256）:"
 	@echo "  generate-contracts - 从契约生成 Go/TS 类型并记录日志 (logs/plan256)"
@@ -398,6 +405,23 @@ guard-plan258:
 	@ts=$$(date +%Y%m%d_%H%M%S); \
 	node scripts/contract/drift-check.js --include-fields --fail-on-diff 2>&1 | tee logs/plan258/gate-$$ts.log ; \
 	cp -f reports/contracts/drift-report.json logs/plan258/drift-report-$$ts.json || true
+
+# Plan 259A - 协议重复矩阵与白名单固化（聚合入口）
+guard-plan259:
+	@echo "🛡️ Plan 259A – 协议重复矩阵与白名单固化..."
+	@mkdir -p logs/plan259 reports/plan259
+	@ts=$$(date -u +%Y%m%d_%H%M%S); \
+	echo "→ 生成权限契约与映射报告（Plan 252 脚本产物，供 258 聚合）"; \
+	node scripts/quality/auth-permission-contract-validator.js --openapi docs/api/openapi.yaml --graphql docs/api/schema.graphql --out reports/permissions 2>&1 | tee logs/plan259/permissions-summary-$$ts.txt ; \
+	echo "→ 生成协议重复矩阵（REST 业务 GET ↔ GraphQL Query）"; \
+	node scripts/quality/protocol-duplication-matrix.js --openapi docs/api/openapi.yaml --graphql docs/api/schema.graphql --out reports/plan259/protocol-duplication-matrix.json 2>&1 | tee -a logs/plan259/guard-plan259-$$ts.log ; \
+	echo "✔ 输出: reports/plan259/, logs/plan259/"; \
+	echo "ℹ️  失败阈值可用 PLAN259_BUSINESS_GET_THRESHOLD 配置（默认=1；硬门禁期设为 0）"
+
+# Plan 258 - 监听最近一次工作流运行（master）
+watch-plan258:
+	@echo "👀 Watching latest plan-258-gates run on master..."
+	@bash scripts/ci/watch-actions-run.sh --workflow plan-258-gates --branch master --interval 10 --timeout 1800
 
 # 迁移即真源：按序执行 database/migrations/*.sql（Goose）
 db-migrate-all:

@@ -1,0 +1,8 @@
+{
+  "timestamp": "20251116_154725",
+  "total": 1,
+  "whitelist": ["/.well-known/jwks.json","/api/v1/operational/**","/auth/**"],
+  "paths": [
+    "/api/v1/positions/{code}/assignments"
+  ]
+}
