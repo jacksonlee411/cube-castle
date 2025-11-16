@@ -18,6 +18,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import type { OrganizationStatus } from '@/shared/types';
 import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import { unifiedGraphQLClient } from '../../../shared/api/unified-client';
+import { getOrganizationByCode } from '@/shared/api/facade/organization';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
 import { useNavigate } from 'react-router-dom';
 // SecondaryButton 已在上方导入
@@ -347,7 +348,31 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           const mapped = mapOrganizationNode(subtree, true);
           setTreeData(showRoot ? [mapped] : mapped.children);
         } else {
-          setTreeData([]);
+          // Facade 回退：当子树为空时，尝试获取当前组织快照以至少渲染根节点
+          try {
+            const root = code ? await getOrganizationByCode(code) : null;
+            if (root) {
+              const mappedRoot: OrganizationTreeNode = {
+                code: root.code,
+                name: root.name,
+                unitType: String(root.unitType),
+                status: String(root.status),
+                level: root.level ?? coerceOrganizationLevel(undefined),
+                parentCode: root.parentCode ?? null ?? undefined,
+                codePath: root.codePath ?? undefined ?? undefined,
+                namePath: root.namePath ?? undefined ?? undefined,
+                parentChain: toParentChainFromCodePath(root.codePath ?? undefined) ?? [],
+                childrenCount: 0,
+                children: [],
+                isExpanded: false,
+              };
+              setTreeData([mappedRoot]);
+            } else {
+              setTreeData([]);
+            }
+          } catch (_fallback) {
+            setTreeData([]);
+          }
         }
       } else {
         const graphqlQuery = `

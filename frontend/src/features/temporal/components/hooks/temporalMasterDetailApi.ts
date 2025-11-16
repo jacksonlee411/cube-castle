@@ -3,6 +3,11 @@ import {
   unifiedGraphQLClient,
   unifiedRESTClient,
 } from "@/shared/api/unified-client";
+import {
+  listOrganizationVersions,
+  getOrganizationByCode,
+  createOrganization as facadeCreateOrganization,
+} from '@/shared/api/facade/organization';
 import { env } from "@/shared/config/environment";
 import type { OrganizationRequest } from "@/shared/types/organization";
 import type { TemporalVersionPayload } from "@/shared/types/temporal";
@@ -34,13 +39,7 @@ interface OrganizationVersion extends OrganizationTimelineSource {
   updatedAt: string;
 }
 
-interface OrganizationVersionsResponse {
-  organizationVersions: OrganizationVersion[];
-}
-
-interface OrganizationSnapshotResponse {
-  organization: OrganizationVersion | null;
-}
+// 版本与快照查询改由 Facade 提供
 
 interface TimelineItemResponse extends OrganizationTimelineSource {
   recordId: string;
@@ -76,12 +75,7 @@ interface SuccessEnvelope<T> {
 
 type OrganizationEventResponse = SuccessEnvelope<TimelineEventData>;
 
-interface OrganizationCreationData {
-  code?: string;
-  organization?: { code?: string };
-}
-
-type CreateOrganizationResponse = SuccessEnvelope<OrganizationCreationData> & OrganizationCreationData;
+// 创建组织的响应由 Facade 处理，此处不再定义本地类型
 
 export interface FetchVersionsResult {
   versions: TimelineVersion[];
@@ -93,48 +87,7 @@ interface GraphQLResponseError {
   message?: string;
 }
 
-const ORGANIZATION_VERSIONS_QUERY = `
-  query TemporalEntityOrganizationVersions($code: String!) {
-    organizationVersions(code: $code) {
-      recordId
-      code
-      name
-      unitType
-      status
-      level
-      codePath
-      namePath
-      effectiveDate
-      endDate
-      createdAt
-      updatedAt
-      parentCode
-      description
-    }
-  }
-`;
-
-const ORGANIZATION_SNAPSHOT_QUERY = `
-  query TemporalEntityOrganizationSnapshot($code: String!) {
-    organization(code: $code) {
-      code
-      name
-      unitType
-      status
-      level
-      codePath
-      namePath
-      effectiveDate
-      endDate
-      createdAt
-      updatedAt
-      recordId
-      parentCode
-      description
-      hierarchyDepth
-    }
-  }
-`;
+// GraphQL 查询常量：仅保留层级路径查询（其余由 Facade 承担）
 
 const ORGANIZATION_HIERARCHY_QUERY = `
   query TemporalEntityHierarchyPaths($code: String!, $tenantId: String!) {
@@ -158,11 +111,9 @@ export const fetchOrganizationVersions = async (
   organizationCode: string,
 ): Promise<FetchVersionsResult> => {
   try {
-    const data = await unifiedGraphQLClient.request<OrganizationVersionsResponse>(
-      ORGANIZATION_VERSIONS_QUERY,
-      { code: organizationCode },
-    );
-    return { versions: mapOrganizationVersions(data.organizationVersions) };
+    // Plan 257: 优先通过 Facade 查询
+    const list = await listOrganizationVersions(organizationCode);
+    return { versions: mapOrganizationVersions(list as unknown as OrganizationVersion[]) };
   } catch (graphqlError) {
     logger.warn(
       "organizationVersions查询失败，回退到单体快照逻辑:",
@@ -170,13 +121,10 @@ export const fetchOrganizationVersions = async (
     );
 
     try {
-      const data = await unifiedGraphQLClient.request<OrganizationSnapshotResponse>(
-        ORGANIZATION_SNAPSHOT_QUERY,
-        { code: organizationCode },
-      );
-
-      const snapshotVersions = data.organization
-        ? mapOrganizationVersions([data.organization])
+      // 回退使用 Facade 快照
+      const snapshot = await getOrganizationByCode(organizationCode);
+      const snapshotVersions = snapshot
+        ? mapOrganizationVersions([snapshot as unknown as OrganizationVersion])
         : [];
 
       return {
@@ -242,27 +190,9 @@ export const deactivateOrganizationVersion = async (
 export const createOrganizationUnit = async (
   payload: OrganizationRequest,
 ): Promise<string | null> => {
-  const result = await unifiedRESTClient.request<CreateOrganizationResponse>(
-    "/organization-units",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-  );
-
-  if (result.data?.code) {
-    return result.data.code;
-  }
-
-  if (result.data?.organization?.code) {
-    return result.data.organization.code;
-  }
-
-  if (result.code) {
-    return result.code;
-  }
-
-  return result.organization?.code ?? null;
+  // Plan 257: 通过 Facade 创建组织
+  const unit = await facadeCreateOrganization(payload);
+  return unit?.code ?? null;
 };
 
 export const createTemporalVersion = async (

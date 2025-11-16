@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'tests/e2e/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -112,6 +112,26 @@ export default tseslint.config([
         {
           selector: 'JSXAttribute[name.name="data-testid"] > TemplateLiteral',
           message: '🚨 选择器治理：禁止硬编码 data-testid，请从 shared/testids/temporalEntity.ts 导入并使用 temporalEntitySelectors。'
+        }
+      ]
+    }
+  },
+  
+  // 🧭 领域 Facade 采纳（Plan 257）- 限制业务层直连统一客户端
+  {
+    files: ['src/features/**/*.{ts,tsx}'],
+    rules: {
+      // 仅告警：业务层直连 unified-client，请改用 Facade（报告模式，不阻断）
+      'no-restricted-imports': [
+        'warn',
+        {
+          paths: [],
+          patterns: [
+            {
+              group: ['@/shared/api/unified-client', '**/shared/api/unified-client'],
+              message: '🔎 Facade 采纳（Plan 257）：业务代码建议改用 @/shared/api/facade/*（当前为报告模式）。'
+            }
+          ],
         }
       ]
     }

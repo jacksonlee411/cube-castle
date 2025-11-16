@@ -14,6 +14,8 @@ export * from './unified-client';
 export * from './graphql-enterprise-adapter';
 export * from './auth';
 export * from './queryClient';
+// 🧭 领域 Facade（Plan 257）
+export * from './facade/organization';
 
 // 🛡️ 统一错误处理体系 (P1级重复代码消除完成)
 export * from './error-handling';

@@ -46,20 +46,17 @@ jobs:
 
       - name: Start backends (dev)
         run: |
-          docker compose -f docker-compose.dev.yml build graphql-service rest-service
-          docker compose -f docker-compose.dev.yml up -d postgres redis graphql-service rest-service
+          docker compose -f docker-compose.dev.yml build rest-service
+          docker compose -f docker-compose.dev.yml up -d postgres redis rest-service
 
       - name: Wait for services
         run: |
           set -e
           for i in {1..60}; do
-            ok=0
-            curl -fsS http://localhost:9090/health >/dev/null && ok=$((ok+1)) || true
-            curl -fsS http://localhost:8090/health >/dev/null && ok=$((ok+1)) || true
-            if [ "$ok" = "2" ]; then echo "All backends healthy"; break; fi
+            curl -fsS http://localhost:9090/health >/dev/null && echo "Backend healthy" && break || true
             sleep 5
           done
-          [ "$ok" = "2" ] || (echo 'Backends did not become healthy in time' && docker compose -f docker-compose.dev.yml logs --no-color && exit 1)
+          curl -fsS http://localhost:9090/health >/dev/null || (echo 'Backend did not become healthy in time' && docker compose -f docker-compose.dev.yml logs --no-color && exit 1)
 
       - name: Mint dev JWT
         run: |

@@ -71,3 +71,15 @@
 - 验收负责人: Codex（AI 助手）  
 - 验收日期: 2025-11-15  
 - 状态: ⏳ PARTIAL PASS — 核心路径 PASS；待 232/252、GraphQL 路由修复与覆盖率/222B 达标后更新为 ✅ PASSED（改进项已纳入 232/255/256/222B）
+
+---
+
+附：Plan 222 关单 PR 与证据索引（自动记录）
+- PR: https://github.com/jacksonlee411/cube-castle/pull/6 （docs+scripts；Runner 对齐 CQRS SSoT、默认父组织 1000000、完善证据采集）
+- 本地可复现采集命令：
+  - REST_BASE=http://localhost:9090 GRAPHQL_BASE=http://localhost:8090 ORG_PARENT_CODE=1000000 bash scripts/plan222/run-acceptance.sh
+- 产物路径（不入库，供本地/CI 工件查看）：logs/plan222/
+  - root-create-*.{txt,json}（父组织缺失时的根组织引导证据）
+  - create-*.{txt,json} / put-*.{txt,json}（写路径响应与 HTTP 状态）
+  - graphql-query-*-auth.json（授权查询成功）；无授权探测记录
+  - coverage-org-*.{out,txt,html}（组合 total 与顶层关键包覆盖率佐证）
