@@ -1,5 +1,5 @@
 {
-  "timestamp": "20251116_162323",
+  "timestamp": "20251116_185523",
   "whitelist": [
     "/.well-known/jwks.json",
     "/api/v1/operational/**",
@@ -15,16 +15,13 @@
     "/api/v1/operational/rate-limit/stats",
     "/api/v1/operational/tasks",
     "/api/v1/operational/tasks/status",
-    "/api/v1/positions/{code}/assignments",
     "/auth/callback",
     "/auth/login",
     "/auth/logout",
     "/auth/session"
   ],
-  "restBusinessGetPaths": [
-    "/api/v1/positions/{code}/assignments"
-  ],
-  "restBusinessGetCount": 1,
+  "restBusinessGetPaths": [],
+  "restBusinessGetCount": 0,
   "graphqlQueries": [
     "assignmentHistory",
     "assignmentStats",
@@ -52,11 +49,6 @@
     "positions",
     "vacantPositions"
   ],
-  "heuristicDuplicateMapping": {
-    "/api/v1/positions/{code}/assignments": [
-      "positionAssignments",
-      "assignments"
-    ]
-  },
+  "heuristicDuplicateMapping": {},
   "failed": false
 }
