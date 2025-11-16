@@ -110,17 +110,19 @@ export const CQRS_ENDPOINTS = {
     '/auth/dev-token',
   ),
   METRICS_COMMAND: buildServiceURL('REST_COMMAND_SERVICE', '/metrics'),
-  QUERY_BASE: buildServiceOrigin('GRAPHQL_QUERY_SERVICE'),
+  // Plan 250A – 运行时合流：GraphQL 由单体进程提供（端口 9090）
+  // 为保持前端“单基址”代理与 E2E 一致性，这里将 QUERY_* 映射到 REST_COMMAND_SERVICE
+  QUERY_BASE: buildServiceOrigin('REST_COMMAND_SERVICE'),
   GRAPHQL_ENDPOINT: resolveConfiguredEndpoint(
     env.graphqlEndpoint,
-    'GRAPHQL_QUERY_SERVICE',
+    'REST_COMMAND_SERVICE',
     '/graphql',
   ),
   GRAPHQL_PLAYGROUND: buildServiceURL(
-    'GRAPHQL_QUERY_SERVICE',
+    'REST_COMMAND_SERVICE',
     '/graphiql',
   ),
-  METRICS_QUERY: buildServiceURL('GRAPHQL_QUERY_SERVICE', '/metrics'),
+  METRICS_QUERY: buildServiceURL('REST_COMMAND_SERVICE', '/metrics'),
 } as const;
 
 export const FRONTEND_ENDPOINTS = {

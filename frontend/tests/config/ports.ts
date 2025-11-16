@@ -11,6 +11,7 @@ export const TEST_ENDPOINTS = {
   
   // 后端服务 (直连，不通过代理)
   REST_COMMAND: CQRS_ENDPOINTS.COMMAND_BASE,
+  // 运行时已合流：GraphQL 由单体进程 (:9090) 提供
   GRAPHQL_QUERY: CQRS_ENDPOINTS.QUERY_BASE,
   GRAPHQL_ENDPOINT: CQRS_ENDPOINTS.GRAPHQL_ENDPOINT,
   
@@ -25,7 +26,7 @@ export const TEST_ENDPOINTS = {
 
 // 🎯 测试用端口列表 (用于健康检查)
 export const TEST_SERVICE_PORTS = [
-  SERVICE_PORTS.GRAPHQL_QUERY_SERVICE,   // 8090
+  // GraphQL 已由单体进程提供，仅检查 9090
   SERVICE_PORTS.REST_COMMAND_SERVICE     // 9090
 ] as const;
 

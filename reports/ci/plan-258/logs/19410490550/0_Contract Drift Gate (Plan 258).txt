@@ -1,0 +1,261 @@
+﻿2025-11-16T18:58:16.1152156Z Current runner version: '2.329.0'
+2025-11-16T18:58:16.1175923Z ##[group]Runner Image Provisioner
+2025-11-16T18:58:16.1176669Z Hosted Compute Agent
+2025-11-16T18:58:16.1177331Z Version: 20251016.436
+2025-11-16T18:58:16.1177945Z Commit: 8ab8ac8bfd662a3739dab9fe09456aba92132568
+2025-11-16T18:58:16.1178593Z Build Date: 2025-10-15T20:44:12Z
+2025-11-16T18:58:16.1179254Z ##[endgroup]
+2025-11-16T18:58:16.1179782Z ##[group]Operating System
+2025-11-16T18:58:16.1180329Z Ubuntu
+2025-11-16T18:58:16.1180848Z 24.04.3
+2025-11-16T18:58:16.1181330Z LTS
+2025-11-16T18:58:16.1181774Z ##[endgroup]
+2025-11-16T18:58:16.1182336Z ##[group]Runner Image
+2025-11-16T18:58:16.1183289Z Image: ubuntu-24.04
+2025-11-16T18:58:16.1183788Z Version: 20251112.124.1
+2025-11-16T18:58:16.1184922Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251112.124/images/ubuntu/Ubuntu2404-Readme.md
+2025-11-16T18:58:16.1186651Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251112.124
+2025-11-16T18:58:16.1187699Z ##[endgroup]
+2025-11-16T18:58:16.1188794Z ##[group]GITHUB_TOKEN Permissions
+2025-11-16T18:58:16.1190883Z Contents: read
+2025-11-16T18:58:16.1191470Z Metadata: read
+2025-11-16T18:58:16.1191941Z Packages: read
+2025-11-16T18:58:16.1192774Z ##[endgroup]
+2025-11-16T18:58:16.1195154Z Secret source: Actions
+2025-11-16T18:58:16.1196165Z Prepare workflow directory
+2025-11-16T18:58:16.1631842Z Prepare all required actions
+2025-11-16T18:58:16.1687985Z Getting action download info
+2025-11-16T18:58:16.6203339Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-11-16T18:58:17.7157784Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-11-16T18:58:17.9128214Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-11-16T18:58:18.2906508Z Complete job name: Contract Drift Gate (Plan 258)
+2025-11-16T18:58:18.3716131Z ##[group]Run actions/checkout@v4
+2025-11-16T18:58:18.3717481Z with:
+2025-11-16T18:58:18.3718301Z   repository: jacksonlee411/cube-castle
+2025-11-16T18:58:18.3719630Z   token: ***
+2025-11-16T18:58:18.3720399Z   ssh-strict: true
+2025-11-16T18:58:18.3721206Z   ssh-user: git
+2025-11-16T18:58:18.3722030Z   persist-credentials: true
+2025-11-16T18:58:18.3723124Z   clean: true
+2025-11-16T18:58:18.3723944Z   sparse-checkout-cone-mode: true
+2025-11-16T18:58:18.3724945Z   fetch-depth: 1
+2025-11-16T18:58:18.3725752Z   fetch-tags: false
+2025-11-16T18:58:18.3726578Z   show-progress: true
+2025-11-16T18:58:18.3727404Z   lfs: false
+2025-11-16T18:58:18.3728168Z   submodules: false
+2025-11-16T18:58:18.3729002Z   set-safe-directory: true
+2025-11-16T18:58:18.3730159Z ##[endgroup]
+2025-11-16T18:58:18.4890709Z Syncing repository: jacksonlee411/cube-castle
+2025-11-16T18:58:18.4894432Z ##[group]Getting Git version info
+2025-11-16T18:58:18.4896416Z Working directory is '/home/runner/work/cube-castle/cube-castle'
+2025-11-16T18:58:18.4899233Z [command]/usr/bin/git version
+2025-11-16T18:58:18.7634430Z git version 2.51.2
+2025-11-16T18:58:18.7646458Z ##[endgroup]
+2025-11-16T18:58:18.7658396Z Temporarily overriding HOME='/home/runner/work/_temp/24d22885-afd3-42a6-9951-1504169a39da' before making global git config changes
+2025-11-16T18:58:18.7673645Z Adding repository directory to the temporary git global config as a safe directory
+2025-11-16T18:58:18.7678688Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:18.7833774Z Deleting the contents of '/home/runner/work/cube-castle/cube-castle'
+2025-11-16T18:58:18.7839038Z ##[group]Initializing the repository
+2025-11-16T18:58:18.7843600Z [command]/usr/bin/git init /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:18.9403699Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-11-16T18:58:18.9406272Z hint: is subject to change. To configure the initial branch name to use in all
+2025-11-16T18:58:18.9408672Z hint: of your new repositories, which will suppress this warning, call:
+2025-11-16T18:58:18.9410715Z hint:
+2025-11-16T18:58:18.9412347Z hint: 	git config --global init.defaultBranch <name>
+2025-11-16T18:58:18.9414151Z hint:
+2025-11-16T18:58:18.9415916Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-11-16T18:58:18.9418280Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-11-16T18:58:18.9420104Z hint:
+2025-11-16T18:58:18.9421440Z hint: 	git branch -m <name>
+2025-11-16T18:58:18.9422950Z hint:
+2025-11-16T18:58:18.9424640Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-11-16T18:58:18.9516793Z Initialized empty Git repository in /home/runner/work/cube-castle/cube-castle/.git/
+2025-11-16T18:58:18.9530497Z [command]/usr/bin/git remote add origin https://github.com/jacksonlee411/cube-castle
+2025-11-16T18:58:18.9718198Z ##[endgroup]
+2025-11-16T18:58:18.9720718Z ##[group]Disabling automatic garbage collection
+2025-11-16T18:58:18.9724364Z [command]/usr/bin/git config --local gc.auto 0
+2025-11-16T18:58:18.9755201Z ##[endgroup]
+2025-11-16T18:58:18.9757403Z ##[group]Setting up auth
+2025-11-16T18:58:18.9761456Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-11-16T18:58:18.9797361Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-11-16T18:58:19.4401104Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-11-16T18:58:19.4448021Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-11-16T18:58:19.4721260Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-11-16T18:58:19.4793379Z ##[endgroup]
+2025-11-16T18:58:19.4795068Z ##[group]Fetching the repository
+2025-11-16T18:58:19.4819183Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +318f912072f1e3eb2bfae33bb7580f47c63ec349:refs/remotes/origin/feature/259-remove-rest-assignments
+2025-11-16T18:58:23.3941970Z From https://github.com/jacksonlee411/cube-castle
+2025-11-16T18:58:23.3944412Z  * [new ref]         318f912072f1e3eb2bfae33bb7580f47c63ec349 -> origin/feature/259-remove-rest-assignments
+2025-11-16T18:58:23.4109627Z ##[endgroup]
+2025-11-16T18:58:23.4110300Z ##[group]Determining the checkout info
+2025-11-16T18:58:23.4116954Z ##[endgroup]
+2025-11-16T18:58:23.4117837Z [command]/usr/bin/git sparse-checkout disable
+2025-11-16T18:58:23.4294307Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-11-16T18:58:23.4326094Z ##[group]Checking out the ref
+2025-11-16T18:58:23.4329410Z [command]/usr/bin/git checkout --progress --force -B feature/259-remove-rest-assignments refs/remotes/origin/feature/259-remove-rest-assignments
+2025-11-16T18:58:24.4399501Z Updating files:  56% (1632/2885)
+2025-11-16T18:58:24.4415470Z Updating files:  57% (1645/2885)
+2025-11-16T18:58:24.4436100Z Updating files:  58% (1674/2885)
+2025-11-16T18:58:24.4466034Z Updating files:  59% (1703/2885)
+2025-11-16T18:58:24.4483669Z Updating files:  60% (1731/2885)
+2025-11-16T18:58:24.4511246Z Updating files:  61% (1760/2885)
+2025-11-16T18:58:24.4535951Z Updating files:  62% (1789/2885)
+2025-11-16T18:58:24.4560812Z Updating files:  63% (1818/2885)
+2025-11-16T18:58:24.4579816Z Updating files:  64% (1847/2885)
+2025-11-16T18:58:24.4595769Z Updating files:  65% (1876/2885)
+2025-11-16T18:58:24.4619221Z Updating files:  66% (1905/2885)
+2025-11-16T18:58:24.4632184Z Updating files:  67% (1933/2885)
+2025-11-16T18:58:24.4651736Z Updating files:  68% (1962/2885)
+2025-11-16T18:58:24.4666084Z Updating files:  69% (1991/2885)
+2025-11-16T18:58:24.4708226Z Updating files:  70% (2020/2885)
+2025-11-16T18:58:24.4723670Z Updating files:  71% (2049/2885)
+2025-11-16T18:58:24.4743112Z Updating files:  72% (2078/2885)
+2025-11-16T18:58:24.4773786Z Updating files:  73% (2107/2885)
+2025-11-16T18:58:24.4797602Z Updating files:  74% (2135/2885)
+2025-11-16T18:58:24.4819482Z Updating files:  75% (2164/2885)
+2025-11-16T18:58:24.4884493Z Updating files:  76% (2193/2885)
+2025-11-16T18:58:24.4890052Z Updating files:  77% (2222/2885)
+2025-11-16T18:58:24.4920024Z Updating files:  78% (2251/2885)
+2025-11-16T18:58:24.4952631Z Updating files:  79% (2280/2885)
+2025-11-16T18:58:24.4976625Z Updating files:  80% (2308/2885)
+2025-11-16T18:58:24.5027736Z Updating files:  81% (2337/2885)
+2025-11-16T18:58:24.5030286Z Updating files:  82% (2366/2885)
+2025-11-16T18:58:24.5750825Z Updating files:  83% (2395/2885)
+2025-11-16T18:58:24.5769769Z Updating files:  84% (2424/2885)
+2025-11-16T18:58:24.5785113Z Updating files:  85% (2453/2885)
+2025-11-16T18:58:24.5807232Z Updating files:  86% (2482/2885)
+2025-11-16T18:58:24.5844894Z Updating files:  87% (2510/2885)
+2025-11-16T18:58:24.5996153Z Updating files:  88% (2539/2885)
+2025-11-16T18:58:24.6017628Z Updating files:  89% (2568/2885)
+2025-11-16T18:58:24.6043060Z Updating files:  90% (2597/2885)
+2025-11-16T18:58:24.6075096Z Updating files:  91% (2626/2885)
+2025-11-16T18:58:24.6105161Z Updating files:  92% (2655/2885)
+2025-11-16T18:58:24.6128304Z Updating files:  93% (2684/2885)
+2025-11-16T18:58:24.6150322Z Updating files:  94% (2712/2885)
+2025-11-16T18:58:24.6167279Z Updating files:  95% (2741/2885)
+2025-11-16T18:58:24.6185214Z Updating files:  96% (2770/2885)
+2025-11-16T18:58:24.6215106Z Updating files:  97% (2799/2885)
+2025-11-16T18:58:24.6237682Z Updating files:  98% (2828/2885)
+2025-11-16T18:58:24.6254032Z Updating files:  99% (2857/2885)
+2025-11-16T18:58:24.6255383Z Updating files: 100% (2885/2885)
+2025-11-16T18:58:24.6256172Z Updating files: 100% (2885/2885), done.
+2025-11-16T18:58:24.6302354Z Switched to a new branch 'feature/259-remove-rest-assignments'
+2025-11-16T18:58:24.6306951Z branch 'feature/259-remove-rest-assignments' set up to track 'origin/feature/259-remove-rest-assignments'.
+2025-11-16T18:58:24.6353227Z ##[endgroup]
+2025-11-16T18:58:24.6394762Z [command]/usr/bin/git log -1 --format=%H
+2025-11-16T18:58:24.6418708Z 318f912072f1e3eb2bfae33bb7580f47c63ec349
+2025-11-16T18:58:24.6648486Z ##[group]Run actions/setup-node@v4
+2025-11-16T18:58:24.6648738Z with:
+2025-11-16T18:58:24.6648900Z   node-version: 20
+2025-11-16T18:58:24.6649079Z   cache: npm
+2025-11-16T18:58:24.6649273Z   cache-dependency-path: package-lock.json
+2025-11-16T18:58:24.6649525Z   always-auth: false
+2025-11-16T18:58:24.6649704Z   check-latest: false
+2025-11-16T18:58:24.6650012Z   token: ***
+2025-11-16T18:58:24.6650186Z ##[endgroup]
+2025-11-16T18:58:24.9612167Z Found in cache @ /opt/hostedtoolcache/node/20.19.5/x64
+2025-11-16T18:58:24.9620493Z ##[group]Environment details
+2025-11-16T18:58:30.2103534Z node: v20.19.5
+2025-11-16T18:58:30.2104438Z npm: 10.8.2
+2025-11-16T18:58:30.2105061Z yarn: 1.22.22
+2025-11-16T18:58:30.2109842Z ##[endgroup]
+2025-11-16T18:58:30.2135521Z [command]/opt/hostedtoolcache/node/20.19.5/x64/bin/npm config get cache
+2025-11-16T18:58:30.7787988Z /home/runner/.npm
+2025-11-16T18:58:31.0203645Z Cache hit for: node-cache-Linux-x64-npm-a00cb041fa23c30e8a7d8e22537888f651163c9c2fc97cc265dc1555af3af4a3
+2025-11-16T18:58:31.6389969Z Received 33071179 of 33071179 (100.0%), 62.5 MBs/sec
+2025-11-16T18:58:31.6392904Z Cache Size: ~32 MB (33071179 B)
+2025-11-16T18:58:31.6423391Z [command]/usr/bin/tar -xf /home/runner/work/_temp/aeccb7c7-2c9c-4ced-ae7c-38f036e7ecac/cache.tzst -P -C /home/runner/work/cube-castle/cube-castle --use-compress-program unzstd
+2025-11-16T18:58:31.8860757Z Cache restored successfully
+2025-11-16T18:58:31.8927586Z Cache restored from key: node-cache-Linux-x64-npm-a00cb041fa23c30e8a7d8e22537888f651163c9c2fc97cc265dc1555af3af4a3
+2025-11-16T18:58:31.9079482Z ##[group]Run npm ci
+2025-11-16T18:58:31.9079775Z [36;1mnpm ci[0m
+2025-11-16T18:58:31.9193906Z shell: /usr/bin/bash -e {0}
+2025-11-16T18:58:31.9194165Z ##[endgroup]
+2025-11-16T18:58:37.1548239Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-11-16T18:58:37.4255810Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-11-16T18:58:37.5038661Z npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+2025-11-16T18:58:40.4291027Z 
+2025-11-16T18:58:40.4291583Z added 618 packages in 8s
+2025-11-16T18:58:40.4648897Z ##[group]Run bash scripts/contract/sync.sh
+2025-11-16T18:58:40.4649240Z [36;1mbash scripts/contract/sync.sh[0m
+2025-11-16T18:58:40.4683921Z shell: /usr/bin/bash -e {0}
+2025-11-16T18:58:40.4684156Z ##[endgroup]
+2025-11-16T18:58:40.4777115Z 📋 [契约同步] 开始...
+2025-11-16T18:58:40.4780055Z   工作目录: /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:40.4780756Z   → 提取 OpenAPI 契约...
+2025-11-16T18:58:40.5564799Z [OpenAPI] ✗ 解析失败: duplicated mapping key (1929:5)
+2025-11-16T18:58:40.5565407Z 
+2025-11-16T18:58:40.5573772Z  1926 |   # - positionAssignments(position ...
+2025-11-16T18:58:40.5574421Z  1927 |   # - assignments(organizationCode ...
+2025-11-16T18:58:40.5574866Z  1928 | 
+2025-11-16T18:58:40.5575159Z  1929 |     post:
+2025-11-16T18:58:40.5575478Z ------------^
+2025-11-16T18:58:40.5575894Z  1930 |       operationId: createPositionA ...
+2025-11-16T18:58:40.5576414Z  1931 |       tags: [positions]
+2025-11-16T18:58:40.5641640Z ##[error]Process completed with exit code 1.
+2025-11-16T18:58:40.5731679Z ##[group]Run actions/upload-artifact@v4
+2025-11-16T18:58:40.5731957Z with:
+2025-11-16T18:58:40.5732132Z   name: plan258-drift-report
+2025-11-16T18:58:40.5732386Z   path: reports/contracts/drift-report.json
+2025-11-16T18:58:40.5732804Z   retention-days: 30
+2025-11-16T18:58:40.5733010Z   if-no-files-found: warn
+2025-11-16T18:58:40.5733219Z   compression-level: 6
+2025-11-16T18:58:40.5733414Z   overwrite: false
+2025-11-16T18:58:40.5733603Z   include-hidden-files: false
+2025-11-16T18:58:40.5733841Z ##[endgroup]
+2025-11-16T18:58:40.8315746Z With the provided path, there will be 1 file uploaded
+2025-11-16T18:58:40.8353582Z Artifact name is valid!
+2025-11-16T18:58:40.8370856Z Root directory input is valid!
+2025-11-16T18:58:41.0961340Z Beginning upload of artifact content to blob storage
+2025-11-16T18:58:41.2174202Z Uploaded bytes 314
+2025-11-16T18:58:41.2508543Z Finished uploading artifact content to blob storage!
+2025-11-16T18:58:41.2524459Z SHA256 digest of uploaded artifact zip is 4087ce6e14a58a551d774f72d55154029974af54e987234dc744b8dc897defe9
+2025-11-16T18:58:41.2527017Z Finalizing artifact upload
+2025-11-16T18:58:41.3525652Z Artifact plan258-drift-report.zip successfully finalized. Artifact ID 4582219239
+2025-11-16T18:58:41.3527532Z Artifact plan258-drift-report has been successfully uploaded! Final size is 314 bytes. Artifact ID is 4582219239
+2025-11-16T18:58:41.3535294Z Artifact download URL: https://github.com/jacksonlee411/cube-castle/actions/runs/19410490550/artifacts/4582219239
+2025-11-16T18:58:41.3663172Z ##[group]Run actions/upload-artifact@v4
+2025-11-16T18:58:41.3663476Z with:
+2025-11-16T18:58:41.3663683Z   name: plan258-permissions-and-259A
+2025-11-16T18:58:41.3663988Z   path: reports/permissions/**
+reports/plan259/**
+
+2025-11-16T18:58:41.3664268Z   retention-days: 30
+2025-11-16T18:58:41.3664476Z   if-no-files-found: warn
+2025-11-16T18:58:41.3664693Z   compression-level: 6
+2025-11-16T18:58:41.3664893Z   overwrite: false
+2025-11-16T18:58:41.3665091Z   include-hidden-files: false
+2025-11-16T18:58:41.3665306Z ##[endgroup]
+2025-11-16T18:58:41.6084378Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2025-11-16T18:58:41.6087116Z The least common ancestor is /home/runner/work/cube-castle/cube-castle/reports. This will be the root directory of the artifact
+2025-11-16T18:58:41.6088592Z With the provided path, there will be 9 files uploaded
+2025-11-16T18:58:41.6105652Z Artifact name is valid!
+2025-11-16T18:58:41.6106561Z Root directory input is valid!
+2025-11-16T18:58:41.7457337Z Beginning upload of artifact content to blob storage
+2025-11-16T18:58:41.8835300Z Uploaded bytes 3798
+2025-11-16T18:58:41.9170170Z Finished uploading artifact content to blob storage!
+2025-11-16T18:58:41.9175092Z SHA256 digest of uploaded artifact zip is 08ce0d672c49133728706796038b62fc62bc9308fae8ecf963fde45016eecd0f
+2025-11-16T18:58:41.9178282Z Finalizing artifact upload
+2025-11-16T18:58:42.0254340Z Artifact plan258-permissions-and-259A.zip successfully finalized. Artifact ID 4582219263
+2025-11-16T18:58:42.0256440Z Artifact plan258-permissions-and-259A has been successfully uploaded! Final size is 3798 bytes. Artifact ID is 4582219263
+2025-11-16T18:58:42.0263815Z Artifact download URL: https://github.com/jacksonlee411/cube-castle/actions/runs/19410490550/artifacts/4582219263
+2025-11-16T18:58:42.0377407Z ##[group]Run bash scripts/check-temporary-tags.sh
+2025-11-16T18:58:42.0378036Z [36;1mbash scripts/check-temporary-tags.sh[0m
+2025-11-16T18:58:42.0428055Z shell: /usr/bin/bash -e {0}
+2025-11-16T18:58:42.0428455Z ##[endgroup]
+2025-11-16T18:58:42.0529118Z [agents-compliance] 检查 TODO-TEMPORARY 标注...
+2025-11-16T18:58:42.1169844Z grep: ./frontend/public/playwright-report: No such file or directory
+2025-11-16T18:58:42.6078344Z ✔ TODO-TEMPORARY 标注规范通过
+2025-11-16T18:58:42.6170881Z Post job cleanup.
+2025-11-16T18:58:42.7217559Z [command]/usr/bin/git version
+2025-11-16T18:58:42.7287071Z git version 2.51.2
+2025-11-16T18:58:42.7343499Z Temporarily overriding HOME='/home/runner/work/_temp/76cf8152-ec2e-4a58-8c43-22cc5c6e87a1' before making global git config changes
+2025-11-16T18:58:42.7348843Z Adding repository directory to the temporary git global config as a safe directory
+2025-11-16T18:58:42.7352894Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:42.7396678Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-11-16T18:58:42.7432340Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-11-16T18:58:42.7705386Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-11-16T18:58:42.7728083Z http.https://github.com/.extraheader
+2025-11-16T18:58:42.7743833Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-11-16T18:58:42.7778247Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-11-16T18:58:42.8126310Z Cleaning up orphan processes

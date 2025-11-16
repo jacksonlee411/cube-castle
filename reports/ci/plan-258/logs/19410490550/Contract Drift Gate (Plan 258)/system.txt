@@ -1,0 +1,5 @@
+2025-11-16T18:58:11.1080000Z Requested labels: ubuntu-latest
+2025-11-16T18:58:11.1080000Z Job defined at: jacksonlee411/cube-castle/.github/workflows/plan-258-gates.yml@refs/heads/feature/259-remove-rest-assignments
+2025-11-16T18:58:11.1080000Z Waiting for a runner to pick up this job...
+2025-11-16T18:58:11.6080000Z Job is waiting for a hosted runner to come online.
+2025-11-16T18:58:11.6080000Z Job is about to start running on the hosted runner: GitHub Actions 1000001293

@@ -361,66 +361,8 @@ func TestPositionHandler_FillPosition_Success(t *testing.T) {
 	}
 }
 
-func TestPositionHandler_ListAssignments_Success(t *testing.T) {
-	employeeID := uuid.New()
-	assignmentID := uuid.New()
-	enforcedTenant := uuid.New()
-	sampleEffective := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
-	service := &stubPositionService{
-		listAssignmentsFunc: func(ctx context.Context, tenantID uuid.UUID, code string, opts types.AssignmentListOptions) ([]types.PositionAssignmentResponse, int, error) {
-			if tenantID != enforcedTenant {
-				t.Fatalf("unexpected tenant: %s", tenantID)
-			}
-			if code != "P1000001" {
-				t.Fatalf("unexpected code: %s", code)
-			}
-			return []types.PositionAssignmentResponse{
-				{
-					AssignmentID:     assignmentID,
-					PositionCode:     code,
-					PositionRecordID: uuid.New(),
-					EmployeeID:       employeeID,
-					EmployeeName:     "代理经理",
-					AssignmentType:   "ACTING",
-					AssignmentStatus: "ACTIVE",
-					FTE:              1,
-					EffectiveDate:    sampleEffective,
-					IsCurrent:        true,
-				},
-			}, 5, nil
-		},
-	}
-	handler := NewPositionHandler(service, nil, testLogger())
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/positions/P1000001/assignments?assignmentStatus=ACTIVE&page=2&pageSize=10&includeHistorical=false&asOfDate=2025-01-01&assignmentTypes=ACTING", nil)
-	req = withRequestID(req)
-	req = withChiURLParam(req, "code", "P1000001")
-	req.Header.Set("X-Tenant-ID", enforcedTenant.String())
-	recorder := httptest.NewRecorder()
-
-	handler.ListAssignments(recorder, req)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", recorder.Code)
-	}
-
-	resp := decodeResponse(t, recorder)
-	if !resp.Success {
-		t.Fatalf("expected success=true")
-	}
-	if resp.Message != "Assignments retrieved successfully" {
-		t.Fatalf("unexpected message: %s", resp.Message)
-	}
-	if service.listCapturedOpts.Page != 2 {
-		t.Fatalf("expected page=2, got %d", service.listCapturedOpts.Page)
-	}
-	if service.listCapturedOpts.PageSize != 10 {
-		t.Fatalf("expected pageSize=10, got %d", service.listCapturedOpts.PageSize)
-	}
-	if service.listCapturedOpts.Filter.IncludeHistorical {
-		t.Fatalf("expected includeHistorical=false")
-	}
-}
+// Note: The REST GET /api/v1/positions/{code}/assignments has been deprecated and removed.
+// Read/query flows are validated via GraphQL in the query service; REST tests retain only write paths.
 
 func TestPositionHandler_CreateAssignment_Success(t *testing.T) {
 	assignmentID := uuid.New()

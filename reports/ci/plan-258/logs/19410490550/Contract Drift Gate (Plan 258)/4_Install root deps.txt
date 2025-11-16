@@ -1,0 +1,9 @@
+﻿2025-11-16T18:58:31.9079471Z ##[group]Run npm ci
+2025-11-16T18:58:31.9079773Z [36;1mnpm ci[0m
+2025-11-16T18:58:31.9193893Z shell: /usr/bin/bash -e {0}
+2025-11-16T18:58:31.9194162Z ##[endgroup]
+2025-11-16T18:58:37.1548198Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-11-16T18:58:37.4255767Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-11-16T18:58:37.5038616Z npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+2025-11-16T18:58:40.4290983Z 
+2025-11-16T18:58:40.4291579Z added 618 packages in 8s

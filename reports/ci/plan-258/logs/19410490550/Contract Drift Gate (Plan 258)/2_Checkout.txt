@@ -1,0 +1,115 @@
+﻿2025-11-16T18:58:18.3716100Z ##[group]Run actions/checkout@v4
+2025-11-16T18:58:18.3717469Z with:
+2025-11-16T18:58:18.3718296Z   repository: jacksonlee411/cube-castle
+2025-11-16T18:58:18.3719626Z   token: ***
+2025-11-16T18:58:18.3720395Z   ssh-strict: true
+2025-11-16T18:58:18.3721203Z   ssh-user: git
+2025-11-16T18:58:18.3722026Z   persist-credentials: true
+2025-11-16T18:58:18.3723118Z   clean: true
+2025-11-16T18:58:18.3723940Z   sparse-checkout-cone-mode: true
+2025-11-16T18:58:18.3724941Z   fetch-depth: 1
+2025-11-16T18:58:18.3725742Z   fetch-tags: false
+2025-11-16T18:58:18.3726570Z   show-progress: true
+2025-11-16T18:58:18.3727400Z   lfs: false
+2025-11-16T18:58:18.3728164Z   submodules: false
+2025-11-16T18:58:18.3728999Z   set-safe-directory: true
+2025-11-16T18:58:18.3730147Z ##[endgroup]
+2025-11-16T18:58:18.4890667Z Syncing repository: jacksonlee411/cube-castle
+2025-11-16T18:58:18.4894407Z ##[group]Getting Git version info
+2025-11-16T18:58:18.4896333Z Working directory is '/home/runner/work/cube-castle/cube-castle'
+2025-11-16T18:58:18.4899213Z [command]/usr/bin/git version
+2025-11-16T18:58:18.7634389Z git version 2.51.2
+2025-11-16T18:58:18.7646433Z ##[endgroup]
+2025-11-16T18:58:18.7658368Z Temporarily overriding HOME='/home/runner/work/_temp/24d22885-afd3-42a6-9951-1504169a39da' before making global git config changes
+2025-11-16T18:58:18.7673615Z Adding repository directory to the temporary git global config as a safe directory
+2025-11-16T18:58:18.7678652Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:18.7833745Z Deleting the contents of '/home/runner/work/cube-castle/cube-castle'
+2025-11-16T18:58:18.7839016Z ##[group]Initializing the repository
+2025-11-16T18:58:18.7843573Z [command]/usr/bin/git init /home/runner/work/cube-castle/cube-castle
+2025-11-16T18:58:18.9403671Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-11-16T18:58:18.9406229Z hint: is subject to change. To configure the initial branch name to use in all
+2025-11-16T18:58:18.9408658Z hint: of your new repositories, which will suppress this warning, call:
+2025-11-16T18:58:18.9410698Z hint:
+2025-11-16T18:58:18.9412326Z hint: 	git config --global init.defaultBranch <name>
+2025-11-16T18:58:18.9414135Z hint:
+2025-11-16T18:58:18.9415901Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-11-16T18:58:18.9418266Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-11-16T18:58:18.9420091Z hint:
+2025-11-16T18:58:18.9421425Z hint: 	git branch -m <name>
+2025-11-16T18:58:18.9422933Z hint:
+2025-11-16T18:58:18.9424625Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-11-16T18:58:18.9516759Z Initialized empty Git repository in /home/runner/work/cube-castle/cube-castle/.git/
+2025-11-16T18:58:18.9530471Z [command]/usr/bin/git remote add origin https://github.com/jacksonlee411/cube-castle
+2025-11-16T18:58:18.9718171Z ##[endgroup]
+2025-11-16T18:58:18.9720679Z ##[group]Disabling automatic garbage collection
+2025-11-16T18:58:18.9724343Z [command]/usr/bin/git config --local gc.auto 0
+2025-11-16T18:58:18.9755178Z ##[endgroup]
+2025-11-16T18:58:18.9757382Z ##[group]Setting up auth
+2025-11-16T18:58:18.9761431Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-11-16T18:58:18.9797333Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-11-16T18:58:19.4401049Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-11-16T18:58:19.4447978Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-11-16T18:58:19.4720781Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-11-16T18:58:19.4793353Z ##[endgroup]
+2025-11-16T18:58:19.4795051Z ##[group]Fetching the repository
+2025-11-16T18:58:19.4819158Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +318f912072f1e3eb2bfae33bb7580f47c63ec349:refs/remotes/origin/feature/259-remove-rest-assignments
+2025-11-16T18:58:23.3941894Z From https://github.com/jacksonlee411/cube-castle
+2025-11-16T18:58:23.3944391Z  * [new ref]         318f912072f1e3eb2bfae33bb7580f47c63ec349 -> origin/feature/259-remove-rest-assignments
+2025-11-16T18:58:23.4109604Z ##[endgroup]
+2025-11-16T18:58:23.4110286Z ##[group]Determining the checkout info
+2025-11-16T18:58:23.4116937Z ##[endgroup]
+2025-11-16T18:58:23.4117822Z [command]/usr/bin/git sparse-checkout disable
+2025-11-16T18:58:23.4294286Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-11-16T18:58:23.4326078Z ##[group]Checking out the ref
+2025-11-16T18:58:23.4329346Z [command]/usr/bin/git checkout --progress --force -B feature/259-remove-rest-assignments refs/remotes/origin/feature/259-remove-rest-assignments
+2025-11-16T18:58:24.4399441Z Updating files:  56% (1632/2885)
+2025-11-16T18:58:24.4415439Z Updating files:  57% (1645/2885)
+2025-11-16T18:58:24.4436081Z Updating files:  58% (1674/2885)
+2025-11-16T18:58:24.4466016Z Updating files:  59% (1703/2885)
+2025-11-16T18:58:24.4483583Z Updating files:  60% (1731/2885)
+2025-11-16T18:58:24.4511215Z Updating files:  61% (1760/2885)
+2025-11-16T18:58:24.4535936Z Updating files:  62% (1789/2885)
+2025-11-16T18:58:24.4560797Z Updating files:  63% (1818/2885)
+2025-11-16T18:58:24.4579802Z Updating files:  64% (1847/2885)
+2025-11-16T18:58:24.4595757Z Updating files:  65% (1876/2885)
+2025-11-16T18:58:24.4619207Z Updating files:  66% (1905/2885)
+2025-11-16T18:58:24.4632169Z Updating files:  67% (1933/2885)
+2025-11-16T18:58:24.4651723Z Updating files:  68% (1962/2885)
+2025-11-16T18:58:24.4666071Z Updating files:  69% (1991/2885)
+2025-11-16T18:58:24.4708176Z Updating files:  70% (2020/2885)
+2025-11-16T18:58:24.4723656Z Updating files:  71% (2049/2885)
+2025-11-16T18:58:24.4743097Z Updating files:  72% (2078/2885)
+2025-11-16T18:58:24.4773771Z Updating files:  73% (2107/2885)
+2025-11-16T18:58:24.4797587Z Updating files:  74% (2135/2885)
+2025-11-16T18:58:24.4819468Z Updating files:  75% (2164/2885)
+2025-11-16T18:58:24.4884481Z Updating files:  76% (2193/2885)
+2025-11-16T18:58:24.4890039Z Updating files:  77% (2222/2885)
+2025-11-16T18:58:24.4920009Z Updating files:  78% (2251/2885)
+2025-11-16T18:58:24.4952614Z Updating files:  79% (2280/2885)
+2025-11-16T18:58:24.4976611Z Updating files:  80% (2308/2885)
+2025-11-16T18:58:24.5027721Z Updating files:  81% (2337/2885)
+2025-11-16T18:58:24.5030279Z Updating files:  82% (2366/2885)
+2025-11-16T18:58:24.5750807Z Updating files:  83% (2395/2885)
+2025-11-16T18:58:24.5769755Z Updating files:  84% (2424/2885)
+2025-11-16T18:58:24.5785101Z Updating files:  85% (2453/2885)
+2025-11-16T18:58:24.5807219Z Updating files:  86% (2482/2885)
+2025-11-16T18:58:24.5844853Z Updating files:  87% (2510/2885)
+2025-11-16T18:58:24.5996137Z Updating files:  88% (2539/2885)
+2025-11-16T18:58:24.6017615Z Updating files:  89% (2568/2885)
+2025-11-16T18:58:24.6043046Z Updating files:  90% (2597/2885)
+2025-11-16T18:58:24.6075081Z Updating files:  91% (2626/2885)
+2025-11-16T18:58:24.6105147Z Updating files:  92% (2655/2885)
+2025-11-16T18:58:24.6128290Z Updating files:  93% (2684/2885)
+2025-11-16T18:58:24.6150308Z Updating files:  94% (2712/2885)
+2025-11-16T18:58:24.6167266Z Updating files:  95% (2741/2885)
+2025-11-16T18:58:24.6185201Z Updating files:  96% (2770/2885)
+2025-11-16T18:58:24.6215093Z Updating files:  97% (2799/2885)
+2025-11-16T18:58:24.6237670Z Updating files:  98% (2828/2885)
+2025-11-16T18:58:24.6254020Z Updating files:  99% (2857/2885)
+2025-11-16T18:58:24.6255374Z Updating files: 100% (2885/2885)
+2025-11-16T18:58:24.6256167Z Updating files: 100% (2885/2885), done.
+2025-11-16T18:58:24.6302341Z Switched to a new branch 'feature/259-remove-rest-assignments'
+2025-11-16T18:58:24.6306641Z branch 'feature/259-remove-rest-assignments' set up to track 'origin/feature/259-remove-rest-assignments'.
+2025-11-16T18:58:24.6353216Z ##[endgroup]
+2025-11-16T18:58:24.6394746Z [command]/usr/bin/git log -1 --format=%H
+2025-11-16T18:58:24.6418693Z 318f912072f1e3eb2bfae33bb7580f47c63ec349

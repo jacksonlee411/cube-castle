@@ -65,7 +65,8 @@ func (h *PositionHandler) SetupRoutes(r chi.Router) {
 		r.Post("/{code}/vacate", h.VacatePosition)
 		r.Post("/{code}/transfer", h.TransferPosition)
 		r.Route("/{code}/assignments", func(r chi.Router) {
-			r.Get("/", h.ListAssignments)
+			// Read/query for assignments has moved to GraphQL per CQRS policy.
+			// This REST path now only exposes write operations.
 			r.Post("/", h.CreateAssignment)
 			r.Patch("/{assignmentId}", h.UpdateAssignment)
 			r.Post("/{assignmentId}/close", h.CloseAssignment)

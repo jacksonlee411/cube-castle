@@ -1,0 +1,31 @@
+﻿2025-11-16T18:58:16.1151563Z Current runner version: '2.329.0'
+2025-11-16T18:58:16.1175899Z ##[group]Runner Image Provisioner
+2025-11-16T18:58:16.1176664Z Hosted Compute Agent
+2025-11-16T18:58:16.1177328Z Version: 20251016.436
+2025-11-16T18:58:16.1177900Z Commit: 8ab8ac8bfd662a3739dab9fe09456aba92132568
+2025-11-16T18:58:16.1178590Z Build Date: 2025-10-15T20:44:12Z
+2025-11-16T18:58:16.1179251Z ##[endgroup]
+2025-11-16T18:58:16.1179779Z ##[group]Operating System
+2025-11-16T18:58:16.1180325Z Ubuntu
+2025-11-16T18:58:16.1180844Z 24.04.3
+2025-11-16T18:58:16.1181327Z LTS
+2025-11-16T18:58:16.1181772Z ##[endgroup]
+2025-11-16T18:58:16.1182332Z ##[group]Runner Image
+2025-11-16T18:58:16.1183241Z Image: ubuntu-24.04
+2025-11-16T18:58:16.1183785Z Version: 20251112.124.1
+2025-11-16T18:58:16.1184914Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251112.124/images/ubuntu/Ubuntu2404-Readme.md
+2025-11-16T18:58:16.1186460Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251112.124
+2025-11-16T18:58:16.1187694Z ##[endgroup]
+2025-11-16T18:58:16.1188790Z ##[group]GITHUB_TOKEN Permissions
+2025-11-16T18:58:16.1190864Z Contents: read
+2025-11-16T18:58:16.1191467Z Metadata: read
+2025-11-16T18:58:16.1191938Z Packages: read
+2025-11-16T18:58:16.1192764Z ##[endgroup]
+2025-11-16T18:58:16.1195136Z Secret source: Actions
+2025-11-16T18:58:16.1196157Z Prepare workflow directory
+2025-11-16T18:58:16.1631809Z Prepare all required actions
+2025-11-16T18:58:16.1687957Z Getting action download info
+2025-11-16T18:58:16.6203308Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-11-16T18:58:17.7157748Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-11-16T18:58:17.9128184Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-11-16T18:58:18.2906475Z Complete job name: Contract Drift Gate (Plan 258)
