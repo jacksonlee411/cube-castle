@@ -129,17 +129,21 @@ else
     exit 1
   fi
   echo "Using GitHub REST API (curl) to create PR..." | tee -a "${LOG_FILE}"
-  # Escape body content
-  BODY_ESCAPED="$(sed 's/\"/\\"/g' "${BODY_FILE}")"
+  # Build JSON payload safely via jq (handles newlines/quotes)
   API="https://api.github.com/repos/${OWNER}/${REPO}/pulls"
+  PAYLOAD="$(jq -n --arg title "${TITLE}" --arg head "${HEAD_BRANCH}" --arg base "${BASE_BRANCH}" --arg body "$(cat "${BODY_FILE}")" --argjson draft ${DRAFT} '{title:$title, head:$head, base:$base, body:$body, draft:$draft}')"
   RESP="$(curl -sS -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
-    "${API}" \
-    -d "{\"title\":\"${TITLE}\",\"head\":\"${HEAD_BRANCH}\",\"base\":\"${BASE_BRANCH}\",\"body\":\"${BODY_ESCAPED}\",\"draft\":${DRAFT}}")"
+    "${API}" -d "${PAYLOAD}")"
   echo "${RESP}" > "${LOG_DIR}/pr-response-${TS}.json"
   PR_URL="$(echo "${RESP}" | sed -n 's/.*\"html_url\"[[:space:]]*:[[:space:]]*\"\\(https:[^"]*\\)\".*/\\1/p' | head -n1)"
   if [[ -z "${PR_URL}" ]]; then
-    MSG="$(echo "${RESP}" | sed -n 's/.*\"message\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -n1)"
+    MSG="$(echo "${RESP}" | jq -r '.message // empty')"
+    ERRORS="$(echo "${RESP}" | jq -r '.errors[]?.message // empty' 2>/dev/null || true)"
     echo "API response message: ${MSG:-<none>}" | tee -a "${LOG_FILE}"
+    if [[ -n "${ERRORS}" ]]; then
+      echo "Errors:" | tee -a "${LOG_FILE}"
+      echo "${ERRORS}" | tee -a "${LOG_FILE}"
+    fi
     echo "If permissions are limited, open PR manually: https://github.com/${OWNER}/${REPO}/compare/${BASE_BRANCH}...${HEAD_BRANCH}?expand=1" | tee -a "${LOG_FILE}"
   fi
 fi
