@@ -190,6 +190,8 @@ export const useUpdateOrganization = () => {
           organization,
         );
       }
+      // 触发审计历史刷新（按前缀失效，避免缺少 recordId 无法定向失效）
+      queryClient.invalidateQueries({ queryKey: ["auditHistory"], exact: false });
     },
     onError: (error, variables) => {
       logger.error("[Mutation] Update organization failed:", {
