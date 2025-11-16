@@ -38,6 +38,12 @@ services:
       - REDIS_PASSWORD=
       - PORT=9090
       - GIN_MODE=release
+      - DEV_MODE=true
+      - JWT_ALG=${JWT_ALG}
+      - JWT_MINT_ALG=${JWT_ALG}
+      - JWT_PRIVATE_KEY_PATH=/secrets/dev-jwt-private.pem
+      - JWT_PUBLIC_KEY_PATH=/secrets/dev-jwt-public.pem
+      - JWT_KEY_ID=${JWT_KEY_ID}
       # 默认关闭运维任务调度器（当前无工作流引擎集成）
       - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-false}
       # 工作流引擎相关参数已移除（暂未启用）
@@ -47,6 +53,8 @@ services:
       - SCHEDULER_SCRIPTS_ROOT=${SCHEDULER_SCRIPTS_ROOT:-./scripts}
     ports:
       - "9090:9090"
+    volumes:
+      - ./secrets:/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy
