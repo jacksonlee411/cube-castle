@@ -10,6 +10,7 @@ echo "[guard] Root surface whitelist check..."
 # Whitelist patterns (extended globs handled manually)
 allowed=(
   ".editorconfig"
+  ".dockerignore"
   ".env"
   ".env.example"
   ".env.production"
@@ -17,6 +18,11 @@ allowed=(
   ".golangci.yml"
   ".spectral.yml"
   ".vscode"          # directory can be tracked if explicitly intended
+  ".eslintrc.architecture.js"
+  ".eslintrc.interface-freeze.json"
+  ".jscpdrc.json"
+  ".npmrc"
+  ".nvmrc"
   "AGENTS.md"
   "CHANGELOG.md"
   "CLAUDE.md"
@@ -32,24 +38,28 @@ allowed=(
   "go.sum"
   "go.work"          # optional
   "go.work.sum"      # optional
+  "goose.yaml"
   "package.json"
   "package-lock.json"
+  "eslint.config.architecture.mjs"
+  "eslint.config.js"
   "vitest.config.ts"
 )
 
-# List tracked files at root (no slash in path)
-mapfile -d '' roots < <(git ls-files -z | awk -v RS='\0' -F/ 'NF==1{print $0"\0"}')
+# List all tracked files, we will select those at depth=1 (no slash)
+mapfile -d '' roots < <(git ls-files -z)
 
 fail=0
 for f in "${roots[@]}"; do
-  # skip empty
+  # consider only root-level files
   [[ -n "$f" ]] || continue
+  [[ "$f" == */* ]] && continue
   ok=0
   for a in "${allowed[@]}"; do
     if [[ "$f" == "$a" ]]; then ok=1; break; fi
   done
   if [[ "$ok" -eq 0 ]]; then
-    echo "❌ root file not allowed: $f"
+    printf '❌ root file not allowed: %s\n' "$f"
     fail=1
   fi
 done
