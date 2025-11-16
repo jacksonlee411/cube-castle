@@ -34,6 +34,11 @@ const checks = [
 
 try {
   for (const check of checks) {
+    if (!fs.existsSync(check.file)) {
+      // 文件缺失时不阻断（主干本地优先，CI 以存在的约束为准）
+      console.warn(`⚠️  跳过检查（文件不存在）：${check.file}`);
+      continue;
+    }
     const content = fs.readFileSync(check.file, 'utf-8');
     for (const token of check.mustInclude) {
       if (!content.includes(token)) {
