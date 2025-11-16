@@ -1,9 +1,5 @@
 import { logger } from '@/shared/utils/logger';
 import {
-  unifiedGraphQLClient,
-  unifiedRESTClient,
-} from "@/shared/api/unified-client";
-import {
   listOrganizationVersions,
   getOrganizationByCode,
   createOrganization as facadeCreateOrganization,
