@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"cube-castle/internal/organization/dto"
+	"cube-castle/cmd/hrms-server/query/internal/graphql/model"
 )
 
 type stringScalar interface {
@@ -113,4 +114,47 @@ func dateToStringPtr(value *dto.Date) *string {
 
 func positionCodeToStringPtr(value *dto.PositionCode) *string {
 	return scalarPtrToStringPtr(value)
+}
+
+// Specialized converters for audit records to fix field name drift (operationType -> operation)
+func convertAuditRecord(a dto.AuditRecordData) model.AuditLogDetail {
+	out := model.AuditLogDetail{
+		AuditID:         a.AuditId(),
+		RecordID:        a.RecordId(),
+		Operation:       a.Operation(), // map operationType -> operation
+		Timestamp:       a.Timestamp(),
+		OperationReason: a.OperationReason(),
+		BeforeData:      a.BeforeData(),
+		AfterData:       a.AfterData(),
+		ModifiedFields:  a.ModifiedFields(),
+		Changes:         make([]model.FieldChange, 0, len(a.Changes())),
+	}
+	for _, ch := range a.Changes() {
+		out.Changes = append(out.Changes, model.FieldChange{
+			Field:    ch.Field(),
+			OldValue: ch.OldValue(),
+			NewValue: ch.NewValue(),
+			DataType: ch.DataType(),
+		})
+	}
+	return out
+}
+
+func convertAuditSlice(in []dto.AuditRecordData) ([]model.AuditLogDetail, error) {
+	if in == nil {
+		return nil, nil
+	}
+	out := make([]model.AuditLogDetail, 0, len(in))
+	for _, a := range in {
+		out = append(out, convertAuditRecord(a))
+	}
+	return out, nil
+}
+
+func convertAuditSingle(in *dto.AuditRecordData) (*model.AuditLogDetail, error) {
+	if in == nil {
+		return nil, nil
+	}
+	out := convertAuditRecord(*in)
+	return &out, nil
 }

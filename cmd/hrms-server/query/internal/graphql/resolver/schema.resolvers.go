@@ -444,7 +444,8 @@ func (r *queryResolver) AuditHistory(ctx context.Context, recordID string, start
 	if err != nil {
 		return nil, err
 	}
-	return convertSlice[model.AuditLogDetail](res)
+	// Specialized mapping to ensure operation field is populated (event_type)
+	return convertAuditSlice(res)
 }
 
 // AuditLog is the resolver for the auditLog field.
@@ -455,7 +456,7 @@ func (r *queryResolver) AuditLog(ctx context.Context, auditID string) (*model.Au
 	if err != nil {
 		return nil, err
 	}
-	return convertToModel[model.AuditLogDetail](res)
+	return convertAuditSingle(res)
 }
 
 // OrganizationVersions is the resolver for the organizationVersions field.
