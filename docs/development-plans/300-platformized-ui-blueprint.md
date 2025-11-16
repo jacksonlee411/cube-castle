@@ -1,7 +1,7 @@
 # 平台化 UI 蓝图（文档编号：300）
 
 状态：提案（RFC）  
-最后更新：2025-11-15  
+最后更新：2025-11-16  
 适用范围：前端（React/TS）、Query 服务（GraphQL/gqlgen）、Command 服务（OpenAPI/REST）  
 上游事实来源（SSoT）：`docs/api/schema.graphql`（查询）、`docs/api/openapi.yaml`（命令+权限 scopes）
 
@@ -345,3 +345,60 @@ P2 验收
 15.5 安全与审计
 - 权限：仅 ADMIN/CONFIG_MANAGER 可访问 Studio；所有操作审计落盘（不含密钥/隐私数据）。
 - 校验：Studio 变更需通过 preflight（端点收敛/契约漂移/禁直连/清单结构）与本地模拟；拒绝产生第二事实来源。
+
+---
+
+## 16. 可行性与现状映射（UI）
+
+基于当前代码基线，P0/P1 的 UI 侧实现具备高可行性：
+- 承载点与骨架已在位：`frontend/src/features/temporal/layout/TemporalEntityLayout.tsx`、`frontend/src/shared/hooks/useTemporalEntityDetail.ts`。
+- 选择器与守卫已在位：`frontend/src/shared/testids/temporalEntity.ts`，ESLint 禁硬编码 data-testid（`frontend/eslint.config.js`）。
+- PBAC 显隐可复用：`frontend/src/shared/hooks/useScopes.ts` 可用于插槽/清单项在渲染前做 scope 过滤。
+- GraphQL/契约链路就绪：企业级信封适配 `frontend/src/shared/api/graphql-enterprise-adapter.ts`；GraphQL Codegen 已配置（`frontend/package.json` 的 `@graphql-codegen/*`），后端 `cmd/hrms-server/query/gqlgen.yml` 以 `docs/api/schema.graphql` 为源。
+- 质量门禁基础具备：字段标准预检 `scripts/quality/preflight-field-standard.js` 已存在，可串入根 `quality:preflight`。
+
+需补齐（最小集）：
+- 插槽/清单最小实现：新增 `frontend/src/shared/extension/{manifest.d.ts,registry.ts,slots.ts}`，并于 `App.tsx` 注册、`TemporalEntityLayout.tsx` 渲染。
+- 依赖：表单引擎引入 `react-hook-form`，表格引擎引入 `@tanstack/react-table`；均锁定版本并通过 NPM Registry 统一源。
+- “前端领域 API 门面”与 ESLint 规则：新增门面层并以 ESLint 防止业务代码直连 GraphQL/REST 客户端（对齐 202:257）。
+
+---
+
+## 17. 主要风险与对策（UI）
+
+- Canvas 主题适配成本（中）：RHF 控件映射与表格皮肤需适配 Canvas Kit。对策：先落最小控件集合（文本/选择/日期）与基础表格皮肤；复杂控件以 `// TODO-TEMPORARY(YYYY-MM-DD)` 标注限期回收。
+- 选择器与 DOM 稳定性（低）：插槽注入可能影响测试。对策：不改变现有 DOM/testid，新增选择器统一从 `shared/testids` 导出；E2E 复跑作为 P0 验收。
+- 第二事实来源风险（中）：UI Schema/规则漂移。对策：表单/列表元数据仅由 `docs/api/*` 生成；UI hints 严禁承载业务事实；preflight 接入契约漂移对比与端点收敛校验。
+- 新依赖引入（低）：构建体积与稳定性。对策：锁版本、纳入 `npm run lint`/E2E；必要时提供 `feature flag/Manifest 开关` 与回滚路径。
+
+回滚策略：
+- 插槽/清单：Manifest 级开关禁用 → 页面降级到现有骨架（不改 DOM/testid）。
+- 生成链：退回静态表单/列表定义；保留生成脚本与差异报告；不合入契约变更前不启用。
+- 证据：失败用例与日志落盘 `logs/plan300/**`，登记至 `docs/development-plans/215-phase2-execution-log.md`。
+
+---
+
+## 18. UI 验收要点
+
+- P0 插槽/清单
+  - 组织/职位详情新增一个“示例页签”按 scope 显隐；现有 testid 不变；E2E 通过（Chromium/Firefox）。
+  - Manifest/Slot 校验脚本纳入 `npm run quality:preflight` 并为必跑项。
+- P1 生成链
+  - 表单：从 OpenAPI 生成 Zod/RHF Schema，完成 2 个命令端到端（渲染→校验→提交→错误呈现一致）。
+  - 列表：从 GraphQL 自省生成列定义；排序/过滤可用；Canvas 皮肤合规。
+- 门禁与证据
+  - 端点收敛/禁直连门面/选择器守卫/契约漂移比对全部通过；证据落盘 `logs/plan300/**` 并登记 215。
+
+---
+
+## 19. 执行建议（默认方案）
+
+- 本周（P0）
+  - 新增 `frontend/src/shared/extension/{manifest.d.ts,registry.ts,slots.ts}`，在 `frontend/src/App.tsx` 注册清单，在 `frontend/src/features/temporal/layout/TemporalEntityLayout.tsx` 渲染插槽。
+  - 接入 PBAC 显隐（`useScopes()`）；新增 manifest/slot 校验脚本并挂到 `npm run quality:preflight`；补最小 E2E。
+- 下两周（P1）
+  - 表单：落地 `scripts/generate-forms-from-openapi.ts`，RHF + Zod + Canvas 控件映射；完成 2 个命令表单闭环。
+  - 列表：引入 `@tanstack/react-table`；完成一个组织列表“自省→列定义→渲染（排序/过滤）”PoC。
+  - 脚手架：`npm run g:feature` 产出 manifest/slot/路由/测试骨架，纳入门禁。
+
+---

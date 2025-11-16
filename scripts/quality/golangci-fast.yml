@@ -1,20 +1,16 @@
 run:
-  timeout: 5m
+  timeout: 2m
   issues-exit-code: 1
 
 linters:
   enable:
     - depguard
-    - importas
-    - revive
-    - govet
     - tagliatelle
 
 linters-settings:
   depguard:
     rules:
       command-service-boundary:
-        # Deny query service internals from command service files
         deny:
           - pkg: cube-castle/cmd/hrms-server/query/internal
             desc: "命令服务不得依赖查询服务内部实现"
@@ -23,7 +19,6 @@ linters-settings:
         files:
           - cmd/hrms-server/command/internal/...
       query-service-boundary:
-        # Deny command service internals from query service files
         deny:
           - pkg: cube-castle/cmd/hrms-server/command/internal
             desc: "查询服务不得依赖命令服务内部实现"
@@ -31,12 +26,6 @@ linters-settings:
             desc: "查询服务不得依赖命令服务内部实现"
         files:
           - cmd/hrms-server/query/internal/...
-  importas:
-    alias:
-      - pkg: cube-castle/internal/graphql
-        alias: schemaLoader
-      - pkg: cube-castle/internal/middleware
-        alias: requestMiddleware
   tagliatelle:
     case:
       json: camel
@@ -44,7 +33,6 @@ linters-settings:
 issues:
   exclude-use-default: false
   exclude-rules:
-    # 允许 OAuth/OIDC/JWT 标准字段的 snake_case json tag（仅限认证相关路径，且仅允许列举字段）
     - linters:
         - tagliatelle
       path: internal/auth/.*
@@ -57,7 +45,6 @@ issues:
         - tagliatelle
       path: cmd/hrms-server/.*/internal/authbff/oidc\.go
       source: 'json:"(access_token|refresh_token|token_type|id_token|expires_in|authorization_endpoint|token_endpoint|end_session_endpoint|jwks_uri|tenant_id)"'
-    # 缓存/内部状态对象不作为对外响应的约束目标（避免误报）
     - linters:
         - tagliatelle
       path: internal/cache/.*

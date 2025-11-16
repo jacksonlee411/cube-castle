@@ -1,7 +1,7 @@
 # 301 · 字段可扩展标准（标准化装配能力）
 
 状态：提案（可实施）  
-最后更新：2025-11-15  
+最后更新：2025-11-16  
 对齐：300 平台化 UI、202（254/256/257/258）、203（DDD 边界）、215（证据登记）
 
 ---
@@ -130,3 +130,52 @@
 - 权限：仅 ADMIN/CONFIG_MANAGER 可访问 Studio；敏感操作审计落盘（不含私密数据）。
 - 门禁：端点收敛/契约漂移/禁直连/清单结构校验必过；拒绝产生第二事实来源。
 - 回滚：生成 Down SQL 与反向契约补丁；保留配置包与审计记录。
+
+---
+
+## 12. 可行性与依赖（UI）
+
+- 与 300 的依赖关系
+  - 依赖 300-P0 的“插槽/Manifest”作为 UI 装配承载；依赖 300-P1 的“OpenAPI→表单/GraphQL→列定义生成”以达成低代码体验。
+  - 先后顺序建议：300-P0 → 300-P1 → 301。
+- 现有能力映射
+  - 生成器与门禁已在位：`scripts/fields/add.js` 输出 Goose 迁移与契约建议补丁；`scripts/quality/preflight-field-standard.js` 预检可串入根 `quality:preflight`。
+  - 前端适配面：GraphQL Codegen 已配置；企业级信封适配已在位（`frontend/src/shared/api/graphql-enterprise-adapter.ts`）；PBAC 显隐可由 `frontend/src/shared/hooks/useScopes.ts` 复用。
+- 待补（最小集）
+  - 插槽/Manifest：`frontend/src/shared/extension/{manifest.d.ts,registry.ts,slots.ts}` 与骨架接入（见 Plan 300）。
+  - 表单/表格依赖：`react-hook-form`、`@tanstack/react-table`（锁定版本与 registry）。
+  - “前端领域 API 门面”与 ESLint 禁直连规则（对齐 202:257）。
+
+---
+
+## 13. 风险与对策（UI）
+
+- 契约未合入时的 UI 漂移：前端只消费生成的“建议补丁”而非直接改 SSOT。对策：未合入前禁启用该字段的表单/列表渲染；preflight 报告阻断上线。
+- Canvas 适配成本：控件映射与表格皮肤实现量。对策：先覆盖文本/选择/日期/数字等常用类型；复杂类型以 TODO-TEMPORARY 限期回收。
+- 第二事实来源：UI hints 被误用为事实。对策：UI hints 仅作用于表现与布局；字段事实仅来自 `docs/api/*`；preflight 做契约漂移对比。
+- 数据面性能风险（EAV）：扩展字段滥用导致索引/过滤压力。对策：可索引类型白名单与数量上限；生成器给出 Down SQL 与回滚指南。
+
+回滚策略：
+- 生成的迁移可通过 Down SQL 回滚；契约补丁未合入则不影响现网；UI 侧通过 Manifest 关闭相关渲染。
+
+---
+
+## 14. UI 验收要点
+
+- 复制一个同类字段后，界面无需改动骨架即可：
+  - 表单：自动渲染 + Zod 校验正确；错误呈现一致。
+  - 详情：属性网格正确展示；显隐/只读遵循 FLS/FOV。
+  - 列表：列可选显示；排序/过滤可用（按类型限额）。
+  - 门禁：端点收敛/禁直连门面/契约漂移/清单结构校验通过。
+- 证据：E2E 录制与日志落盘 `logs/plan301/**`，在 `docs/development-plans/215-phase2-execution-log.md` 登记。
+
+---
+
+## 15. 执行建议（默认方案）
+
+- 与 300-P0 并行末期启动
+  - 使用 `scripts/fields/add.js` 复制/新增一个 Organization 字段（建议：文本/日期类），产出迁移与补丁。
+  - 合入契约后，运行前端生成链（表单/列表）验证自动装配，补最小 E2E。
+- 治理与门禁
+  - 将 `scripts/quality/preflight-field-standard.js` 串入根 `quality:preflight`；CI 产出差异报告并存档到 `logs/plan301/**`。
+  - 新字段 UI hints 仅用于布局与顺序，不携带业务事实或权限映射；权限以 OpenAPI `x-fls` 为准。

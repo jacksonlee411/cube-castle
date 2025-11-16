@@ -58,6 +58,10 @@
   - 后端告警/监控 JSON 字段 snake_case → camelCase；当前以 `//nolint:tagliatelle // TODO‑TEMPORARY(2025-11-30)` 过渡，文件：`internal/monitoring/health/alerting.go`  
  - 📎 审计（非门禁）：根路径端口/禁用端点扫描  
    - `logs/plan255/audit-root-20251116_102250.log`（发现 37 端口 + 1 禁用端点模式；作为问题清单分批收敛，不阻断合并）
+ - 📮 PR 与评审登记（Plan 255）  
+   - PR: https://github.com/jacksonlee411/cube-castle/pull/5 （状态：open）  
+   - 评审清单评论：已自动添加；本地副本：`logs/plan255/pr-review-comment-20251116_104539.md`  
+   - 自动化脚本：`scripts/ci/auto-pr.sh`；Make 目标：`make pr-255-soft-gate`
 
 ### 新增（2025-11-15 — 优先级与下一步）
 - P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）

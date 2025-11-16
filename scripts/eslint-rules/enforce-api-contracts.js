@@ -29,6 +29,11 @@ module.exports = {
             enum: ['camelCase', 'snake_case'],
             default: 'camelCase'
           },
+          allowedFields: {
+            type: 'array',
+            items: { type: 'string' },
+            default: []
+          },
           standardFields: {
             type: 'object',
             default: {
@@ -70,6 +75,7 @@ module.exports = {
   create(context) {
     const options = context.options[0] || {};
     const fieldNamingStyle = options.fieldNamingStyle || 'camelCase';
+    const allowedFields = Array.isArray(options.allowedFields) ? options.allowedFields : [];
     const standardFields = options.standardFields || {
       identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
       timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'],
@@ -106,8 +112,9 @@ module.exports = {
       'is_current': 'isCurrent'
     };
 
-    // OAuth标准字段例外
+    // OAuth标准字段例外 + 允许字段白名单（用于特定文件夹例外）
     const oauthFields = ['client_id', 'client_secret', 'grant_type', 'refresh_token', 'access_token'];
+    const globallyAllowedFields = new Set([...oauthFields, ...allowedFields]);
 
     // 检查字段命名格式
     function isCamelCase(name) {
@@ -139,19 +146,19 @@ module.exports = {
         return;
       }
 
-      // OAuth字段例外
-      if (oauthFields.includes(fieldName)) {
-        // 在OAuth相关文件中允许
+      // OAuth/白名单字段例外
+      if (globallyAllowedFields.has(fieldName)) {
+        // 在OAuth相关文件中允许；其他文件提示协议字段使用不当
         if (filename.includes('auth') || filename.includes('oauth')) {
           return;
-        } else {
-          context.report({
-            node,
-            messageId: 'oauthException',
-            data: { field: fieldName }
-          });
-          return;
         }
+        // 对非auth/oauth文件，保留提示但不阻断（降级为提示消息）
+        context.report({
+          node,
+          messageId: 'oauthException',
+          data: { field: fieldName }
+        });
+        return;
       }
 
       // 检查废弃字段

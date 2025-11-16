@@ -196,10 +196,13 @@ module.exports = {
           // 检查类似 const data = getOrganizations() 的调用
           if (callee.name && /^(get|fetch|query|list|search)/.test(callee.name)) {
             // 如果不是GraphQL相关的调用，报告错误
-            const isGraphQLCall = node.init.arguments.some(arg => 
-              arg.type === 'Literal' && 
-              (arg.value.includes('graphql') || arg.value.includes('query'))
-            );
+            const isGraphQLCall = node.init.arguments.some(arg => {
+              if (arg && arg.type === 'Literal' && typeof arg.value === 'string') {
+                const v = arg.value;
+                return v.includes('graphql') || v.includes('query');
+              }
+              return false;
+            });
 
             if (!isGraphQLCall) {
               context.report({

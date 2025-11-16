@@ -1,5 +1,6 @@
 name: plan-250-gates
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [ master, main ]
@@ -23,4 +24,3 @@ jobs:
       - name: Reference gates (compose ports/images) from plan-253
         if: always()
         run: echo "Plan-253 compose/image gates run in their own workflow; this job references them as required pre-merge checks."
-
