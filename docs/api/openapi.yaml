@@ -1922,10 +1922,10 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalError' }
 
-  # REST read endpoint for assignments has been removed; use GraphQL queries instead:
-  # - positionAssignments(positionCode, filter, pagination, sorting)
-  # - assignments(organizationCode, positionCode, filter, pagination, sorting)
-
+  /api/v1/positions/{code}/assignments:
+    # REST read endpoint for assignments has been removed; use GraphQL queries instead:
+    # - positionAssignments(positionCode, filter, pagination, sorting)
+    # - assignments(organizationCode, positionCode, filter, pagination, sorting)
     post:
       operationId: createPositionAssignment
       tags: [positions]
