@@ -71,3 +71,9 @@
 - 验收负责人: Codex（AI 助手）  
 - 验收日期: 2025-11-15  
 - 状态: ⏳ PARTIAL PASS — 核心路径 PASS；待 232/252、GraphQL 路由修复与覆盖率/222B 达标后更新为 ✅ PASSED（改进项已纳入 232/255/256/222B）
+
+---
+
+合并记录 (自动)
+- 时间: 2025-11-16T12:10:00Z
+- Plan 222 PR: https://github.com/jacksonlee411/cube-castle/pull/6 已合并
