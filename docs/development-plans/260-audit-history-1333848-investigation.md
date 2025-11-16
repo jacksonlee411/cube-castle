@@ -1,4 +1,5 @@
 # 组织详情「1333848」审计历史页签总是显示“暂无变更数据”——260 调查文档
+状态：已完成（验收通过 · 2025-11-16）
 
 ## 1) 结论（可执行摘要）
 - 前端渲染分支错误：将 `SUSPEND/REACTIVATE` 作为“删除前快照”渲染，导致无 `beforeData` 时返回空表，从而显示“暂无变更数据”。见 frontend/src/features/audit/components/FieldChangeTable.tsx:331。
