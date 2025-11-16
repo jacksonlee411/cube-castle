@@ -16,6 +16,9 @@ REST_BASE="${REST_BASE:-http://localhost:9090}"
 # 按 SSoT（CQRS）默认：GraphQL 查询服务运行在 8090；如启用“单体挂载 /graphql(9090)”仅作历史兼容，非默认
 GRAPHQL_BASE="${GRAPHQL_BASE:-http://localhost:8090}"
 JWT_FILE="${ROOT_DIR}/.cache/dev.jwt"
+ORG_PARENT_CODE="${ORG_PARENT_CODE:-1000000}"
+# 根组织名称（仅在缺失时用于引导创建，不改变既有数据）
+ORG_PARENT_NAME="${ORG_PARENT_NAME:-飞虫与鲜花}"
 
 echo "[Plan222] Collecting health/JWKS..."
 set +e
@@ -68,6 +71,27 @@ fi
 
 # Create
 if [[ ${#AUTH_HEADER[@]} -gt 0 ]]; then
+  # 确保默认上级组织存在（如缺失则引导创建一个根组织）
+  echo "[Plan222] Ensure parent org exists: ${ORG_PARENT_CODE}"
+  PARENT_STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Accept: application/json" "${AUTH_HEADER[@]}" "${TENANT_HEADER[@]}" \
+    "${REST_BASE}/api/v1/organization-units/${ORG_PARENT_CODE}")
+  if [[ "${PARENT_STATUS_CODE}" != "200" ]]; then
+    echo "[Plan222] Parent not found (status=${PARENT_STATUS_CODE}), bootstrap root ${ORG_PARENT_CODE}"
+    ROOT_CREATE_PAYLOAD=$(cat <<EOF
+{"code":"${ORG_PARENT_CODE}","name":"${ORG_PARENT_NAME}-${STAMP}","unitType":"DEPARTMENT","parentCode":null,"description":"Plan222 bootstrap root"}
+EOF
+)
+    curl -sS -D "${LOG_DIR}/root-create-headers-${STAMP}.txt" \
+      -H "Content-Type: application/json" "${AUTH_HEADER[@]}" "${TENANT_HEADER[@]}" \
+      -X POST "${REST_BASE}/api/v1/organization-units" \
+      --data "${ROOT_CREATE_PAYLOAD}" \
+      -o "${LOG_DIR}/root-create-response-${STAMP}.json" \
+      -w "%{http_code}\n" > "${LOG_DIR}/root-create-status-${STAMP}.txt" || true
+  else
+    echo "[Plan222] Parent exists: ${ORG_PARENT_CODE}"
+  fi
+
   # 7-digit code, first digit non-zero (ORG_CODE rule)
   CODE="$((RANDOM%9000000 + 1000000))"
   CREATE_PAYLOAD=$(cat <<EOF
