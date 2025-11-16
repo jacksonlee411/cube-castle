@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ main, master, develop ]
   workflow_dispatch: {}
+  push:
+    branches: [ master ]
+    paths:
+      - 'ci/e2e-touch/**'
 
 jobs:
   e2e-devserver:

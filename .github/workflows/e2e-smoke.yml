@@ -5,6 +5,10 @@ on:
     branches: [ main, master, develop ]
     types: [opened, synchronize, reopened]
   workflow_dispatch: {}
+  push:
+    branches: [ master ]
+    paths:
+      - 'ci/e2e-touch/**'
 
 jobs:
   e2e-smoke:
