@@ -127,6 +127,8 @@
   - 运行概览：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id> | jq '{workflow:.name,event,status,conclusion,branch:.head_branch,sha:.head_sha,html_url}'`
   - 运行 Jobs：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id>/jobs?per_page=100 | jq -r '.jobs[] | [.name,.status,.conclusion] | @tsv'`
   - 提交检查：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/commits/$SHA/check-runs?per_page=100 | jq -r '.check_runs[] | [.name,.status,.conclusion] | @tsv'`
+- 一键监控整轮（推荐，本地令牌自动加载）
+  - `bash scripts/ci/monitor-ci.sh`（默认监控 HEAD；摘要落盘到 `logs/plan255/ci-summary-<run_id>.txt`）
 
 ## 最佳实践
 - 唯一门禁：不要叠加多个扫描器；统一依赖 architecture-validator，减少维护与分叉
