@@ -63,6 +63,16 @@
    - 评审清单评论：已自动添加；本地副本：`logs/plan255/pr-review-comment-20251116_104539.md`  
    - 自动化脚本：`scripts/ci/auto-pr.sh`；Make 目标：`make pr-255-soft-gate`
 
+### 新增（2025-11-16 — Plan 255 完成）
+- ✅ Plan 255（CQRS 分层门禁）已在 master 稳定通过  
+  - gates‑255：通过（前端架构门禁 + 后端 depguard/tagliatelle 真实违规阻断）  
+    - 运行链接：<https://github.com/jacksonlee411/cube-castle/actions/runs/19401060738/job/55508624545>  
+  - 前端门禁报告：`reports/architecture/architecture-validation.json`（生成且已归档）  
+  - 证据：`logs/plan255/**`（ESLint/architecture-validator/golangci‑lint 全量日志）
+- 运行策略（与 05 指南一致）：  
+  - Trunk + Local First：提交前本地跑“前端门禁 + go build”；golangci‑lint 采集不阻断  
+  - CI：Required checks 以工作流为准；后端 lint 仅以 depguard/tagliatelle 违规为阻断，其余类型检查噪音仅记录日志
+
 ### 新增（2025-11-15 — 优先级与下一步）
 - P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
 - P0：202 阶段1（模块化单体合流，不改协议；索引：`docs/development-plans/202-CQRS混合架构深度分析与演进建议.md`）

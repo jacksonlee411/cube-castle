@@ -3,8 +3,9 @@
 文档编号: 255  
 标题: CQRS 严格分层与门禁（来源：202 计划拆分）  
 创建日期: 2025-11-15  
-版本: v1.2  
-状态: 活跃  
+完成日期: 2025-11-16  
+版本: v1.3  
+状态: 已完成  
 关联计划: 202、203、215（CQRS：命令=REST、查询=GraphQL）
 
 ---
@@ -21,6 +22,15 @@
 ## 3. 验收标准
 - 守卫脚本可检测并阻断常见违规；
 - 现存用例完成修正或登记过渡期（带 TODO-TEMPORARY 标签与回收期）。
+
+验收证据（CI）
+- gates‑255（前端/后端门禁整体）: 通过  
+  - 运行链接：<https://github.com/jacksonlee411/cube-castle/actions/runs/19401060738/job/55508624545>
+- 前端门禁报告：`reports/architecture/architecture-validation.json`（生成且已归档）
+- 证据目录：`logs/plan255/**`（ESLint/architecture-validator/golangci-lint 全量日志）
+
+备注
+- 后端 golangci‑lint 在 CI 仅以 depguard/tagliatelle 的“真实违规”为阻断，其他类型检查噪音仅记录日志；不降低门禁标准，不改变规则事实来源。
 
 ---
 
