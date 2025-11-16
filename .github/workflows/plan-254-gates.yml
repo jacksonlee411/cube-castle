@@ -1,0 +1,142 @@
+name: plan-254-gates
+
+on:
+  pull_request:
+    paths:
+      - 'docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md'
+      - 'frontend/vite.config.ts'
+      - 'frontend/playwright.config.ts'
+      - 'frontend/src/shared/config/**'
+      - 'frontend/package.json'
+      - 'scripts/quality/architecture-validator.js'
+      - 'docker-compose.e2e.yml'
+      - 'AGENTS.md'
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md'
+      - 'frontend/vite.config.ts'
+      - 'frontend/playwright.config.ts'
+      - 'frontend/src/shared/config/**'
+      - 'frontend/package.json'
+      - 'scripts/quality/architecture-validator.js'
+      - 'docker-compose.e2e.yml'
+      - 'AGENTS.md'
+  workflow_dispatch: {}
+
+jobs:
+  gate:
+    name: Plan 254 - Single Base Endpoint Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+
+      - name: Install Frontend deps and Browsers
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Compose Up (E2E stack)
+        run: |
+          docker compose -f docker-compose.e2e.yml build
+          docker compose -f docker-compose.e2e.yml up -d
+
+      - name: Wait for services
+        run: |
+          set -e
+          for i in {1..60}; do
+            ok=0
+            curl -fsS http://localhost:9090/health >/dev/null && ok=$((ok+1)) || true
+            curl -fsS http://localhost:8090/health >/dev/null && ok=$((ok+1)) || true
+            curl -fsS http://localhost:3000/ >/dev/null && ok=$((ok+1)) || true
+            if [ "$ok" = "3" ]; then echo "All services healthy"; break; fi
+            sleep 5
+          done
+          [ "$ok" = "3" ] || (echo 'Services did not become healthy in time' && docker compose -f docker-compose.e2e.yml logs --no-color && exit 1)
+
+      - name: Mint dev JWT for E2E
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq curl
+          make jwt-dev-mint
+          echo "PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" >> $GITHUB_ENV
+          echo "PW_JWT=$(cat .cache/dev.jwt)" >> $GITHUB_ENV
+
+      - name: Architecture Gate (CQRS/Ports/Forbidden)
+        run: |
+          node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden
+
+      - name: Run Playwright E2E (Plan 254)
+        working-directory: ./frontend
+        env:
+          PW_TENANT_ID: ${{ env.PW_TENANT_ID }}
+          PW_JWT: ${{ env.PW_JWT }}
+          E2E_PLAN_ID: "254"
+          PW_SKIP_SERVER: "1"
+          PW_BASE_URL: "http://localhost:3000"
+        run: |
+          npm run -s test:e2e:254
+      
+      - name: Summarize E2E results (machine-readable)
+        run: |
+          set -eo pipefail
+          FILE="$(ls -t logs/plan254/results-*.json | head -1)"
+          if [ -z "$FILE" ]; then
+            echo "No results JSON found under logs/plan254/"
+            exit 1
+          fi
+          echo "Using results file: $FILE"
+          node - "$FILE" <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[1];
+          try {
+            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+            let total = 0, passed = 0, failed = 0, skipped = 0, flaky = 0;
+            const walk = (o) => {
+              if (!o) return;
+              if (Array.isArray(o)) { o.forEach(walk); return; }
+              if (typeof o === 'object') {
+                if (Object.prototype.hasOwnProperty.call(o, 'outcome')) {
+                  total++;
+                  const v = String(o.outcome);
+                  if (v === 'expected' || v === 'passed') passed++;
+                  else if (v === 'unexpected' || v === 'failed') failed++;
+                  else if (v === 'skipped') skipped++;
+                  else if (v === 'flaky') flaky++;
+                }
+                for (const k in o) walk(o[k]);
+              }
+            };
+            walk(data);
+            console.log(`SUMMARY total=${total} passed=${passed} failed=${failed} skipped=${skipped} flaky=${flaky}`);
+          } catch (e) {
+            console.error('Failed to parse results json:', e.message);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Upload plan-254 logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan254-logs
+          path: |
+            logs/plan254/**
+            frontend/test-results
+            frontend/playwright-report
+          retention-days: 14
+
+      - name: Compose Down
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans

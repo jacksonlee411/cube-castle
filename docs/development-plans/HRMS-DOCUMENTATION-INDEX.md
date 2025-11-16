@@ -1,7 +1,7 @@
 # HRMS 文档体系索引
 
-**更新时间**: 2025-11-14
-**版本**: v1.1
+**更新时间**: 2025-11-15
+**版本**: v1.2
 
 ## 概述
 
@@ -83,8 +83,8 @@
 ### 240：职位管理页面重构与稳定化（已完成）
 文件: `240-position-management-page-refactor.md`（状态：已完成 · 验收通过；A–D/BT 完成，E 回归与守卫已登记）
 
-### 241：前端页面与框架一体化重构（收尾中）
-文件: `241-frontend-framework-refactor.md`（状态：部分完成 · 验收未通过；按收尾计划推进，不改对外契约）
+### 241：前端页面与框架一体化重构（已完成）
+文件: `241-frontend-framework-refactor.md`（状态：已完成；241C 连跑证据已登记）
 - 子计划：  
   - 241A – TemporalEntityLayout 合流与最小接入：`241A-temporal-entity-layout-integration.md`  
   - 241B – 统一 Hook 薄封装与选择器门禁：`241B-unified-hook-and-selector-guard.md`  
@@ -109,12 +109,16 @@
 
 - 220：模块开发模板与规范文档
   - 文件: `220-module-template-documentation.md`（状态：已完成）
+- 300：平台化 UI 蓝图（插槽/清单/元数据生成/脚手架/远程功能包）
+  - 文件: `300-platformized-ui-blueprint.md`（状态：提案；包含 P0/P1/P2 路线与验收标准）
+- 301：字段可扩展标准（标准化装配能力）
+  - 文件: `301-field-extensibility-standard.md`（状态：提案；字段复制/生成链/门禁/回归标准）
 - 221：Docker 集成测试基座
-  - 文件: `221-docker-integration-testing.md`（状态：进行中；基座建设）
+  - 文件: `221-docker-integration-testing.md`（状态：已完成（本地验收）；CI 常态化推进）
 - 221T：Docker 集成测试基座验证记录
   - 文件: `221t-docker-integration-validation.md`（状态：验证记录/滚动维护）
 - 222：organization 模块 Phase2 验收
-  - 文件: `222-organization-verification.md`（状态：进行中；最终验收）
+  - 文件: `222-organization-verification.md`（状态：阶段性通过·PARTIAL PASS；待 232/252 与覆盖率/222B 达标后最终验收）
 - 231：Outbox Dispatcher 接入差距分析
   - 文件: `231-outbox-dispatcher-gap.md`（状态：记录/整改跟踪）
 - 232：Playwright P0 稳定专项
@@ -150,6 +154,61 @@
 备注：
 - 若 244 的 E2E 验收在 CI 侧受限，可不阻塞 241/240 的代码开发，但在合并前必须提供本地/CI 复核证据并在 Plan 215/Plan 06 留痕。
 - 任何契约或命名调整必须先更新 `docs/api/schema.graphql`、`docs/api/openapi.yaml` 并运行 `node scripts/generate-implementation-inventory.js`，以防“第二事实来源”。
+
+---
+
+## 近期关键推进（基于 202 与 215 评审）
+
+仅给出顺序与索引，实施细节与验收标准以对应计划文档为唯一事实来源。
+
+- P0 · 222 收口验收与文档更新  
+  - 索引：`215-phase2-execution-log.md`、`215-phase2-summary-overview.md`、`222-organization-verification.md`  
+  - 说明：补齐单元/集成/REST/GraphQL/E2E/性能与覆盖率证据，更新 README/开发者指南，形成 Phase2 验收报告
+
+- P0 · 202 阶段1：模块化单体合流（不改协议，仅合并进程与共享中间件/连接池）  
+  - 索引：`202-CQRS混合架构深度分析与演进建议.md`（“阶段 1: 架构回归”）  
+  - 说明：统一端口与健康/metrics/JWT/数据库连接池，保留“命令=REST、查询=GraphQL”，降低运维与一致性成本
+
+- P1 · 221 基座 CI 化与常态运行  
+  - 索引：`221-docker-integration-testing.md`  
+  - 说明：将本地已通过的 Docker 集成测试基座接入 CI，预拉取镜像、冷启动 < 10s、Goose up/down 循环复跑、覆盖率产物上报
+
+- P1 · 202 阶段2：契约 SSoT 与前端 API Facade  
+  - 索引：`202-CQRS混合架构深度分析与演进建议.md`（“阶段 2: 工程优化”）  
+  - 说明：以 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql` 为唯一事实来源，固化生成/校验流水线；前端统一领域 Facade，削减双协议耦合
+
+- P1 · 219E 回归补强（面向 222 覆盖率目标）  
+  - 索引：`215-phase2-execution-log.md`（Plan 219 完成登记）、`222-organization-verification.md`、`internal/organization/README.md`  
+  - 说明：在组织模块上补齐关键路径与回归脚本，作为模板为后续新模块提供可复制的验收脚本
+
+一致性与登记
+- 执行证据一律登记到 `215-phase2-execution-log.md`；跨团队同步到 `06-integrated-teams-progress-log.md`
+- 若 217B/220 等计划在子文档与索引状态存在漂移，以 `215-phase2-execution-log.md` 为真源，先更新其状态标记与证据路径
+
+---
+
+## 25x 主线（202 计划分解实施）
+
+- 250：模块化单体合流实施计划（阶段1·核心）
+  - 文件: `250-modular-monolith-merge.md`（状态：未启动；合流后单进程/单端口/共享中间件）
+- 251：运行时统一与健康/指标整合
+  - 文件: `251-runtime-unification-health-metrics.md`（状态：已完成；单体主路径/统一健康与指标/配置来源单一）
+- 252：权限一致性与契约对齐（REST x-scopes ↔ GraphQL）
+  - 文件: `../archive/development-plans/252-permission-consistency-and-contract-alignment.md`（状态：已完成 · 已归档；签字：`../archive/development-plans/252-signoff-20251115.md`）
+- 253：部署与流水线简化（单体优先）
+  - 文件: `253-deployment-pipeline-simplification.md`（状态：已完成）
+- 254：前端端点与代理收敛（单基址）
+  - 文件: `254-frontend-endpoint-and-proxy-consolidation.md`（状态：进行中）
+- 256：契约 SSoT 生成流水线（阶段2）
+  - 文件: `256-contract-ssot-generation-pipeline.md`（状态：未启动；生成与门禁接线）
+- 257：前端领域 API 门面采纳（阶段2）
+  - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：未启动）
+- 258：契约漂移校验与门禁（阶段2）
+  - 文件: `258-contract-drift-validation-gate.md`（状态：未启动）
+- 259：协议策略复盘与评估（可选）
+  - 文件: `259-protocol-strategy-review.md`（状态：未启动；阶段1+2 完成后评估）
+
+说明：25x 仅分解 202 的实施目标与门禁，不重述技术结论；唯一事实来源为 `202-CQRS混合架构深度分析与演进建议.md`，执行与证据登记以 215 为准。
 
 ---
 
@@ -312,5 +371,5 @@
 
 ---
 
-**本索引最后更新**: 2025-11-14
+**本索引最后更新**: 2025-11-15
 **维护者**: 架构评审组

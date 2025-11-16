@@ -51,6 +51,7 @@ services:
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=""
       - PORT=8090
+      - DEV_MODE=true
       - GIN_MODE=debug
       - JWT_ALG=${JWT_ALG}
       - JWT_JWKS_URL=http://rest-service:9090/.well-known/jwks.json
@@ -60,6 +61,12 @@ services:
     volumes:
       - ./secrets:/secrets:ro
       - ./:/workspace:delegated
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,6 +86,7 @@ services:
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=""
       - PORT=9090
+      - DEV_MODE=true
       - GIN_MODE=debug
       - JWT_ALG=${JWT_ALG}
       - JWT_MINT_ALG=${JWT_ALG}
@@ -98,6 +106,12 @@ services:
     volumes:
       - ./secrets:/secrets:ro
       - ./:/workspace:delegated
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy

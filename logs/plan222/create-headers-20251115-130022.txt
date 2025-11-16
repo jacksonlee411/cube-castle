@@ -1,0 +1,19 @@
+HTTP/1.1 201 Created
+Access-Control-Allow-Headers: Accept, Authorization, Content-Type, X-CSRF-Token, X-Tenant-ID
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Vary: Origin
+X-Content-Type-Options: nosniff
+X-Correlation-Id: b51a58a4-5231-4907-a339-83393c1fd994
+X-Frame-Options: DENY
+X-Ratelimit-Limit: 100
+X-Ratelimit-Remaining: 99
+X-Ratelimit-Reset: 1763211682
+X-Request-Id: b51a58a4-5231-4907-a339-83393c1fd994
+X-Response-Time: 
+X-Service: organization-command-service
+X-Xss-Protection: 1; mode=block
+Date: Sat, 15 Nov 2025 13:00:22 GMT
+Content-Length: 541
+

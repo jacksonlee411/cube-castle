@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"database/sql"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 
 	pkglogger "cube-castle/pkg/logger"
@@ -14,18 +16,24 @@ type PBACPermissionChecker struct {
 	logger pkglogger.Logger
 }
 
-func NewPBACPermissionChecker(db *sql.DB, logger pkglogger.Logger) *PBACPermissionChecker {
-	if logger == nil {
-		logger = pkglogger.NewNoopLogger()
-	}
-	return &PBACPermissionChecker{
-		db:     db,
-		logger: logger,
-	}
-}
+//go:embed generated/graphql-permissions.json
+var embeddedGraphQLPermissions []byte
 
-// GraphQL查询 → PBAC scope 映射（与 docs/api/schema.graphql 声明一致）
-var GraphQLQueryPermissions = map[string]string{
+// GraphQLQueryPermissionsSSOT 从生成制品加载的 Query→scope 映射（由 docs/api/schema.graphql 注释生成）
+var GraphQLQueryPermissions = func() map[string]string {
+	var m map[string]string
+	if len(embeddedGraphQLPermissions) > 0 {
+		if err := json.Unmarshal(embeddedGraphQLPermissions, &m); err == nil && len(m) > 0 {
+			return m
+		}
+	}
+	// 回退：内置映射（仅用于生成制品缺失时的兜底）
+	return defaultGraphQLQueryPermissions
+}()
+
+// defaultGraphQLQueryPermissions 为构建期生成失败时的最小兜底映射
+// 注意：唯一事实来源为 docs/api/schema.graphql 的 "Permissions Required:" 注释；本映射仅作回退使用。
+var defaultGraphQLQueryPermissions = map[string]string{
 	// 基础查询
 	"organizations":     "org:read",
 	"organization":      "org:read",
@@ -35,23 +43,44 @@ var GraphQLQueryPermissions = map[string]string{
 	"organizationAtDate":   "org:read:history",
 	"organizationHistory":  "org:read:history",
 	"organizationVersions": "org:read:history",
+
 	// 职位查询
 	"positions":              "position:read",
 	"position":               "position:read",
 	"positionTimeline":       "position:read:history",
-	"positionAssignments":    "position:read:history",
-	"positionTransfers":      "position:read:history",
-	"positionHeadcountStats": "position:read:stats",
-	"vacantPositions":        "position:read",
 	"positionVersions":       "position:read:history",
+	"positionAssignments":    "position:read",
+	"assignments":            "position:read",
+	"assignmentHistory":      "position:read:history",
+	"assignmentStats":        "position:read:stats",
+	"positionAssignmentAudit":"position:assignments:audit",
+	"positionTransfers":      "position:read:history",
+	"vacantPositions":        "position:read",
+	"positionHeadcountStats": "position:read:stats",
 
 	// 层级查询
 	"organizationHierarchy": "org:read:hierarchy",
 	"organizationSubtree":   "org:read:hierarchy",
+	"hierarchyStatistics":   "org:read:hierarchy",
 
 	// 审计
 	"auditHistory": "org:read:audit",
 	"auditLog":     "org:read:audit",
+	// 作业目录
+	"jobFamilyGroups": "job-catalog:read",
+	"jobFamilies":     "job-catalog:read",
+	"jobRoles":        "job-catalog:read",
+	"jobLevels":       "job-catalog:read",
+}
+
+func NewPBACPermissionChecker(db *sql.DB, logger pkglogger.Logger) *PBACPermissionChecker {
+	if logger == nil {
+		logger = pkglogger.NewNoopLogger()
+	}
+	return &PBACPermissionChecker{
+		db:     db,
+		logger: logger,
+	}
 }
 
 // 角色权限预设映射
@@ -194,7 +223,7 @@ func hasScope(scopes []string, required string) bool {
 	if required == "" {
 		return true
 	}
-	// 兼容老scope org:write → org:update/org:create，但读取侧基本无需
+	// TODO-TEMPORARY(2025-12-15): 兼容老 scope org:write → org:update/org:create，收敛后移除
 	for _, s := range scopes {
 		if s == required {
 			return true

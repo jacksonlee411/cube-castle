@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "data": {
+    "code": "1000359",
+    "name": "技术部验收-222",
+    "unitType": "DEPARTMENT",
+    "status": "ACTIVE",
+    "level": 2,
+    "codePath": "/1000000/1000359",
+    "namePath": "/飞虫与鲜花/技术部验收-222",
+    "sortOrder": 0,
+    "description": "计划222验收创建-2",
+    "parentCode": "1000000",
+    "createdAt": "2025-11-15T07:07:24.613308Z",
+    "updatedAt": "2025-11-15T07:07:24.613308Z",
+    "effectiveDate": "2025-11-15"
+  },
+  "message": "Organization created successfully",
+  "timestamp": "2025-11-15T07:07:24Z",
+  "requestId": "f660fc7a-8b25-43ee-a3bf-d257fb950d9c"
+}

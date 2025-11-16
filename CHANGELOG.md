@@ -322,3 +322,16 @@
 **执行时间**: 2025-08-10 12:00  
 **执行环境**: WSL2 + Docker + 完整CQRS服务栈  
 **验证状态**: ✅ E2E测试体系完整，生产环境部署就绪
+## 2025-11-15 – Plan 252 权限一致性与契约对齐（完成）
+- 新增：权限契约校验器（scripts/quality/auth-permission-contract-validator.js），生成并校验
+  - OpenAPI security scopes：路径引用→注册表一致性（未注册引用=0 作为门禁）
+  - GraphQL “Permissions Required: …” 注释→Query→scope 映射（SSoT 衍生物）
+  - Resolver 授权覆盖（绕过=0 作为门禁；不在 schema 的历史查询仅信息提示）
+  - 报告落盘至 reports/permissions/*；证据快照 logs/plan252/*
+- PBAC 对齐：查询服务 PBAC 消费生成映射（go:embed）
+  - 修正与补齐映射：hierarchyStatistics、assignments、assignmentHistory、assignmentStats、positionAssignmentAudit、jobCatalog*
+  - 保留 org:write 临时兼容（TODO‑TEMPORARY，2025‑12‑15 回收）
+- OpenAPI scopes 注册补齐：position:assignments:read/write/audit
+- CI 门禁：新增 Plan 252 守卫与 DEV_MODE 默认禁用检查
+- DEV：查询服务 DEV_MODE 默认 false；开发容器显式启用 DEV_MODE=true
+- 测试：新增 PBAC 映射单测（cmd/hrms-server/query/internal/auth/pbac_mapping_test.go）

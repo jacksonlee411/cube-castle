@@ -7,6 +7,7 @@ import { Text } from '@workday/canvas-kit-react/text';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { TextArea } from '@workday/canvas-kit-react/text-area';
 import { logger } from '@/shared/utils/logger';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import {
   useSuspendOrganization,
   useActivateOrganization,
@@ -129,7 +130,11 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
     <>
       <Flex gap="s" alignItems="center">
         <SecondaryButton
-          data-testid={isInactive ? 'activate-organization-button' : 'suspend-organization-button'}
+          data-testid={
+            isInactive
+              ? temporalEntitySelectors.organization.stateChange?.activateButton
+              : temporalEntitySelectors.organization.stateChange?.suspendButton
+          }
         onClick={() => openDialog(isInactive ? 'activate' : 'suspend')}
         disabled={baseDisabled}
         icon={isInactive ? mediaPlayIcon : mediaPauseIcon}
@@ -157,7 +162,7 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      data-testid="status-change-date-input"
+                      data-testid={temporalEntitySelectors.organization.stateChange?.dateInput}
                     />
                   </div>
 
@@ -170,7 +175,7 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
                       value={operationReasonInput}
                       onChange={(e) => setOperationReasonInput(e.target.value)}
                       placeholder="请输入此次停用/启用原因"
-                      data-testid="status-change-reason-input"
+                      data-testid={temporalEntitySelectors.organization.stateChange?.reasonInput}
                     />
                   </div>
 
@@ -178,14 +183,14 @@ export const SuspendActivateButtons: React.FC<SuspendActivateButtonsProps> = ({
                     <SecondaryButton
                       onClick={closeDialog}
                       disabled={isProcessing}
-                      data-testid="status-change-cancel"
+                      data-testid={temporalEntitySelectors.organization.stateChange?.cancel}
                     >
                       取消
                     </SecondaryButton>
                     <PrimaryButton
                       onClick={handleConfirm}
                       disabled={isProcessing || !selectedDate}
-                      data-testid="status-change-confirm"
+                      data-testid={temporalEntitySelectors.organization.stateChange?.confirm}
                     >
                       {isProcessing
                         ? '处理中...'

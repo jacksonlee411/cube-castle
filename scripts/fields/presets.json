@@ -1,0 +1,47 @@
+{
+  "presets": {
+    "text.like(description)": {
+      "graphql": { "type": "String", "nullable": true },
+      "sql": { "type": "text", "nullable": true, "index": false },
+      "openapi": { "type": "string" },
+      "ui": { "control": "TextInput" }
+    },
+    "code.like(organizationCode)": {
+      "graphql": { "type": "String", "nullable": false },
+      "sql": { "type": "text", "nullable": false, "index": true },
+      "openapi": { "type": "string" },
+      "ui": { "control": "TextInput", "uppercase": true }
+    },
+    "date.like(effectiveDate)": {
+      "graphql": { "type": "Date", "nullable": true },
+      "sql": { "type": "date", "nullable": true, "index": true },
+      "openapi": { "type": "string", "format": "date" },
+      "ui": { "control": "DatePicker" }
+    }
+  },
+  "entities": {
+    "OrganizationUnit": {
+      "table": "organization_units",
+      "bcId": "organization",
+      "graphQLType": "OrganizationUnit"
+    },
+    "Position": {
+      "table": "positions",
+      "bcId": "organization",
+      "graphQLType": "Position"
+    }
+  },
+  "bcIds": [
+    "organization",
+    "workforce",
+    "contract",
+    "performance",
+    "compensation",
+    "payroll",
+    "attendance",
+    "recruitment",
+    "development",
+    "compliance"
+  ]
+}
+

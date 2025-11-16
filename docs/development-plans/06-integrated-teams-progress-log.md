@@ -3,6 +3,7 @@
 > - P0 用例清单与门禁：`docs/development-plans/232-playwright-p0-stabilization.md`、`docs/development-plans/232t-test-checklist.md`
 > - 执行/进度汇总：`docs/development-plans/215-phase2-execution-log.md`
 > - 职位域回归与运行手册：`docs/development-plans/240E-position-regression-and-runbook.md`
+> - 权限契约与 PBAC 一致性（Plan 252）：`docs/archive/development-plans/252-signoff-20251115.md`
 
 # Plan 06 – 集成测试验证纪要（已归档）
 

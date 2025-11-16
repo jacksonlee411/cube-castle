@@ -2640,6 +2640,10 @@ components:
             'position:modify:history': Modify historical position versions
             'position:read:stats': Read position headcount statistics
             'position:read:headcount': Read detailed headcount utilization data
+            # Position assignment permissions
+            'position:assignments:read': Read position assignment records
+            'position:assignments:write': Create or modify position assignment records
+            'position:assignments:audit': Read position assignment audit logs
             # Job catalog permissions
             'job-catalog:read': Read job catalog classifications
             'job-catalog:write': Manage job catalog classifications and versions

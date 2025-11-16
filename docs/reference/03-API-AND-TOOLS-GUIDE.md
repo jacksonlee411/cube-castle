@@ -475,10 +475,10 @@ curl -s http://localhost:9090/metrics | grep -E "temporal_operations_total|audit
 - 这是 Prometheus 的标准行为，不代表指标未正确集成
 
 **代码位置**:
-- 指标定义: `cmd/organization-command-service/internal/utils/metrics.go`
-- 端点暴露: `cmd/organization-command-service/main.go:202-207`
-- 时态操作插桩: `internal/services/organization_temporal_service.go`
-- 审计插桩: `internal/audit/logger.go`、`internal/repository/audit_writer.go`
+- 指标定义: `internal/organization/utils/metrics.go`
+- 端点暴露: `cmd/hrms-server/command/main.go`、`cmd/hrms-server/query/internal/app/app.go`
+- 时态操作插桩: `internal/organization/scheduler/organization_temporal_service.go`
+- 审计插桩: `internal/organization/audit/logger.go`、`internal/organization/repository/audit_writer.go`
 
 ---
 

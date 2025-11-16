@@ -7,6 +7,7 @@ import { SystemIcon } from '@workday/canvas-kit-react/icon';
 import { colors } from '@workday/canvas-kit-react/tokens';
 import { exclamationCircleIcon } from '@workday/canvas-system-icons-web';
 import type { DeleteConfirmMode, InlineVersionRecord } from './types';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export interface DeactivateConfirmModalProps {
   visible: boolean;
@@ -87,14 +88,14 @@ const DeactivateConfirmModal: React.FC<DeactivateConfirmModalProps> = ({
                 <SecondaryButton
                   onClick={onCancel}
                   disabled={isProcessing}
-                  data-testid="deactivate-cancel-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.cancelEditHistory}
                 >
                   取消
                 </SecondaryButton>
                 <PrimaryButton
                   onClick={onConfirm}
                   disabled={isProcessing}
-                  data-testid="deactivate-confirm-button"
+                  data-testid={temporalEntitySelectors.form?.actions?.submitEditHistory}
                 >
                   {isProcessing ? '删除中...' : confirmLabel}
                 </PrimaryButton>

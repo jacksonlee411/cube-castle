@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-11-14T04:52:52.086Z",
+  "timestamp": "2025-11-15T16:37:37.215Z",
   "summary": {
     "openapiPaths": 49,
     "graphqlQueries": 25,
     "goHandlers": 62,
     "goServices": 31,
-    "tsExports": 261
+    "tsExports": 267
   },
   "openapiPaths": [
     "/api/v1/operational/health",
@@ -826,6 +826,11 @@
       "kind": "const"
     },
     {
+      "name": "TemporalEntityLayout",
+      "file": "frontend/src/features/temporal/layout/TemporalEntityLayout.tsx",
+      "kind": "const"
+    },
+    {
       "name": "AuthManager",
       "file": "frontend/src/shared/api/auth.ts",
       "kind": "class"
@@ -933,6 +938,11 @@
     {
       "name": "useEnterpriseGraphQL",
       "file": "frontend/src/shared/api/graphql-enterprise-adapter.ts",
+      "kind": "const"
+    },
+    {
+      "name": "invalidateTemporalDetail",
+      "file": "frontend/src/shared/api/invalidation.ts",
       "kind": "const"
     },
     {
@@ -1099,6 +1109,11 @@
       "name": "useAuth",
       "file": "frontend/src/shared/auth/hooks.ts",
       "kind": "const"
+    },
+    {
+      "name": "AppErrorBoundary",
+      "file": "frontend/src/shared/components/AppErrorBoundary.tsx",
+      "kind": "class"
     },
     {
       "name": "commandBaseUrl",
@@ -1506,6 +1521,11 @@
       "kind": "const"
     },
     {
+      "name": "useOrganizationDetail",
+      "file": "frontend/src/shared/hooks/useOrganizationDetail.ts",
+      "kind": "func"
+    },
+    {
       "name": "useCreateOrganization",
       "file": "frontend/src/shared/hooks/useOrganizationMutations.ts",
       "kind": "const"
@@ -1578,6 +1598,16 @@
     {
       "name": "temporalEntityDetailQueryKey",
       "file": "frontend/src/shared/hooks/useTemporalEntityDetail.ts",
+      "kind": "const"
+    },
+    {
+      "name": "createTemporalDetailLoader",
+      "file": "frontend/src/shared/loaders/temporalDetailLoader.ts",
+      "kind": "const"
+    },
+    {
+      "name": "obs",
+      "file": "frontend/src/shared/observability/obs.ts",
       "kind": "const"
     },
     {

@@ -16,6 +16,7 @@ import {
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import type { OrganizationStatus } from '@/shared/types';
 import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 // 时态版本接口定义 - 兼容历史字段（多数由调用方派生）
 export interface TimelineVersion {
@@ -284,7 +285,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
       border="1px solid #E9ECEF"
       padding="m"
       overflowY="auto"
-      data-testid="temporal-timeline"
+      data-testid={temporalEntitySelectors.page.timeline}
     >
       {/* 操作区域 */}
       <Box marginBottom="m">
@@ -352,7 +353,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
                 <Box marginLeft="32px">
                   <Card
                     padding="s"
-                    data-testid="temporal-timeline-node"
+                    data-testid={temporalEntitySelectors.page.timelineNode}
                     data-lifecycle={statusInfo.badge}
                     data-current={isSelected ? 'true' : 'false'}
                     data-status={version.status}
@@ -398,7 +399,7 @@ export const TimelineComponent: React.FC<TimelineComponentProps> = ({
                         
                         {/* 状态标识 - 使用统一的状态系统 */}
                         <Box
-                          data-testid="temporal-lifecycle-badge"
+                          data-testid={temporalEntitySelectors.page.lifecycleBadge}
                           data-lifecycle={statusInfo.badge}
                         >
                           <StatusBadge 

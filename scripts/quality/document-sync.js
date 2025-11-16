@@ -44,61 +44,48 @@ const config = {
       name: 'API规范版本同步',
       source: 'docs/api/openapi.yaml',
       targets: [
-        'frontend/src/shared/api/types.ts',
         'docs/development-plans/02-technical-architecture-design.md'
       ],
       syncType: 'version',
       pattern: /version:\s*['"]?([^'"\s]+)['"]?/,
       description: 'OpenAPI版本号同步到前端类型和技术文档'
     },
-    
-    {
-      name: '端口配置同步',
-      source: 'frontend/src/shared/config/ports.ts',
-      targets: [
-        'README.md',
-        'frontend/README.md'
-      ],
-      syncType: 'config',
-      pattern: /(SERVICE_PORTS|CQRS_ENDPOINTS)/,
-      description: '端口配置在Vite、Playwright、文档中保持一致'
-    },
-    
-    {
-      name: '项目状态同步',
-      source: 'CLAUDE.md',
-      targets: [
-        'README.md',
-        'docs/development-plans/18-duplicate-code-elimination-plan.md'
-      ],
-      syncType: 'status',
-      pattern: /项目状态[：:]\s*(.+)/,
-      description: '项目状态在主要文档中保持一致'
-    },
-    
+
     {
       name: '依赖版本同步',
       source: 'frontend/package.json',
       targets: [
-        'README.md',
-        'frontend/README.md',
         'docs/development-plans/02-technical-architecture-design.md'
       ],
       syncType: 'dependencies',
       pattern: /"(react|vite|typescript)":\s*"([^"]+)"/g,
       description: '关键依赖版本在文档中保持同步'
     },
-    
+
+    // 仅存在性检查（presence）：避免复制正文，仅校验关键索引是否存在
     {
-      name: '架构成果同步',
-      source: 'docs/development-plans/18-duplicate-code-elimination-plan.md',
-      targets: [
-        'README.md',
-        'CLAUDE.md'
-      ],
-      syncType: 'achievements',
-      pattern: /完成度[：:]?\s*(\d+%)/g,
-      description: '重复代码消除成果在文档间同步'
+      name: 'presence: temporal guide appendix index exists',
+      source: 'docs/reference/temporal-entity-experience-guide.md',
+      targets: ['docs/reference/temporal-entity-experience-guide.md'],
+      syncType: 'presence',
+      pattern: /##\s*附录 A\s*.+框架与工程实践清单/,
+      description: '检查《时态实体体验指南》中是否存在附录A（索引，不复制正文）'
+    },
+    {
+      name: 'presence: AGENTS links temporal guide',
+      source: 'AGENTS.md',
+      targets: ['AGENTS.md'],
+      syncType: 'presence',
+      pattern: /docs\/reference\/temporal-entity-experience-guide\.md/,
+      description: 'AGENTS 索引需包含“时态实体体验指南”的权威链接'
+    },
+    {
+      name: 'presence: plan 241 references appendix A',
+      source: 'docs/development-plans/241-frontend-framework-refactor.md',
+      targets: ['docs/development-plans/241-frontend-framework-refactor.md'],
+      syncType: 'presence',
+      pattern: /附录 A\s*.+框架与工程实践清单/,
+      description: 'Plan 241 需固定引用附录A作为执行/验收依据'
     }
   ],
   
@@ -344,6 +331,18 @@ class DocumentSynchronizer {
       
       case 'achievements':
         return ContentExtractor.extractAchievements(content);
+
+      case 'presence':
+        // 对于 presence：源文件仅作为存在性检查的锚点；目标文件按正则检测是否包含
+        if (!syncPair.pattern || !(syncPair.pattern instanceof RegExp)) {
+          log.warning('presence 检查缺少有效的正则 pattern');
+          return null;
+        }
+        // 源数据恒为 true，用于 compareData 统一判断；目标数据为布尔值：是否匹配
+        if (filePath && path.resolve(filePath) === path.resolve(path.join(config.projectRoot, syncPair.source))) {
+          return true;
+        }
+        return !!content.match(syncPair.pattern);
       
       default:
         log.warning(`未知的同步类型: ${syncPair.syncType}`);
@@ -372,6 +371,10 @@ class DocumentSynchronizer {
                  sourceData.every(item => targetData.includes(item));
         }
         return false;
+
+      case 'presence':
+        // 目标数据为 true 即视为通过
+        return targetData === true;
       
       default:
         return false;

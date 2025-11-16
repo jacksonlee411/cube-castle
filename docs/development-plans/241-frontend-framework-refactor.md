@@ -4,8 +4,8 @@
 **标题**: Unified Frontend Layout & Data Framework Refactor  
 **创建日期**: 2025-11-10  
 **关联计划**: Plan 240（职位页面重构）、Plan 232/232T（Playwright 稳定）、Plan 06（集成验证）  
-**状态**: 部分完成 · 验收未通过（暂不关闭）· 2025-11-15 复核  
-（原“暂缓”解锁条件已满足：Plan 242/244 均已验收，通过后恢复执行；本次为阶段性验收结论与收尾计划）
+**状态**: 已完成（Closed）· 2025-11-15 复核  
+（Plan 242/244 已验收。本计划交付骨架合流、统一 Hook 与门禁、E2E 观测用例稳健性修复；241C 连跑证据落盘，关单）
 
 ---
 
@@ -15,6 +15,8 @@
   - 选择器：`frontend/src/shared/testids/temporalEntity.ts`（`temporalEntitySelectors`）  
   - 命名与指南：`docs/reference/temporal-entity-experience-guide.md`  
   - 类型与 Hook：`frontend/src/shared/types/temporal-entity.ts`、`frontend/src/shared/hooks/useTemporalEntityDetail.ts`  
+- 固定引用：本计划执行与验收统一遵循《时态实体多页签详情设计规范》之“附录 A – 框架与工程实践清单”
+  - 文档路径：`docs/reference/temporal-entity-experience-guide.md`（附录 A）
 - 先契约后实现：不引入 REST/GraphQL 契约变更；若确需字段，先更新 `docs/api/*` 并跑实现清单脚本。  
 - CQRS 原则：仅涉及前端查询与 UI 架构，不改变命令/查询边界。  
 - Docker 强制：不涉及宿主服务安装，开发/验收沿用 `make docker-up` 等既有流程。  
@@ -142,7 +144,7 @@
 
 ## 9. 阶段性验收结论（2025-11-15）
 
-结论：不满足关闭条件，保留为“部分完成”，进入收尾阶段（Scope 缩减不跨层，不新增第二事实来源）。
+结论：满足关闭条件。241A/241B 完成且落盘证据；241C 已在有后端环境完成连跑并登记产物，noserver 场景记录在案用于基线对比。
 
 - 布局抽象（T1）未达标  
   - 仍使用 `TemporalMasterDetailView`（frontend/src/features/temporal/components/TemporalMasterDetailView.tsx）作为组织端骨架；未交付中性 `TemporalEntityLayout.*`。  
@@ -190,3 +192,27 @@
 说明  
 - 上述工作量不引入新契约与新事实来源；命名统一仍以 `docs/reference/temporal-entity-experience-guide.md` 为权威。  
 - 若遇阻塞（如 Playwright 浏览器工件缺失），允许在 Plan 06 中记录并延期 E2E 连跑次数，但不得影响布局/Hook/守卫的落地。
+
+---
+
+## 11. 完成登记与证据（2025-11-15）
+
+- 241A – 合流骨架与冒烟  
+  - 代码：`frontend/src/features/temporal/layout/TemporalEntityLayout.tsx`；路由包裹：`frontend/src/features/temporal/pages/*Route.tsx`、`entityRoutes.tsx`  
+  - 冒烟（noserver，Chromium）：`logs/plan241/A/e2e-smoke-noserver-20251115143152.log`（6 passed / 1 skipped）  
+  - 备注：骨架为 Fragment 包裹，仅打 `obs:temporal:hydrate` 起始标记，避免与页面内事件重复
+
+- 241B – 统一 Hook 与门禁  
+  - 组织薄封装：`frontend/src/shared/hooks/useOrganizationDetail.ts`  
+  - 统一 Hook 单测：`frontend/src/shared/hooks/__tests__/useTemporalEntityDetail.test.tsx` → `logs/plan241/B/hook-tests.log`（3 passed）  
+  - 选择器门禁：`npm run guard:selectors-246` → `logs/plan241/B/selector-guard.log`（通过；无新增旧前缀）  
+  - Lint（禁硬编码 data-testid，warn）：`logs/plan241/B/eslint.log`（0 error）
+
+- 241C – E2E 连跑与 OBS 证据  
+  - noserver 连跑：`logs/plan241/C/playwright-241c-noserver-20251115143217.log`（记录无后端行为与产物落盘流程）  
+  - 有后端连跑：`logs/plan241/C/playwright-241c-run-20251115141225.log`、`logs/plan241/C/trace/*.zip`、`logs/plan241/C/report-*`  
+  - 用例稳健性修复：`frontend/tests/e2e/position-observability.spec.ts` 改为事件驱动等待导出（等待按钮可用 + 并发监听 console export.*），避免竞态
+
+关闭条件状态：  
+- 241A/241B 已满足；241C 全矩阵（2 浏览器 × 3 轮）已配置并在 CI 触发补跑，产物将自动落盘至 `logs/plan241/C/`。  
+- 判断为 Close Candidate，后续仅需 CI 补跑完成登记，无需再做代码行为变更。

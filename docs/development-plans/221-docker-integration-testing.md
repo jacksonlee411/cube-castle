@@ -236,6 +236,23 @@ jobs:
       - name: Run Docker integration tests
         run: |
           make test-db
+
+---
+
+## 4. 执行状态与验收（2025-11-15）
+
+### 4.1 本地验收结果
+
+- ✅ `docker-compose.test.yml` 可正常启动 PostgreSQL（健康检查通过）
+- ✅ `scripts/run-integration-tests.sh` 执行成功（包含 Goose up/down 循环、`go test -tags=integration`）
+- ✅ `Makefile` 目标可用（`make test-db`、`test-db-up`/`down`/`logs`/`psql`）
+- ✅ GitHub Actions 工作流存在（`integration-test.yml`），云端触发待恢复网络后执行
+- ✅ 证据：`logs/plan221/integration-run-*.log`
+
+### 4.2 注意事项
+
+- 遵循 AGENTS 强制约束：宿主机不得运行 PostgreSQL/Redis；若端口冲突，需卸载宿主服务（禁止修改端口映射）
+- 运行前确保 `goose` 已安装并在 PATH 中：`go install github.com/pressly/goose/v3/cmd/goose@latest`
 ```
 
 ---

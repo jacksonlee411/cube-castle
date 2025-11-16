@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormField } from '@workday/canvas-kit-react/form-field';
 import { colors } from '@workday/canvas-kit-react/tokens';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 
 export interface UnitTypeSelectorProps {
   value: string;
@@ -59,7 +60,7 @@ const UnitTypeSelector: React.FC<UnitTypeSelectorProps> = ({
             fontSize: '14px',
             color: selectedOption?.color ?? colors.licorice500,
           }}
-          data-testid="form-field-unit-type"
+          data-testid={temporalEntitySelectors.form?.field?.unitType}
         >
           {unitTypeOptions.map((option) => (
             <option key={option.value} value={option.value}>

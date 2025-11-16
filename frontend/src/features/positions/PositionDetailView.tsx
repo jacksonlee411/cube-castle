@@ -322,7 +322,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
         })
       }
     },
-    [activeTab, isCompactLayout],
+    [activeTab, isCompactLayout, normalizedCode],
   )
 
   const overviewRecord = selectedVersion ?? position

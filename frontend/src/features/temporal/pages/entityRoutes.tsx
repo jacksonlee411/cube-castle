@@ -5,6 +5,7 @@ import TemporalEntityPage, {
 } from './TemporalEntityPage'
 import { TemporalMasterDetailView } from '@/features/temporal/components/TemporalMasterDetailView'
 import { PositionDetailView } from '@/features/positions/PositionDetailView'
+import { TemporalEntityLayout } from '@/features/temporal/layout/TemporalEntityLayout'
 
 const parseOrganizationCode = (rawCode?: string): TemporalEntityParseResult => {
   if (!rawCode) {
@@ -51,13 +52,15 @@ const organizationConfig: TemporalEntityRouteConfig = {
     },
   },
   renderContent: ctx => (
-    <TemporalMasterDetailView
-      organizationCode={ctx.isCreateMode ? null : ctx.code}
-      onBack={ctx.navigateToList}
-      onCreateSuccess={createdCode => ctx.navigateToDetail(createdCode, { replace: true })}
-      readonly={false}
-      isCreateMode={ctx.isCreateMode}
-    />
+    <TemporalEntityLayout.Shell entity="organization">
+      <TemporalMasterDetailView
+        organizationCode={ctx.isCreateMode ? null : ctx.code}
+        onBack={ctx.navigateToList}
+        onCreateSuccess={createdCode => ctx.navigateToDetail(createdCode, { replace: true })}
+        readonly={false}
+        isCreateMode={ctx.isCreateMode}
+      />
+    </TemporalEntityLayout.Shell>
   ),
 }
 
@@ -79,13 +82,15 @@ const positionConfig: TemporalEntityRouteConfig = {
     },
   },
   renderContent: ctx => (
-    <PositionDetailView
-      code={ctx.code}
-      rawCode={ctx.rawCode}
-      isCreateMode={ctx.isCreateMode}
-      navigateToList={ctx.navigateToList}
-      navigateToDetail={ctx.navigateToDetail}
-    />
+    <TemporalEntityLayout.Shell entity="position">
+      <PositionDetailView
+        code={ctx.code}
+        rawCode={ctx.rawCode}
+        isCreateMode={ctx.isCreateMode}
+        navigateToList={ctx.navigateToList}
+        navigateToDetail={ctx.navigateToDetail}
+      />
+    </TemporalEntityLayout.Shell>
   ),
 }
 

@@ -52,7 +52,7 @@
 | **218** | logger 实现 | 结构化日志、Prometheus | W3-D2 | - | pkg/logger/ | 基础设施 |
 | **219** | 重构 org 模块 | 标准化目录、基础设施集成 | W3-D4-5 | 216-218 | organization/ | 架构师 |
 | **220** | 模块模板文档 | 标准指南、检查清单、样本 | W4-D2 | 219 | 开发文档 | 架构师 |
-| **221** | Docker 测试基座 | Compose 配置、脚本、CI | W4-D3 | 217, 210 | 测试基座 | QA |
+| **221** | Docker 测试基座 | Compose 配置、脚本、CI | W4-D3 ✅ (2025-11-15) | 217, 210 | 测试基座与验收日志 | QA |
 | **222** | 验证与更新 | 测试验证、文档更新、报告 | W4-D4-5 | 219-221 | 验收报告 | QA |
 
 ---
@@ -244,6 +244,7 @@ internal/organization/
 - ✅ 预拉取镜像后冷启动 < 10s（首轮需先执行镜像预拉取脚本）
 - ✅ Goose 迁移 up/down 循环通过
 - ✅ 集成测试可正常运行
+- ✅ 验收证据已落盘：`logs/plan221/integration-run-*.log`
 
 ---
 
@@ -267,6 +268,17 @@ internal/organization/
 - DEVELOPER-QUICK-REFERENCE.md
 - IMPLEMENTATION-INVENTORY.md
 - modular-monolith-design.md
+
+---
+
+## 3.x 进度补充（2025-11-15）
+
+- Plan 221 已完成（本地验收），证据：`logs/plan221/integration-run-*.log`
+- Plan 222 阶段性通过项：
+  - REST/GraphQL 核心路径可用：`logs/plan222/create-response-*.json`、`logs/plan222/graphql-query-*.json`
+  - E2E 烟测（Chromium/Firefox 各 1 轮）通过
+  - 健康/JWKS 验证：`logs/plan222/health-*.json`、`logs/plan222/jwks-*.json`
+  - 覆盖率补位进行中：`logs/plan222/coverage-org-*.{out,txt,html}`
 
 ---
 
@@ -506,5 +518,5 @@ Phase2 是 HRMS 系统从"能用"到"可维护"的关键转折。通过建立坚
 ---
 
 **维护者**: Codex（AI 助手）
-**最后更新**: 2025-11-04
+**最后更新**: 2025-11-15
 **计划完成日期**: 2025-11-18

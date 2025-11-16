@@ -1,0 +1,19 @@
+HTTP/1.1 400 Bad Request
+Access-Control-Allow-Headers: Accept, Authorization, Content-Type, X-CSRF-Token, X-Tenant-ID
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Vary: Origin
+X-Content-Type-Options: nosniff
+X-Correlation-Id: a2ec644f-472f-41c7-abab-443bc03161d3
+X-Frame-Options: DENY
+X-Ratelimit-Limit: 100
+X-Ratelimit-Remaining: 99
+X-Ratelimit-Reset: 1763211656
+X-Request-Id: a2ec644f-472f-41c7-abab-443bc03161d3
+X-Response-Time: 
+X-Service: organization-command-service
+X-Xss-Protection: 1; mode=block
+Date: Sat, 15 Nov 2025 12:59:56 GMT
+Content-Length: 1120
+

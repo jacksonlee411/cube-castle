@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-11-15T02:56:22.874Z",
+  "timestamp": "2025-11-15T08:15:13.368Z",
   "summary": {
     "totalPairs": 5,
-    "syncedPairs": 3,
+    "syncedPairs": 5,
     "conflicts": 0,
     "errors": 0,
     "autoFixed": 0,
     "checksPerformed": 5,
-    "successRate": "60.0"
+    "successRate": "100.0"
   },
   "syncPairs": [
     {
@@ -15,121 +15,115 @@
       "description": "OpenAPI版本号同步到前端类型和技术文档",
       "source": "docs/api/openapi.yaml",
       "targets": [
-        "frontend/src/shared/api/types.ts",
         "docs/development-plans/02-technical-architecture-design.md"
       ],
       "syncType": "version"
-    },
-    {
-      "name": "端口配置同步",
-      "description": "端口配置在Vite、Playwright、文档中保持一致",
-      "source": "frontend/src/shared/config/ports.ts",
-      "targets": [
-        "README.md",
-        "frontend/README.md"
-      ],
-      "syncType": "config"
-    },
-    {
-      "name": "项目状态同步",
-      "description": "项目状态在主要文档中保持一致",
-      "source": "CLAUDE.md",
-      "targets": [
-        "README.md",
-        "docs/development-plans/18-duplicate-code-elimination-plan.md"
-      ],
-      "syncType": "status"
     },
     {
       "name": "依赖版本同步",
       "description": "关键依赖版本在文档中保持同步",
       "source": "frontend/package.json",
       "targets": [
-        "README.md",
-        "frontend/README.md",
         "docs/development-plans/02-technical-architecture-design.md"
       ],
       "syncType": "dependencies"
     },
     {
-      "name": "架构成果同步",
-      "description": "重复代码消除成果在文档间同步",
-      "source": "docs/development-plans/18-duplicate-code-elimination-plan.md",
+      "name": "presence: temporal guide appendix index exists",
+      "description": "检查《时态实体体验指南》中是否存在附录A（索引，不复制正文）",
+      "source": "docs/reference/temporal-entity-experience-guide.md",
       "targets": [
-        "README.md",
-        "CLAUDE.md"
+        "docs/reference/temporal-entity-experience-guide.md"
       ],
-      "syncType": "achievements"
+      "syncType": "presence"
+    },
+    {
+      "name": "presence: AGENTS links temporal guide",
+      "description": "AGENTS 索引需包含“时态实体体验指南”的权威链接",
+      "source": "AGENTS.md",
+      "targets": [
+        "AGENTS.md"
+      ],
+      "syncType": "presence"
+    },
+    {
+      "name": "presence: plan 241 references appendix A",
+      "description": "Plan 241 需固定引用附录A作为执行/验收依据",
+      "source": "docs/development-plans/241-frontend-framework-refactor.md",
+      "targets": [
+        "docs/development-plans/241-frontend-framework-refactor.md"
+      ],
+      "syncType": "presence"
     }
   ],
   "history": [
     {
-      "timestamp": "2025-11-14T12:46:04.884Z",
-      "syncPairName": "依赖版本同步",
-      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
-      "success": true,
-      "autoFixed": true
-    },
-    {
-      "timestamp": "2025-11-14T12:46:04.952Z",
+      "timestamp": "2025-11-15T07:50:34.921Z",
       "syncPairName": "API规范版本同步",
       "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
       "success": true,
       "autoFixed": false
     },
     {
-      "timestamp": "2025-11-14T12:46:04.954Z",
-      "syncPairName": "端口配置同步",
-      "sourceHash": "a312814878297f7164ff619f51c69ce1",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-14T12:46:04.955Z",
+      "timestamp": "2025-11-15T07:50:34.923Z",
       "syncPairName": "依赖版本同步",
-      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
+      "sourceHash": "789fc462f604cfb1f9908c2e1efff7b2",
       "success": true,
       "autoFixed": false
     },
     {
-      "timestamp": "2025-11-14T13:54:22.233Z",
+      "timestamp": "2025-11-15T07:50:34.924Z",
+      "syncPairName": "presence: temporal guide appendix index exists",
+      "sourceHash": "b2e94e5aea9864ba1606a486e8a67008",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-15T07:50:34.924Z",
+      "syncPairName": "presence: AGENTS links temporal guide",
+      "sourceHash": "791a604976b6131ed08d2a9c9faba104",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-15T07:50:34.925Z",
+      "syncPairName": "presence: plan 241 references appendix A",
+      "sourceHash": "e0afe20a48e5c8eb9cab98e52d589729",
+      "success": true,
+      "autoFixed": false
+    },
+    {
+      "timestamp": "2025-11-15T08:15:13.363Z",
       "syncPairName": "API规范版本同步",
       "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
       "success": true,
       "autoFixed": false
     },
     {
-      "timestamp": "2025-11-14T13:54:22.235Z",
-      "syncPairName": "端口配置同步",
-      "sourceHash": "a312814878297f7164ff619f51c69ce1",
-      "success": true,
-      "autoFixed": false
-    },
-    {
-      "timestamp": "2025-11-14T13:54:22.237Z",
+      "timestamp": "2025-11-15T08:15:13.365Z",
       "syncPairName": "依赖版本同步",
-      "sourceHash": "05f91aa9aac87c2cdc4d46209482862a",
+      "sourceHash": "789fc462f604cfb1f9908c2e1efff7b2",
       "success": true,
       "autoFixed": false
     },
     {
-      "timestamp": "2025-11-15T02:56:22.871Z",
-      "syncPairName": "API规范版本同步",
-      "sourceHash": "e0432158f94a91ebb06c2fe859abb591",
+      "timestamp": "2025-11-15T08:15:13.366Z",
+      "syncPairName": "presence: temporal guide appendix index exists",
+      "sourceHash": "b2e94e5aea9864ba1606a486e8a67008",
       "success": true,
       "autoFixed": false
     },
     {
-      "timestamp": "2025-11-15T02:56:22.873Z",
-      "syncPairName": "端口配置同步",
-      "sourceHash": "a312814878297f7164ff619f51c69ce1",
+      "timestamp": "2025-11-15T08:15:13.367Z",
+      "syncPairName": "presence: AGENTS links temporal guide",
+      "sourceHash": "791a604976b6131ed08d2a9c9faba104",
       "success": true,
       "autoFixed": false
     },
     {
-      "timestamp": "2025-11-15T02:56:22.873Z",
-      "syncPairName": "依赖版本同步",
-      "sourceHash": "f075c5b5dd559d0fb9049fa4b10cf343",
+      "timestamp": "2025-11-15T08:15:13.368Z",
+      "syncPairName": "presence: plan 241 references appendix A",
+      "sourceHash": "e0afe20a48e5c8eb9cab98e52d589729",
       "success": true,
       "autoFixed": false
     }

@@ -366,3 +366,158 @@ func TestLogOrganizationCreateCapturesNewValues(t *testing.T) {
 		t.Fatalf("sqlmock expectations not met: %v", err)
 	}
 }
+
+func TestLogOrganizationUpdate_EmitsChanges(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
+	}
+	defer db.Close()
+
+	auditLogger := NewAuditLogger(db, pkglogger.NewNoopLogger())
+	tenantID := uuid.New()
+	recordID := uuid.New()
+	oldOrg := &types.Organization{
+		RecordID: recordID.String(),
+		TenantID: tenantID.String(),
+		Code:     "ORG001",
+		Name:     "Old",
+		Status:   "ACTIVE",
+		Level:    1,
+	}
+	newOrg := &types.Organization{
+		RecordID: recordID.String(),
+		TenantID: tenantID.String(),
+		Code:     "ORG001",
+		Name:     "New",
+		Status:   "ACTIVE",
+		Level:    1,
+	}
+
+	mock.ExpectExec("INSERT INTO audit_logs").WithArgs(
+		sqlmock.AnyArg(),
+		tenantID,
+		EventTypeUpdate,
+		ResourceTypeOrganization,
+		recordID.String(),
+		"user-1",
+		ActorTypeUser,
+		"UpdateOrganization",
+		"req-upd",
+		"reason",
+		sqlmock.AnyArg(),
+		true,
+		"",
+		"",
+		sqlmock.AnyArg(),           // before
+		jsonContains{`"name":"New"`}, // after
+		sqlmock.AnyArg(),           // modified
+		fieldChangeHas{field: "name", newValue: "New"},
+		recordID,
+		sqlmock.AnyArg(),
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	if err := auditLogger.LogOrganizationUpdate(context.Background(), "ORG001", &types.UpdateOrganizationRequest{}, oldOrg, newOrg, "user-1", "req-upd", "reason"); err != nil {
+		t.Fatalf("LogOrganizationUpdate returned error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sqlmock expectations not met: %v", err)
+	}
+}
+
+func TestLogOrganizationSuspendActivate(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
+	}
+	defer db.Close()
+	auditLogger := NewAuditLogger(db, pkglogger.NewNoopLogger())
+	tenantID := uuid.New()
+	recordID := uuid.New()
+	org := &types.Organization{
+		RecordID: recordID.String(),
+		TenantID: tenantID.String(),
+		Code:     "ORG001",
+		Name:     "Name",
+		Status:   "ACTIVE",
+		Level:    1,
+	}
+	// Suspend: expect status INACTIVE
+	mock.ExpectExec("INSERT INTO audit_logs").WithArgs(
+		sqlmock.AnyArg(),
+		tenantID,
+		EventTypeSuspend,
+		ResourceTypeOrganization,
+		recordID.String(),
+		"user-1",
+		ActorTypeUser,
+		"SuspendOrganization",
+		"req-sus",
+		"maint",
+		sqlmock.AnyArg(),
+		true,
+		"",
+		"",
+		sqlmock.AnyArg(),
+		jsonContains{`"status":"INACTIVE"`},
+		sqlmock.AnyArg(),
+		fieldChangeHas{field: "status", newValue: "INACTIVE"},
+		recordID,
+		sqlmock.AnyArg(),
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+	if err := auditLogger.LogOrganizationSuspend(context.Background(), "ORG001", org, "user-1", "req-sus", "maint"); err != nil {
+		t.Fatalf("LogOrganizationSuspend returned error: %v", err)
+	}
+	// Activate: expect status ACTIVE
+	org.Status = "INACTIVE"
+	mock.ExpectExec("INSERT INTO audit_logs").WithArgs(
+		sqlmock.AnyArg(),
+		tenantID,
+		EventTypeActivate,
+		ResourceTypeOrganization,
+		recordID.String(),
+		"user-1",
+		ActorTypeUser,
+		"ActivateOrganization",
+		"req-act",
+		"reopen",
+		sqlmock.AnyArg(),
+		true,
+		"",
+		"",
+		sqlmock.AnyArg(),
+		jsonContains{`"status":"ACTIVE"`},
+		sqlmock.AnyArg(),
+		fieldChangeHas{field: "status", newValue: "ACTIVE"},
+		recordID,
+		sqlmock.AnyArg(),
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+	if err := auditLogger.LogOrganizationActivate(context.Background(), "ORG001", org, "user-1", "req-act", "reopen"); err != nil {
+		t.Fatalf("LogOrganizationActivate returned error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sqlmock expectations not met: %v", err)
+	}
+}
+
+func TestCalculateFieldChanges_Simple(t *testing.T) {
+	a := NewAuditLogger(nil, pkglogger.NewNoopLogger())
+	oldOrg := &types.Organization{Name: "A", Status: "ACTIVE"}
+	newOrg := &types.Organization{Name: "B", Status: "INACTIVE"}
+	changes := a.calculateFieldChanges(oldOrg, newOrg)
+	if len(changes) == 0 {
+		t.Fatalf("expected some changes")
+	}
+	foundName, foundStatus := false, false
+	for _, c := range changes {
+		if c.Field == "name" {
+			foundName = true
+		}
+		if c.Field == "status" {
+			foundStatus = true
+		}
+	}
+	if !foundName || !foundStatus {
+		t.Fatalf("expected name and status changes; got %#v", changes)
+	}
+}
