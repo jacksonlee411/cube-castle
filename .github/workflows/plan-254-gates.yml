@@ -26,17 +26,9 @@ on:
 
 jobs:
   gate:
-    name: Plan 254 Gate – ${{ matrix.label }}
-    strategy:
-      fail-fast: false
-      matrix:
-        label: [ubuntu, selfhosted]
-        include:
-          - label: ubuntu
-            runs_on: '["ubuntu-latest"]'
-          - label: selfhosted
-            runs_on: '["self-hosted","cubecastle","docker"]'
-    runs-on: ${{ fromJson(matrix.runs_on) }}
+    name: Plan 254 Gate – ubuntu
+    # TODO-TEMPORARY(2025-11-22): 简化 runner 矩阵为单一 ubuntu-latest，待工作流稳定后恢复 self-hosted 并行矩阵
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
