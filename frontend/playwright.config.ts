@@ -56,6 +56,16 @@ if (SAVE_HAR) {
   }
 }
 
+// 通用计划号：用于证据与 JSON 结果归档的目录 logs/plan<ID>/*
+const PLAN_ID = (process.env.E2E_PLAN_ID || '').trim() || '254';
+const PLAN_LOG_DIR = path.resolve(__dirname, '..', 'logs', `plan${PLAN_ID}`);
+try {
+  fs.mkdirSync(PLAN_LOG_DIR, { recursive: true });
+  fs.mkdirSync(path.join(PLAN_LOG_DIR, 'trace'), { recursive: true });
+} catch {
+  /* ignore fs errors */
+}
+
 export default defineConfig({
   // 全局测试超时：2分钟
   timeout: 120_000,
@@ -64,7 +74,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.E2E_STRICT === '1' ? 1 : (process.env.CI ? 2 : 4),
-  reporter: 'html',
+  // 同时产出 html 报告与机器可读 JSON（路径依赖 E2E_PLAN_ID）
+  reporter: [
+    ['json', { outputFile: path.join(PLAN_LOG_DIR, `results-${TS}.json`) }],
+    ['html']
+  ],
   expect: { timeout: 15_000 },
   
   use: {
