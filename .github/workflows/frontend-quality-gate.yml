@@ -231,6 +231,7 @@ jobs:
         echo "Docs/CI-only changes detected. Treating quality gate as passed for aggregator."
         exit 0
     - name: 检查质量门禁结果
+      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
       run: |
         if [[ "${{ needs.frontend-quality-gate.result }}" != "success" ]]; then
           echo "❌ 前端质量门禁失败 - 阻止合并"
