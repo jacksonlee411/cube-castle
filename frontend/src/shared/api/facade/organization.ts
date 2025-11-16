@@ -129,3 +129,123 @@ export async function suspendOrganization(code: string): Promise<boolean> {
   });
   return !!resp.success;
 }
+
+// 查询：组织子树与根组织列表、父组织筛选
+export interface OrganizationSubtreeNode {
+  code: string;
+  name: string;
+  unitType: string;
+  status: string;
+  level: number;
+  parentCode?: string | null;
+  codePath?: string | null;
+  namePath?: string | null;
+  parentChain?: string[] | null;
+  childrenCount?: number | null;
+  hierarchyDepth?: number | null;
+  children?: OrganizationSubtreeNode[] | null;
+}
+
+export async function getOrganizationSubtree(code: string, maxDepth = 10): Promise<OrganizationSubtreeNode | null> {
+  const QUERY = /* GraphQL */ `
+    query GetOrganizationSubtree($code: String!, $maxDepth: Int) {
+      organizationSubtree(code: $code, maxDepth: $maxDepth) {
+        code
+        name
+        unitType
+        status
+        level
+        parentCode
+        codePath
+        namePath
+        parentChain
+        childrenCount
+        hierarchyDepth
+        children {
+          code
+          name
+          unitType
+          status
+          level
+          parentCode
+          codePath
+          namePath
+          parentChain
+          childrenCount
+          hierarchyDepth
+        }
+      }
+    }
+  `;
+  const res = await unifiedGraphQLClient.request<{ organizationSubtree?: OrganizationSubtreeNode }>(QUERY, { code, maxDepth });
+  return res?.organizationSubtree ?? null;
+}
+
+export async function listRootOrganizations(): Promise<OrganizationSubtreeNode[]> {
+  const QUERY = /* GraphQL */ `
+    query GetRootOrganizations($filter: OrganizationFilter) {
+      organizations(filter: $filter) {
+        data {
+          code
+          name
+          unitType
+          status
+          level
+          parentCode
+          codePath
+          namePath
+          hierarchyDepth
+        }
+      }
+    }
+  `;
+  const res = await unifiedGraphQLClient.request<{ organizations?: { data: OrganizationSubtreeNode[] } }>(QUERY, { filter: { parentCode: null } });
+  return res.organizations?.data ?? [];
+}
+
+export interface ParentOrgItem {
+  code: string;
+  name: string;
+  unitType: string;
+  parentCode?: string;
+  level: number;
+  effectiveDate: string;
+  endDate?: string;
+  isFuture: boolean;
+  childrenCount?: number;
+}
+
+export async function searchValidParentOrganizations(asOfDate: string, currentCode: string, pageSize = 500): Promise<{ data: ParentOrgItem[]; total: number }> {
+  const QUERY = /* GraphQL */ `
+    query GetValidParentOrganizations($asOfDate: String!, $currentCode: String!, $pageSize: Int = 500) {
+      organizations(
+        filter: {
+          status: ACTIVE
+          asOfDate: $asOfDate
+          excludeCodes: [$currentCode]
+          excludeDescendantsOf: $currentCode
+          includeDisabledAncestors: true
+        }
+        pagination: { page: 1, pageSize: $pageSize, sortBy: "code", sortOrder: "asc" }
+      ) {
+        data {
+          code
+          name
+          unitType
+          parentCode
+          level
+          effectiveDate
+          endDate
+          isFuture
+          childrenCount
+        }
+        pagination { total page pageSize }
+      }
+    }
+  `;
+  const res = await unifiedGraphQLClient.request<{ organizations: { data: ParentOrgItem[]; pagination: { total: number } } }>(
+    QUERY,
+    { asOfDate, currentCode, pageSize }
+  );
+  return { data: res.organizations?.data ?? [], total: res.organizations?.pagination?.total ?? 0 };
+}

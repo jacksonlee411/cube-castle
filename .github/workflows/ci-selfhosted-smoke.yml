@@ -1,0 +1,46 @@
+name: CI (Self-Hosted Runner Smoke)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/ci-selfhosted-smoke.yml'
+      - 'docker-compose.runner.yml'
+      - 'docs/development-plans/262-self-hosted-runner.md'
+
+jobs:
+  smoke:
+    name: Self-Hosted Runner Smoke
+    runs-on: [self-hosted, cubecastle, docker]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+      - uses: actions/checkout@v4
+
+      - name: Print environment
+        run: |
+          uname -a
+          docker version
+          docker compose version || true
+          go version || true
+          node -v || true
+
+      - name: Validate compose files (syntax only)
+        run: |
+          docker compose -f docker-compose.dev.yml config -q
+          docker compose -f docker-compose.test.yml config -q
+          echo "Compose files look valid."
+
+      - name: Quick Go build
+        run: |
+          go version
+          go build ./... >/dev/null
+          echo "Go build OK"
+
+      - name: Quick frontend install (lockfile only)
+        run: |
+          node -v
+          npm --prefix frontend ci
+          echo "Frontend deps OK"
+

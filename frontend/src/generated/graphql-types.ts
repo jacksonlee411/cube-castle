@@ -1277,35 +1277,85 @@ export type VacantPositionSortInput = {
   field: VacantPositionSortField;
 };
 
-export type GetValidParentOrganizationsQueryVariables = Exact<{
-  asOfDate: Scalars["String"]["input"];
-  currentCode: Scalars["String"]["input"];
-  pageSize?: InputMaybe<Scalars["Int"]["input"]>;
+export type TemporalEntityAuditHistoryQueryVariables = Exact<{
+  recordId: Scalars["String"]["input"];
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  startDate?: InputMaybe<Scalars["String"]["input"]>;
+  endDate?: InputMaybe<Scalars["String"]["input"]>;
+  operation?: InputMaybe<OperationType>;
+  userId?: InputMaybe<Scalars["String"]["input"]>;
 }>;
 
-export type GetValidParentOrganizationsQuery = {
+export type TemporalEntityAuditHistoryQuery = {
   __typename: "Query";
-  organizations: {
-    __typename: "OrganizationConnection";
-    data: Array<{
-      __typename: "Organization";
-      code: string;
-      name: string;
-      unitType: UnitType;
-      parentCode: string;
-      level: number;
-      effectiveDate: string;
-      endDate?: string | null;
-      isFuture: boolean;
-      childrenCount: number;
+  auditHistory: Array<{
+    __typename: "AuditLogDetail";
+    auditId: string;
+    recordId: string;
+    operation: string;
+    timestamp: string;
+    operationReason?: string | null;
+    beforeData?: string | null;
+    afterData?: string | null;
+    modifiedFields: Array<string>;
+    changes: Array<{
+      __typename: "FieldChange";
+      field: string;
+      oldValue?: string | null;
+      newValue?: string | null;
+      dataType: string;
     }>;
-    pagination: {
-      __typename: "PaginationInfo";
-      total: number;
-      page: number;
-      pageSize: number;
-    };
-  };
+  }>;
+};
+
+export type OrganizationByCodeQueryVariables = Exact<{
+  code: Scalars["String"]["input"];
+}>;
+
+export type OrganizationByCodeQuery = {
+  __typename: "Query";
+  organization?: {
+    __typename: "Organization";
+    recordId: string;
+    code: string;
+    name: string;
+    unitType: UnitType;
+    status: Status;
+    level: number;
+    parentCode: string;
+    description?: string | null;
+    codePath: string;
+    namePath: string;
+    effectiveDate: string;
+    endDate?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type OrganizationVersionsQueryVariables = Exact<{
+  code: Scalars["String"]["input"];
+}>;
+
+export type OrganizationVersionsQuery = {
+  __typename: "Query";
+  organizationVersions: Array<{
+    __typename: "Organization";
+    recordId: string;
+    code: string;
+    name: string;
+    unitType: UnitType;
+    status: Status;
+    level: number;
+    parentCode: string;
+    description?: string | null;
+    codePath: string;
+    namePath: string;
+    effectiveDate: string;
+    endDate?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 };
 
 export type EnterpriseOrganizationsQueryVariables = Exact<{
