@@ -41,7 +41,8 @@ export default [
         'error',
         {
           allowedRestMethods: ['POST', 'PUT', 'DELETE', 'PATCH'],
-          allowedQueryEndpoints: ['/auth', '/health', '/metrics'],
+          // 收敛 GET 直连例外：仅允许认证入口（其余只读场景改为 GraphQL）
+          allowedQueryEndpoints: ['/auth'],
           graphqlClient: 'graphql-client',
         },
       ],
@@ -60,7 +61,8 @@ export default [
           standardFields: {
             identifiers: ['code', 'parentCode', 'tenantId', 'recordId'],
             timeFields: ['createdAt', 'updatedAt', 'effectiveDate', 'endDate'],
-            statusFields: ['status', 'isDeleted', 'isCurrent', 'isFuture'],
+            // 统一状态词表：status/isCurrent/isFuture/isTemporal（不暴露 isDeleted）
+            statusFields: ['status', 'isCurrent', 'isFuture', 'isTemporal'],
             operationFields: ['operationType', 'operatedBy', 'operationReason'],
             hierarchyFields: ['level', 'codePath', 'namePath', 'hierarchyDepth'],
             configFields: ['unitType', 'sortOrder', 'description', 'profile'],
@@ -168,6 +170,14 @@ export default [
       ],
     },
   },
+  // 统一客户端实现层：允许底层使用 fetch（架构门禁在业务层生效）
+  {
+    files: ['frontend/src/shared/api/unified-client.ts'],
+    rules: {
+      'no-restricted-globals': 'off',
+      'architecture/no-rest-queries': 'off',
+    },
+  },
   // 迁移和种子文件
   {
     files: ['**/migrations/**/*.ts', '**/seeds/**/*.ts', '**/fixtures/**/*.ts'],
@@ -191,4 +201,3 @@ export default [
     },
   },
 ];
-

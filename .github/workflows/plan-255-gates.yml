@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        env:
+          # PR 固定 255；push 使用 run_number，便于证据分桶
+          E2E_PLAN_ID: ${{ (github.event_name == 'pull_request') && '255' || github.run_number }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,6 +32,23 @@ jobs:
           ts="$(date +%Y%m%d_%H%M%S)"
           echo "TS=$ts" >> $GITHUB_OUTPUT
           mkdir -p logs/plan255
+          echo "Plan 255 TS=${ts}"
+
+      - name: Install Node deps (for ESLint architecture guard)
+        shell: bash
+        run: |
+          set -e
+          npm ci
+          node -v
+          npx eslint -v
+
+      - name: Frontend ESLint Architecture gate (CQRS/Ports/Contracts)
+        shell: bash
+        run: |
+          set -e
+          # Use flat-config dedicated to architecture guard (AST-accurate; complements static scanner)
+          npx eslint -c eslint.config.architecture.mjs "frontend/src/**/*.{ts,tsx}" \
+            2>&1 | tee "logs/plan255/eslint-architecture-${{ steps.prep.outputs.TS }}.log"
 
       - name: Frontend CQRS/Ports/Forbidden gate (architecture-validator)
         shell: bash
@@ -40,7 +60,8 @@ jobs:
       - name: Install golangci-lint
         shell: bash
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          # Pin version to ensure reproducible CI results (align with AGENTS reproducibility guideline)
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
           golangci-lint version
 
       - name: Backend boundary and JSON naming gate (golangci-lint)
@@ -49,6 +70,18 @@ jobs:
           set -e
           golangci-lint run 2>&1 | tee "logs/plan255/golangci-lint-${{ steps.prep.outputs.TS }}.log"
           test ${PIPESTATUS[0]} -eq 0
+
+      - name: Print E2E SUMMARY (if any)
+        if: always()
+        shell: bash
+        env:
+          E2E_PLAN_ID: ${{ (github.event_name == 'pull_request') && '255' || github.run_number }}
+        run: |
+          if [ -f "scripts/ci/print-e2e-summary.js" ]; then
+            node scripts/ci/print-e2e-summary.js "${E2E_PLAN_ID}" || true
+          else
+            echo "SUMMARY: no printer script found"
+          fi
 
       - name: Upload plan-255 logs
         if: always()
@@ -60,4 +93,3 @@ jobs:
             reports/architecture/architecture-validation.json
           if-no-files-found: warn
           retention-days: 7
-

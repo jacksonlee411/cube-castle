@@ -42,16 +42,19 @@ linters-settings:
 issues:
   exclude-use-default: false
   exclude-rules:
-    # 允许 OAuth/OIDC/JWT 标准字段的 snake_case json tag（仅限认证相关路径）
+    # 允许 OAuth/OIDC/JWT 标准字段的 snake_case json tag（仅限认证相关路径，且仅允许列举字段）
     - linters:
         - tagliatelle
       path: internal/auth/.*
+      source: 'json:"(access_token|refresh_token|token_type|id_token|expires_in|authorization_endpoint|token_endpoint|end_session_endpoint|jwks_uri|tenant_id)"'
     - linters:
         - tagliatelle
       path: cmd/hrms-server/.*/internal/auth/.*
+      source: 'json:"(access_token|refresh_token|token_type|id_token|expires_in|authorization_endpoint|token_endpoint|end_session_endpoint|jwks_uri|tenant_id)"'
     - linters:
         - tagliatelle
       path: cmd/hrms-server/.*/internal/authbff/oidc\.go
+      source: 'json:"(access_token|refresh_token|token_type|id_token|expires_in|authorization_endpoint|token_endpoint|end_session_endpoint|jwks_uri|tenant_id)"'
     # 缓存/内部状态对象不作为对外响应的约束目标（避免误报）
     - linters:
         - tagliatelle

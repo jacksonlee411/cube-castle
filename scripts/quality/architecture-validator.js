@@ -38,7 +38,8 @@ const config = {
       enabled: true,
       frontendPath: 'frontend/src',
       prohibitedRestQueries: ['GET', 'get'],
-      allowedQueryEndpoints: ['/auth', '/health', '/metrics'],
+      // 收敛 GET 直连例外：仅允许认证入口（其余只读场景改为 GraphQL）
+      allowedQueryEndpoints: ['/auth'],
       graphqlClientPattern: /graphql|gql/i
     },
 
@@ -154,7 +155,7 @@ class CQRSArchitectureValidator {
     const violations = [];
     const lines = content.split('\n');
     
-    // 检查REST GET请求
+    // 检查REST GET请求（逐行快速规则 + 跨行缺省GET检测）
     const restGetPatterns = [
       /fetch\s*\(\s*['"`][^'"`]*['"`]\s*\)/g,  // fetch without options (default GET)
       /fetch\s*\([^)]*method\s*:\s*['"`]GET['"`]/gi,  // explicit GET method
@@ -183,6 +184,40 @@ class CQRSArchitectureValidator {
       });
     });
     
+    // 跨行检测：fetch(url, { ... }) 且 options 未包含 method => 仍视为默认GET
+    try {
+      const fetchWithObjectPattern = /fetch\s*\(\s*([^,]+),\s*\{([\s\S]*?)\}\s*\)/gi;
+      let m;
+      while ((m = fetchWithObjectPattern.exec(content)) !== null) {
+        const optionsBody = m[2] || '';
+        const hasMethod = /method\s*:/i.test(optionsBody);
+        if (!hasMethod) {
+          // 计算位置
+          const index = m.index;
+          const before = content.substring(0, index);
+          const line = before.split('\n').length;
+          const col = index - before.lastIndexOf('\n', index - 1);
+          const snippet = content.substring(index, Math.min(content.length, index + 200)).replace(/\s+/g, ' ').trim();
+
+          const isAllowedEndpoint = config.rules.cqrsArchitecture.allowedQueryEndpoints
+            .some(endpoint => snippet.includes(endpoint));
+          if (!isAllowedEndpoint) {
+            violations.push({
+              type: 'cqrs',
+              line,
+              column: col,
+              message: '禁止使用REST GET请求进行查询，请使用GraphQL客户端（fetch 默认GET且缺少 method）',
+              code: 'no-rest-queries',
+              severity: 'error',
+              context: snippet
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略解析失败，保持稳健
+    }
+
     // 检查是否使用了GraphQL客户端
     const hasGraphQLClient = config.rules.cqrsArchitecture.graphqlClientPattern.test(content);
     if (violations.length > 0 && !hasGraphQLClient) {
@@ -491,9 +526,16 @@ class ArchitectureValidator {
       if (this.isRuleEnabled('cqrsArchitecture') &&
           this.options.rules.cqrsArchitecture.enabled && 
           filePath.includes(this.options.rules.cqrsArchitecture.frontendPath)) {
-        const cqrsViolations = CQRSArchitectureValidator.validate(filePath, content);
-        fileViolations.push(...cqrsViolations);
-        stats.violations.cqrs += cqrsViolations.length;
+        // 跳过统一客户端底层实现文件，避免将内部 fetch 误判为业务查询
+        const relative = path.relative(this.options.projectRoot || process.cwd(), filePath).replace(/\\/g, '/');
+        const ignoreCQRSFiles = [
+          'frontend/src/shared/api/unified-client.ts'
+        ];
+        if (!ignoreCQRSFiles.includes(relative)) {
+          const cqrsViolations = CQRSArchitectureValidator.validate(filePath, content);
+          fileViolations.push(...cqrsViolations);
+          stats.violations.cqrs += cqrsViolations.length;
+        }
       }
       
       // 端口配置验证

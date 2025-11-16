@@ -274,11 +274,11 @@ export class AuthManager {
       return;
     }
     try {
-      const response = await fetch('/.well-known/jwks.json', { credentials: 'include' });
-      if (!response.ok) {
-        throw new Error(`JWKS 请求失败，HTTP ${response.status}`);
-      }
-      const jwks = (await response.json()) as { keys?: JsonValue[] };
+      // 根据 255 计划：前端不直接 fetch JWKS；使用未认证 REST 客户端统一出站（仅校验连通性）
+      const jwks = await unauthenticatedRESTClient.request<{ keys?: JsonValue[] }>(
+        '/.well-known/jwks.json',
+        { method: 'GET', credentials: 'include' }
+      );
       if (!jwks || !Array.isArray(jwks.keys) || jwks.keys.length === 0) {
         throw new Error('JWKS 未返回任何公钥，无法确认 RS256 配置');
       }
