@@ -124,6 +124,7 @@ jobs:
           PW_JWT: ${{ env.PW_JWT }}
           E2E_PLAN_ID: "254"
           PW_SKIP_SERVER: "0"
+          PW_BASE_URL: "http://localhost:9090"
         run: |
           npm run -s test:e2e:254
       
