@@ -14,7 +14,7 @@ import { activityStreamIcon, exclamationCircleIcon } from '@workday/canvas-syste
 
 import { AuditEntryCard } from './AuditEntryCard';
 import type { AuditTimelineEntry } from './AuditEntryCard';
-import { unifiedGraphQLClient } from '../../../shared/api';
+import { getAuditHistory } from '@/shared/api/facade/audit';
 import type { TemporalQueryParams } from '../../../shared/types/temporal';
 import type { JsonObject, JsonValue } from '@/shared/types/json';
 import { isJsonObject } from '@/shared/types/json';
@@ -66,39 +66,15 @@ export const AuditHistorySection: React.FC<AuditHistorySectionProps> = ({
   } = useQuery({
     queryKey: ['auditHistory', recordId, params],
     queryFn: async () => {
-      logger.info('🚀 AuditHistorySection: Calling auditHistory GraphQL query with recordId:', recordId, 'params:', params);
-      
-      const result = await unifiedGraphQLClient.request<{
-        auditHistory: AuditHistoryGraphQLEntry[];
-      }>(`
-        query TemporalEntityAuditHistory($recordId: String!, $limit: Int, $startDate: String, $endDate: String, $operation: OperationType, $userId: String) {
-          auditHistory(recordId: $recordId, limit: $limit, startDate: $startDate, endDate: $endDate, operation: $operation, userId: $userId) {
-            auditId
-            recordId
-            operation
-            timestamp
-            operationReason
-            beforeData
-            afterData
-            modifiedFields
-            changes {
-              field
-              oldValue
-              newValue
-              dataType
-            }
-          }
-        }
-      `, {
-        recordId,
-        limit: params?.limit || 50,
-        startDate: params?.startDate || null,
-        endDate: params?.endDate || null,
-        operation: params?.operation || null,
-        userId: params?.userId || null
+      logger.info('🚀 AuditHistorySection: Calling auditHistory facade with recordId:', recordId, 'params:', params);
+      const result = await getAuditHistory(recordId, {
+        limit: params?.limit ?? 50,
+        startDate: params?.startDate ?? null,
+        endDate: params?.endDate ?? null,
+        operation: (params?.operation as unknown as string) ?? null,
+        userId: params?.userId ?? null
       });
-      
-      return result.auditHistory;
+      return result;
     },
     enabled: !!recordId,
     // 组织详情页签切换需即时刷新，避免因 staleTime 导致用户看不到刚写入的审计

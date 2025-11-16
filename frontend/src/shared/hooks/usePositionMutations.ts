@@ -1,8 +1,6 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { unifiedRESTClient } from '@/shared/api';
-import { createQueryError } from '@/shared/api/queryClient';
 import { logger } from '@/shared/utils/logger';
-import type { APIResponse } from '@/shared/types/api';
+// APIResponse 等类型校验由 Facade 内部处理，Hook 层不再直接依赖
 import {
   POSITIONS_QUERY_ROOT_KEY,
   VACANT_POSITIONS_QUERY_ROOT_KEY,
@@ -38,19 +36,7 @@ export interface PositionCommandResult {
   timestamp: string;
 }
 
-const ensurePositionSuccess = <T>(
-  response: APIResponse<T>,
-  fallbackMessage: string,
-): T => {
-  if (!response.success || !response.data) {
-    throw createQueryError(response.error?.message ?? fallbackMessage, {
-      code: response.error?.code,
-      details: response.error?.details,
-      requestId: response.requestId,
-    });
-  }
-  return response.data;
-};
+// 成功判断由 Facade 处理
 
 /**
  * 统一入口：转发到 SSoT 失效工具，避免在此处分散维护键名
@@ -65,16 +51,10 @@ export const useCreatePosition = () => {
   return useMutation({
     mutationFn: async (variables: CreatePositionRequest): Promise<PositionResource> => {
       logger.mutation('[Mutation] Create position', variables);
-      const response = await unifiedRESTClient.request<APIResponse<PositionResource>>('/positions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(variables),
-      });
-
-      logger.mutation('[Mutation] Create position response', response);
-      return ensurePositionSuccess(response, '创建职位失败');
+      const { createPosition } = await import('@/shared/api/facade/position');
+      const resource = await createPosition(variables);
+      logger.mutation('[Mutation] Create position response', resource);
+      return resource;
     },
     onSuccess: (resource) => {
       logger.mutation('[Mutation] Create position settled, refreshing caches', resource.code);
@@ -93,16 +73,10 @@ export const useUpdatePosition = () => {
     mutationFn: async (variables: UpdatePositionRequest): Promise<PositionResource> => {
       const { code, ...payload } = variables;
       logger.mutation('[Mutation] Update position', { code, payload });
-      const response = await unifiedRESTClient.request<APIResponse<PositionResource>>(`/positions/${code}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      logger.mutation('[Mutation] Update position response', response);
-      return ensurePositionSuccess(response, '更新职位失败');
+      const { updatePosition } = await import('@/shared/api/facade/position');
+      const resource = await updatePosition(code, payload);
+      logger.mutation('[Mutation] Update position response', resource);
+      return resource;
     },
     onSuccess: (_, variables) => {
       logger.mutation('[Mutation] Update position settled', variables.code);
@@ -124,16 +98,10 @@ export const useCreatePositionVersion = () => {
     mutationFn: async (variables: CreatePositionVersionRequest): Promise<PositionResource> => {
       const { code, ...payload } = variables;
       logger.mutation('[Mutation] Create position version', { code, payload });
-      const response = await unifiedRESTClient.request<APIResponse<PositionResource>>(`/positions/${code}/versions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      logger.mutation('[Mutation] Create position version response', response);
-      return ensurePositionSuccess(response, '创建职位时态版本失败');
+      const { createPositionVersion } = await import('@/shared/api/facade/position');
+      const resource = await createPositionVersion(code, payload);
+      logger.mutation('[Mutation] Create position version response', resource);
+      return resource;
     },
     onSuccess: (_, variables) => {
       logger.mutation('[Mutation] Create position version settled', variables.code);
@@ -160,30 +128,18 @@ export const useTransferPosition = () => {
         effectiveDate,
         reassignReports,
       });
-
-      const response = await unifiedRESTClient.request<APIResponse<PositionCommandPayload>>(
-        `/positions/${code}/transfer`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            targetOrganizationCode,
-            effectiveDate,
-            operationReason,
-            reassignReports,
-          }),
-        },
-      );
-
-      logger.mutation('[Mutation] Transfer response', response);
-      const payload = ensurePositionSuccess(response, '转移职位失败');
-
+      const { transferPosition } = await import('@/shared/api/facade/position');
+      const { payload, requestId, timestamp } = await transferPosition(code, {
+        targetOrganizationCode,
+        effectiveDate,
+        operationReason,
+        reassignReports,
+      });
+      logger.mutation('[Mutation] Transfer response', { payload, requestId, timestamp });
       return {
-        payload,
-        requestId: response.requestId,
-        timestamp: response.timestamp,
+        payload: payload as PositionCommandPayload,
+        requestId,
+        timestamp: timestamp || new Date().toISOString(),
       };
     },
     onSuccess: (_, variables) => {

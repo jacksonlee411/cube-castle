@@ -1,20 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { unifiedRESTClient } from '@/shared/api'
-import { createQueryError } from '@/shared/api/queryClient'
 import { logger } from '@/shared/utils/logger'
-import type { APIResponse } from '@/shared/types/api'
 import type { JobCatalogStatus } from '@/generated/graphql-types'
+import * as jobCatalog from '@/shared/api/facade/jobCatalog'
 
-const ensureSuccess = <T>(response: APIResponse<T>, fallbackMessage: string): T => {
-  if (!response.success) {
-    throw createQueryError(response.error?.message ?? fallbackMessage, {
-      code: response.error?.code,
-      details: response.error?.details,
-      requestId: response.requestId,
-    })
-  }
-  return response.data as T
-}
+// 成功判断与错误封装逻辑已在 Facade 处理
 
 const invalidateGroups = (client: ReturnType<typeof useQueryClient>) => {
   client.invalidateQueries({ queryKey: ['jobCatalog', 'groups'], exact: false })
@@ -116,24 +105,14 @@ export interface UpdateJobLevelInput {
   levelRank?: number
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' } as const
-
-const withIfMatch = (recordId: string) => ({
-  ...jsonHeaders,
-  'If-Match': recordId,
-})
+// 头注入与 If-Match 已在 Facade 实现，无需在 Hook 层处理
 
 export const useCreateJobFamilyGroup = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: CreateJobFamilyGroupInput) => {
       logger.mutation('[JobCatalog] create job family group', input)
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>('/job-family-groups', {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(input),
-      })
-      ensureSuccess(response, '创建职类失败')
+      await jobCatalog.createJobFamilyGroup(input)
     },
     onSuccess: () => invalidateGroups(queryClient),
     onError: error => logger.error('[JobCatalog] create job family group failed', error),
@@ -146,12 +125,7 @@ export const useUpdateJobFamilyGroup = () => {
     mutationFn: async (input: UpdateJobFamilyGroupInput) => {
       const { code, recordId, ...payload } = input
       logger.mutation('[JobCatalog] update job family group', { code, ...payload, recordId })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-family-groups/${code}`, {
-        method: 'PUT',
-        headers: withIfMatch(recordId),
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '更新职类失败')
+      await jobCatalog.updateJobFamilyGroup(input)
     },
     onSuccess: () => invalidateGroups(queryClient),
     onError: error => logger.error('[JobCatalog] update job family group failed', error),
@@ -163,12 +137,7 @@ export const useCreateJobFamily = () => {
   return useMutation({
     mutationFn: async (input: CreateJobFamilyInput) => {
       logger.mutation('[JobCatalog] create job family', input)
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>('/job-families', {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(input),
-      })
-      ensureSuccess(response, '创建职种失败')
+      await jobCatalog.createJobFamily(input)
     },
     onSuccess: () => {
       invalidateFamilies(queryClient)
@@ -183,12 +152,7 @@ export const useUpdateJobFamily = () => {
     mutationFn: async (input: UpdateJobFamilyInput) => {
       const { code, recordId, ...payload } = input
       logger.mutation('[JobCatalog] update job family', { code, ...payload, recordId })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-families/${code}`, {
-        method: 'PUT',
-        headers: withIfMatch(recordId),
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '更新职种失败')
+      await jobCatalog.updateJobFamily(input)
     },
     onSuccess: () => {
       invalidateFamilies(queryClient)
@@ -202,12 +166,7 @@ export const useCreateJobRole = () => {
   return useMutation({
     mutationFn: async (input: CreateJobRoleInput) => {
       logger.mutation('[JobCatalog] create job role', input)
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>('/job-roles', {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(input),
-      })
-      ensureSuccess(response, '创建职务失败')
+      await jobCatalog.createJobRole(input)
     },
     onSuccess: () => {
       invalidateRoles(queryClient)
@@ -222,12 +181,7 @@ export const useUpdateJobRole = () => {
     mutationFn: async (input: UpdateJobRoleInput) => {
       const { code, recordId, ...payload } = input
       logger.mutation('[JobCatalog] update job role', { code, ...payload, recordId })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-roles/${code}`, {
-        method: 'PUT',
-        headers: withIfMatch(recordId),
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '更新职务失败')
+      await jobCatalog.updateJobRole(input)
     },
     onSuccess: () => {
       invalidateRoles(queryClient)
@@ -241,12 +195,7 @@ export const useCreateJobLevel = () => {
   return useMutation({
     mutationFn: async (input: CreateJobLevelInput) => {
       logger.mutation('[JobCatalog] create job level', input)
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>('/job-levels', {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(input),
-      })
-      ensureSuccess(response, '创建职级失败')
+      await jobCatalog.createJobLevel(input)
     },
     onSuccess: () => {
       invalidateLevels(queryClient)
@@ -261,12 +210,7 @@ export const useUpdateJobLevel = () => {
     mutationFn: async (input: UpdateJobLevelInput) => {
       const { code, recordId, ...payload } = input
       logger.mutation('[JobCatalog] update job level', { code, ...payload, recordId })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-levels/${code}`, {
-        method: 'PUT',
-        headers: withIfMatch(recordId),
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '更新职级失败')
+      await jobCatalog.updateJobLevel(input)
     },
     onSuccess: () => {
       invalidateLevels(queryClient)
@@ -281,12 +225,7 @@ export const useCreateJobFamilyGroupVersion = () => {
     mutationFn: async (input: CreateCatalogVersionInput) => {
       const { code, ...payload } = input
       logger.mutation('[JobCatalog] create job family group version', { code, ...payload })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-family-groups/${code}/versions`, {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '创建职类版本失败')
+      await jobCatalog.createJobFamilyGroupVersion(input)
     },
     onSuccess: () => invalidateGroups(queryClient),
     onError: error => logger.error('[JobCatalog] create job family group version failed', error),
@@ -299,12 +238,7 @@ export const useCreateJobFamilyVersion = () => {
     mutationFn: async (input: CreateCatalogVersionInput) => {
       const { code, ...payload } = input
       logger.mutation('[JobCatalog] create job family version', { code, ...payload })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-families/${code}/versions`, {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '创建职种版本失败')
+      await jobCatalog.createJobFamilyVersion(input)
     },
     onSuccess: () => {
       invalidateFamilies(queryClient)
@@ -319,12 +253,7 @@ export const useCreateJobRoleVersion = () => {
     mutationFn: async (input: CreateCatalogVersionInput) => {
       const { code, ...payload } = input
       logger.mutation('[JobCatalog] create job role version', { code, ...payload })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-roles/${code}/versions`, {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '创建职务版本失败')
+      await jobCatalog.createJobRoleVersion(input)
     },
     onSuccess: () => {
       invalidateRoles(queryClient)
@@ -339,12 +268,7 @@ export const useCreateJobLevelVersion = () => {
     mutationFn: async (input: CreateCatalogVersionInput) => {
       const { code, ...payload } = input
       logger.mutation('[JobCatalog] create job level version', { code, ...payload })
-      const response = await unifiedRESTClient.request<APIResponse<unknown>>(`/job-levels/${code}/versions`, {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(payload),
-      })
-      ensureSuccess(response, '创建职级版本失败')
+      await jobCatalog.createJobLevelVersion(input)
     },
     onSuccess: () => {
       invalidateLevels(queryClient)
