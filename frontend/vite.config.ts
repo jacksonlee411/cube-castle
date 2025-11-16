@@ -69,7 +69,8 @@ export default defineConfig(({ mode }) => {
         secure: false
       },
       '/graphql': {
-        target: CQRS_ENDPOINTS.QUERY_BASE,
+        // 合流到单体进程（:9090）后，GraphQL 由同一进程提供
+        target: CQRS_ENDPOINTS.COMMAND_BASE,
         changeOrigin: true,
         secure: false
       }
