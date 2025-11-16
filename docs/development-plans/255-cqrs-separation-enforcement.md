@@ -173,3 +173,27 @@
 - v1.2（2025-11-16）：收敛 snake_case 例外到“字段级白名单 + 最小路径”；收紧前端 GET 直连例外为仅 `/auth`；CI 固定 golangci-lint 版本并增加受保护分支证据要求；补充根路径审计步骤（非门禁）
 - v1.1（2025-11-16）：补齐范围澄清、执行步骤、例外与 CI 接入、验收标准、对齐/依赖、风险回滚、里程碑与执行清单；对齐 AGENTS 与 253/258
 - v1.0（2025-11-15）：初版（目标/交付物/验收）
+
+---
+
+## 16. 执行进展（滚动）
+更新时间：2025-11-16
+
+- 已完成（软门禁可启动）
+  - 工作流接入：.github/workflows/plan-255-gates.yml 已新增 ESLint 架构守卫（Flat Config：eslint.config.architecture.mjs），与 architecture-validator 组合执行；golangci-lint 固定 v1.59.1
+  - 静态守卫增强：architecture-validator 支持跨行“默认 GET（fetch + options 无 method）”检测；忽略 unified-client 底层实现，避免误报
+  - 策略收敛：前端 GET 例外仅限 `/auth`；前端不设 JWKS 永久例外，已改用 UnauthenticatedRESTClient 统一出站；状态字段词表统一为 `status/isCurrent/isFuture/isTemporal`
+  - 原则与记录：AGENTS 增加“决策建议原则”；本计划 v1.3 与 CHANGELOG 已登记
+
+- 待办/前置（硬门禁切换前必须）
+  - 受保护分支：在仓库 Branch protection rules 中将 plan-250-gates、plan-253-gates、plan-255-gates 配置为必需检查；在 215 登记“设置截图 + 失败示例链接”
+  - 后端命名收敛：监控/告警导出 JSON 字段 snake_case → camelCase（当前以 `//nolint:tagliatelle // TODO‑TEMPORARY(2025-11-30)` 过渡，文件：internal/monitoring/health/alerting.go）
+  - 首轮证据：CI 首次运行产物（logs/plan255/*、reports/architecture/architecture-validation.json）落盘后，在 215 登记索引
+
+- 风险与缓解
+  - 字段变更影响下游消费方：提供一迭代窗口，必要时边缘层最小适配/双写；严格禁止扩散路径白名单
+
+- 下一步（建议顺序）
+  1) 完成 Branch protection 设置并在 215 登记
+  2) 提交后端 camelCase 迁移 MR，移除对应 `//nolint` 与 TODO
+  3) 关闭临时豁免并切换 255 为硬门禁（与 250/253 并列为受保护分支必需检查）
