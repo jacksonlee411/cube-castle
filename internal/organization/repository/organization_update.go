@@ -82,17 +82,17 @@ func (r *OrganizationRepository) Update(ctx context.Context, tenantID uuid.UUID,
 	addAssignment("updated_at", time.Now())
 	setClause := strings.Join(setParts, ", ")
 
-	query := fmt.Sprintf(`UPDATE organization_units
+query := fmt.Sprintf(`UPDATE organization_units
 SET %s
 WHERE tenant_id = $1 AND code = $2
   AND status <> 'DELETED'
-RETURNING tenant_id, code, parent_code, name, unit_type, status,
+RETURNING record_id, tenant_id, code, parent_code, name, unit_type, status,
           level, code_path, name_path, sort_order, description, created_at, updated_at,
           effective_date, end_date, change_reason`, setClause)
 
 	var org types.Organization
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
-		&org.TenantID, &org.Code, &org.ParentCode, &org.Name,
+		&org.RecordID, &org.TenantID, &org.Code, &org.ParentCode, &org.Name,
 		&org.UnitType, &org.Status, &org.Level, &org.CodePath, &org.NamePath, &org.SortOrder,
 		&org.Description, &org.CreatedAt, &org.UpdatedAt,
 		&org.EffectiveDate, &org.EndDate, &org.ChangeReason,
