@@ -53,8 +53,8 @@ jobs:
     - name: 校验校验规则引用一致性
       run: npm run lint:validation
 
-    - name: 契约漂移对比（OpenAPI ↔ GraphQL，报告模式）
-      run: node scripts/contract/drift-check.js
+    - name: 契约漂移对比（OpenAPI ↔ GraphQL，报告模式，含字段矩阵）
+      run: node scripts/contract/drift-check.js --include-fields
 
     - name: 上传漂移对比报告（Plan 256）
       if: always()

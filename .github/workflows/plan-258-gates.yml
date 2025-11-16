@@ -1,14 +1,27 @@
-name: Plan 258 – Contract Drift Gate
+name: plan-258-gates
 
 on:
+  workflow_dispatch:
+    inputs:
+      include-fields:
+        description: 'Include field matrix in drift check (report mode)'
+        required: false
+        default: 'false'
+      fail-on-fields:
+        description: 'Fail gate on field matrix differences'
+        required: false
+        default: 'false'
   pull_request:
     branches: [ main, master, develop ]
+    types: [opened, synchronize, reopened]
   push:
     branches: [ main, master, develop ]
 
 jobs:
-  drift-gate:
+  contract-drift-gate:
+    name: Contract Drift Gate (Plan 258)
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,27 +29,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - name: Install deps
+      - name: Install root deps
         run: npm ci
 
-      - name: Run Plan 258 contract drift gate (blocking)
-        run: |
-          node scripts/contract/drift-matrix-gate.js \
-            --openapi docs/api/openapi.yaml \
-            --graphql docs/api/schema.graphql \
-            --allow scripts/contract/drift-allowlist.json \
-            --out reports/contracts/drift-matrix-report.json \
-            --fail-on-diff
+      - name: Sync contracts (Plan 256 prerequisite)
+        run: bash scripts/contract/sync.sh
 
-      - name: Upload drift matrix report
+      - name: Contract drift check (blocking)
+        run: |
+          if [[ "${{ inputs.include-fields }}" == "true" && "${{ inputs.fail-on-fields }}" == "true" ]]; then
+            node scripts/contract/drift-check.js --include-fields --fail-on-fields --fail-on-diff
+          elif [[ "${{ inputs.include-fields }}" == "true" ]]; then
+            node scripts/contract/drift-check.js --include-fields --fail-on-diff
+          else
+            node scripts/contract/drift-check.js --fail-on-diff
+          fi
+
+      - name: Upload drift report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: plan258-drift-matrix-report
-          path: reports/contracts/drift-matrix-report.json
+          name: plan258-drift-report
+          path: reports/contracts/drift-report.json
           retention-days: 30
 
+      - name: Validate TODO-TEMPORARY tags (policy)
+        if: always()
+        run: bash scripts/check-temporary-tags.sh

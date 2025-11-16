@@ -1,110 +1,23 @@
 {
-  "items": [
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "profile",
-      "kind": "type-mismatch",
-      "reason": "GraphQL 使用 string 存储 JSON，REST 为 object；阶段性差异，后续统一为 JSON string 或 schema 化",
-      "expires": "2025-11-23"
+  "//": "Plan 258 · 契约漂移白名单（临时）。仅用于在开启阻断门禁后，为少量已知差异提供一次性放行能力。",
+  "// rules": [
+    "1) 仅用于短期临时放行，必须同时在代码处添加 // TODO-TEMPORARY(YYYY-MM-DD):... 注释并在 215 登记，最长期限一个迭代。",
+    "2) 仅覆盖“已知且待回收”的差异；新增条目需在 PR 说明中写明原因与回收计划。",
+    "3) 条目命中后，drift-check 将在报告中标注为 ignored，不再计入阻断。"
+  ],
+  "enum": {
+    "unitType": {
+      "missingInRest": [],
+      "missingInGql": []
     },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "path",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 暂存遗留 path（@deprecated）；REST 不再提供 path 字段",
-      "expires": "2025-11-23"
+    "status": {
+      "missingInRest": [],
+      "missingInGql": []
     },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "endDate",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 暴露 endDate；REST 不暴露（以 isTemporal/历史记录推断），待统一",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "changeReason",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 扩展字段；REST 采用 operationReason 表达相同语义，需统一",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "childrenCount",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 派生字段；REST 侧不暴露",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "isTemporal",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 衍生字段；REST 以 endDate 判定，暂不同步",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "deletedBy",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 侧扩展审计字段；REST 仅保留 deletedAt，后续评估统一",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "deletionReason",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 扩展审计字段；REST 通过 operationReason 记录",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "suspendedAt",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 扩展审计字段；REST 通过 status=INACTIVE 表达",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "suspendedBy",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 扩展审计字段；REST 通过 operatedBy 记录",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "suspensionReason",
-      "kind": "missingInOpenAPI",
-      "reason": "GraphQL 扩展审计字段；REST 通过 operationReason 记录",
-      "expires": "2025-11-23"
+    "operationType": {
+      "missingInRest": [],
+      "missingInGql": []
     }
-    ,
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "operationType",
-      "kind": "missingInGraphQL",
-      "reason": "GraphQL 查询层不暴露 REST 的 operationType；后续通过 audit 接口检索",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "operatedBy",
-      "kind": "missingInGraphQL",
-      "reason": "GraphQL 查询层不直接暴露 operatedBy；后续与审计方案统一",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "operationReason",
-      "kind": "missingInGraphQL",
-      "reason": "GraphQL 使用 changeReason；REST 使用 operationReason；需统一命名与载体",
-      "expires": "2025-11-23"
-    },
-    {
-      "typeMap": "OrganizationUnit:Organization",
-      "field": "sortOrder",
-      "kind": "nullability-mismatch",
-      "reason": "REST 为必填（默认0）；GraphQL 可选；后续统一为非空",
-      "expires": "2025-11-23"
-    }
-  ]
+  }
 }
+

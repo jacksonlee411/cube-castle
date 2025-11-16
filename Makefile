@@ -61,6 +61,9 @@ help:
 	@echo "  guard-plan253     - 运行 compose 端口/镜像标签门禁（不需要 Docker）"
 	@echo "  plan253-coldstart - 记录冷启动与数据库就绪时间（需要 Docker/Compose）"
 	@echo ""
+	@echo "🛡️ 门禁（Plan 257）:"
+	@echo "  guard-plan257     - 前端领域 Facade 覆盖率门禁（报告/可阻断；产出 reports/facade/coverage.json）"
+	@echo ""
 	@echo "🛡️ 门禁（Plan 258）:"
 	@echo "  guard-plan258     - 契约漂移字段矩阵门禁（OpenAPI↔GraphQL，阻断；产出报告）"
 	@echo ""
@@ -123,6 +126,15 @@ PR_HEAD ?= $(shell git rev-parse --abbrev-ref HEAD)
 pr-255-soft-gate:
 	@echo "📮 Auto PR: $(PR_BASE) <- $(PR_HEAD)"
 	@bash scripts/ci/auto-pr.sh --title "$(PR_TITLE)" --body-file "$(PR_BODY)" --base "$(PR_BASE)" --head "$(PR_HEAD)"
+
+# 领域 Facade 覆盖率门禁（Plan 257）
+.PHONY: guard-plan257
+guard-plan257:
+	@echo "🛡️  Plan 257 — 前端领域 Facade 覆盖率门禁"
+	@TH=$${THRESHOLD:-0.0}; echo "ℹ️  使用阈值: $$TH（可通过 THRESHOLD 环境变量覆盖）"
+	@node scripts/facade/coverage-scan.js --threshold=$${THRESHOLD:-0.0}
+	@echo "📄 报告: reports/facade/coverage.json"
+	@echo "🗂️  证据: logs/plan257/coverage-*.json"
 # 构建 Docker 镜像（如需将当前仓库打成通用镜像）
 docker-build:
 	@echo "🐳 构建 Docker 镜像..."
@@ -397,13 +409,8 @@ guard-plan258:
 	@echo "🛡️ Plan 258 – 契约漂移字段矩阵门禁..."
 	@mkdir -p logs/plan258
 	@ts=$$(date +%Y%m%d_%H%M%S); \
-	node scripts/contract/drift-matrix-gate.js \
-	  --openapi docs/api/openapi.yaml \
-	  --graphql docs/api/schema.graphql \
-	  --allow scripts/contract/drift-allowlist.json \
-	  --out reports/contracts/drift-matrix-report.json \
-	  --fail-on-diff 2>&1 | tee logs/plan258/gate-$$ts.log ; \
-	cp -f reports/contracts/drift-matrix-report.json logs/plan258/drift-matrix-report-$$ts.json || true
+	node scripts/contract/drift-check.js --include-fields --fail-on-diff 2>&1 | tee logs/plan258/gate-$$ts.log ; \
+	cp -f reports/contracts/drift-report.json logs/plan258/drift-report-$$ts.json || true
 
 # 迁移即真源：按序执行 database/migrations/*.sql（Goose）
 db-migrate-all:
