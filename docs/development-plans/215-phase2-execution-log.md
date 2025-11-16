@@ -47,6 +47,16 @@
   - 证据：`logs/plan252/validator-summary-*.txt` 与 `logs/plan252/reports-*/` 快照  
   - 文档：归档正文 `docs/archive/development-plans/252-permission-consistency-and-contract-alignment.md`；签字纪要 `docs/archive/development-plans/252-signoff-20251115.md`
 
+### 新增（2025-11-16 — Plan 255 软门禁启动）
+- ✅ 255 门禁接入（软）：工作流已接入 ESLint 架构守卫 + architecture-validator + golangci-lint（固定 v1.59.1）  
+  - 证据（本地预跑）：  
+    - `logs/plan255/architecture-validator-20251116_101740.log`  
+    - `reports/architecture/architecture-validation.json`  
+  - 配置与策略：前端 GET 例外仅 `/auth`；JWKS 不设永久前端例外（临时仅限 DEV+auth 模块，已改用 UnauthenticatedRESTClient 出站）  
+- ⏳ 待办（硬门禁前置）：  
+  - 仓库受保护分支将 plan-250-gates/plan-253-gates/plan-255-gates 设为 required checks（登记截图与失败示例链接）  
+  - 后端告警/监控 JSON 字段 snake_case → camelCase；当前以 `//nolint:tagliatelle // TODO‑TEMPORARY(2025-11-30)` 过渡，文件：`internal/monitoring/health/alerting.go`
+
 ### 新增（2025-11-15 — 优先级与下一步）
 - P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
 - P0：202 阶段1（模块化单体合流，不改协议；索引：`docs/development-plans/202-CQRS混合架构深度分析与演进建议.md`）

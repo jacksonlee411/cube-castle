@@ -57,6 +57,13 @@ jobs:
           node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden \
             2>&1 | tee "logs/plan255/architecture-validator-${{ steps.prep.outputs.TS }}.log"
 
+      - name: Audit root for ports/forbidden endpoints (non-blocking)
+        shell: bash
+        run: |
+          # Non-gating auditing step to discover hardcoded ports/forbidden endpoints outside frontend/src
+          node scripts/quality/architecture-validator.js --scope root --rule ports,forbidden \
+            2>&1 | tee "logs/plan255/audit-root-${{ steps.prep.outputs.TS }}.log" || true
+
       - name: Install golangci-lint
         shell: bash
         run: |
