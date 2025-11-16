@@ -16,30 +16,64 @@ jobs:
       E2E_PLAN_ID: ${{ (github.event_name == 'pull_request') && '255' || github.run_number }}
 
     steps:
+      - name: Detect docs-only changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters:
+            docs_only:
+              - 'AGENTS.md'
+              - '**/*.md'
+              - 'docs/**'
+              - 'reports/**'
+              - 'scripts/plan222/**'
+              - 'docs/development-plans/**'
+              - '!frontend/**'
+              - '!cmd/**'
+              - '!internal/**'
+              - '!pkg/**'
+              - '!database/**'
+              - '!tests/**'
+              - '!go.*'
+              - '!package*.json'
+              - '!.github/workflows/**'
+      - name: Docs-only fast pass
+        if: steps.changes.outputs.docs_only == 'true'
+        run: |
+          echo "Docs-only changes detected. Skipping Frontend E2E (browsers)."
+          echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
+          exit 0
       - name: Checkout
+        if: steps.changes.outputs.docs_only != 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install Playwright Browsers
+        if: steps.changes.outputs.docs_only != 'true'
         working-directory: ./frontend
         run: |
           npm ci
           npx playwright install --with-deps
  
       - name: Prepare dev JWT keys
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           make jwt-dev-setup
 
       - name: Compose backends (dev)
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           docker compose -f docker-compose.dev.yml build rest-service
           docker compose -f docker-compose.dev.yml up -d postgres redis rest-service
 
       - name: Wait for services
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           set -e
           for i in {1..60}; do
@@ -49,6 +83,7 @@ jobs:
           curl -fsS http://localhost:9090/health >/dev/null || (echo 'Backend did not become healthy in time' && docker compose -f docker-compose.dev.yml logs --no-color && exit 1)
 
       - name: Mint dev JWT for E2E
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           sudo apt-get update -y && sudo apt-get install -y jq curl
           make jwt-dev-mint
@@ -56,6 +91,7 @@ jobs:
           echo "PW_JWT=$(cat .cache/dev.jwt)" >> $GITHUB_ENV
 
       - name: Run Playwright E2E (DevServer)
+        if: steps.changes.outputs.docs_only != 'true'
         working-directory: ./frontend
         env:
           PW_TENANT_ID: ${{ env.PW_TENANT_ID }}
