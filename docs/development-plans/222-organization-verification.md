@@ -59,6 +59,26 @@
 
 ## 2. 验证工作
 
+### 2.0 执行参数与环境变量（Plan 222 Runner）
+- REST_BASE（默认 http://localhost:9090）：命令服务地址（REST）。
+- GRAPHQL_BASE（默认 http://localhost:8090）：查询服务地址（GraphQL）。
+- ORG_PARENT_CODE（默认 1000000）：默认上级组织编码；Runner 会在创建子组织前检查其是否存在。
+- ORG_PARENT_NAME（默认 “飞虫与鲜花”）：当未找到默认上级组织时，Runner 将尝试以 parentCode=null 引导创建一个根组织，名称前缀为该值并带时间戳。
+- JWT 文件位置：.cache/dev.jwt（通过 make jwt-dev-setup && make jwt-dev-mint 生成）。
+
+示例（按 SSoT 端口与默认父组织执行验收采集）：
+```bash
+REST_BASE=http://localhost:9090 \
+GRAPHQL_BASE=http://localhost:8090 \
+ORG_PARENT_CODE=1000000 \
+bash scripts/plan222/run-acceptance.sh
+```
+
+产物说明：
+- 若父组织缺失：将生成 root-create-headers-*.txt、root-create-status-*.txt、root-create-response-*.json（可能是 201 或 400 DUPLICATE_CODE，均作为证据保留）。
+- 子组织创建与更新：create-headers/status/response-* 与 put-status/response-*。
+- GraphQL：graphql-query-*-auth.json（授权）与无授权探测记录。
+
 ### 2.1 单元测试验证
 
 **任务内容**:
