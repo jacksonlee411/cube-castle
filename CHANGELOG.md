@@ -1,5 +1,23 @@
 # Cube Castle 项目变更日志
 
+## v1.6.1 - REST 业务查询端点弃用公告（Plan 259‑T4 启动）(2025-11-16)
+
+### ⚠️ 弃用（Deprecation）
+- 弃用 REST 查询端点：`GET /api/v1/positions/{code}/assignments`（迁移至 GraphQL）
+  - 目标：清零“业务查询类 REST GET”，避免 OpenAPI/GraphQL 双事实来源；与 PostgreSQL 原生 CQRS 对齐（命令=REST、查询=GraphQL）
+  - 迁移路径（GraphQL）：
+    - `positionAssignments(positionCode, filter, pagination, sorting)`
+    - `assignments(organizationCode, positionCode, filter, pagination, sorting)`
+  - Sunset 时间：2025‑12‑20 00:00:00Z（届时计划移除 REST 端点）
+  - 合同标识：OpenAPI 已设置 `deprecated: true`，并在 200 响应示例中加入 `Sunset` 与 `Link` 响应头
+    - `Sunset: Sat, 20 Dec 2025 00:00:00 GMT`
+    - `Link: <https://api.yourcompany.com/docs/migrations/positions-assignments-to-graphql>; rel="deprecation"`
+  - 权限不变：GraphQL 与 REST 均使用 `position:assignments:read`（Plan 259‑T3 已对齐）
+
+### 📚 参考与登记
+- 方案与决议：`docs/development-plans/259-protocol-strategy-review.md`、`docs/development-plans/259A-protocol-duplication-and-whitelist-hardening.md`
+- 执行登记：`docs/development-plans/215-phase2-execution-log.md`（记录 T3 对齐与 T4 启动）
+
 ## v1.6.0 - 契约漂移门禁完成（Plan 258 关闭）(2025-11-16)
 
 ### ✅ 门禁与契约

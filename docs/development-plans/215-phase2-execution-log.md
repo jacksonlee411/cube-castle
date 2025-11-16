@@ -96,10 +96,10 @@
     - “业务 GET（REST）”总数：1（符合预期，仅 /api/v1/positions/{code}/assignments）
     - OpenAPI 引用→注册一致性：未注册引用=0（通过）；注册未引用 scopes 若干（信息级）
     - GraphQL 权限映射生成 entries=25；Resolver 授权调用未匹配映射=2（信息级，后续排查）
-  - 后续动作（与 259 对齐）：
-    - 259‑T2：将权限一致性产物纳入 Plan 258 门禁聚合（CI 软门禁）
-    - 259‑T3：GraphQL 权限统一为 position:assignments:read（灰度→默认）
-    - 259‑T4：将 REST 业务查询端点标注 deprecated 并公告（CHANGELOG），迁移后切硬门禁并移除
+ - 后续动作（与 259 对齐）：
+   - 259‑T2：将权限一致性产物纳入 Plan 258 门禁聚合（CI 软门禁）
+   - 259‑T3：GraphQL 权限统一为 position:assignments:read（灰度→默认）
+   - 259‑T4：将 REST 业务查询端点标注 deprecated 并公告（CHANGELOG），迁移后切硬门禁并移除
 
 ### 新增（2025-11-16 — Plan 259‑T3 权限映射对齐）
 - ✅ [Plan 259‑T3] GraphQL 权限与 OpenAPI 对齐（positionAssignments/assignments → position:assignments:read）
@@ -107,6 +107,13 @@
   - 产物：cmd/hrms-server/query/internal/auth/generated/graphql-permissions.json（positionAssignments/assignments=position:assignments:read）
   - 提交：d0829f95
   - 风险与回滚：保留生成脚本与 docstring 改动可回退；无 DB/Compose 变更；后续在 CI 聚合（Plan 258）软门禁验证
+
+### 新增（2025-11-16 — Plan 259‑T4 弃用流程启动）
+- ✅ [Plan 259‑T4] 标注 REST 端点 `GET /api/v1/positions/{code}/assignments` 为 deprecated，并发布公告
+  - OpenAPI：docs/api/openapi.yaml（operation.deprecated=true；200 响应示例加入 `Sunset` 与 `Link` 头）
+  - 公告：CHANGELOG.md v1.6.1（含迁移指南与 Sunset 时间）
+  - Sunset：2025‑12‑20 00:00:00Z；回收：按 259 主计划（迁移→硬门禁→移除）
+  - 提交：见本次变更（v1.6.1）
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）

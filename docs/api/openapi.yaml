@@ -1927,7 +1927,16 @@ paths:
       operationId: listPositionAssignments
       tags: [positions]
       summary: List position assignments
-      description: Returns current and historical assignments for a position with optional filters.
+      description: |
+        Returns current and historical assignments for a position with optional filters.
+        
+        Deprecated: This REST query endpoint is deprecated in favor of GraphQL queries:
+        - positionAssignments(positionCode, filter, pagination, sorting)
+        - assignments(organizationCode, positionCode, filter, pagination, sorting)
+        
+        Rationale: To enforce PostgreSQL-native CQRS (commands=REST, queries=GraphQL) and avoid dual sources of truth.
+        Migration window is announced via `Sunset` and `Link` response headers (see below).
+      deprecated: true
       parameters:
         - $ref: '#/components/parameters/TenantIdHeader'
         - name: code
@@ -1985,6 +1994,17 @@ paths:
       responses:
         '200':
           description: Assignments returned successfully
+          headers:
+            Sunset:
+              description: Hard removal date/time for this deprecated REST endpoint (RFC 8594).
+              schema:
+                type: string
+              example: 'Sat, 20 Dec 2025 00:00:00 GMT'
+            Link:
+              description: Deprecation and migration guide link (rel="deprecation").
+              schema:
+                type: string
+              example: '<https://api.yourcompany.com/docs/migrations/positions-assignments-to-graphql>; rel="deprecation"'
           content:
             application/json:
               schema:
