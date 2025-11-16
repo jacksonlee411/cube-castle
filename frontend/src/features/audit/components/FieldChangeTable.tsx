@@ -164,19 +164,57 @@ export const FieldChangeTable: React.FC<FieldChangeTableProps> = ({
 
   // 渲染UPDATE操作表格
   const renderUpdateTable = () => {
-    if (!changes.length) return null;
+    // 若后端未提供changes，尝试用快照兜底推导变更（只处理一层浅比较）
+    let sourceChanges = changes;
+    if (!sourceChanges.length && (beforeData || afterData)) {
+      const b = (beforeData ?? {}) as Record<string, JsonValue | null | undefined>;
+      const a = (afterData ?? {}) as Record<string, JsonValue | null | undefined>;
+      const keys = Array.from(new Set([...Object.keys(b), ...Object.keys(a)])).filter(
+        (k) => k !== 'id',
+      );
+      const inferType = (v: unknown): string => {
+        if (v === null || v === undefined) return 'string';
+        if (typeof v === 'boolean') return 'boolean';
+        if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'number';
+        if (typeof v === 'string') {
+          // 简单判断日期/时间
+          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'date';
+          if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return 'datetime';
+          return 'string';
+        }
+        return 'string';
+      };
+      const derived: FieldChange[] = [];
+      for (const key of keys) {
+        const oldV = b[key] ?? null;
+        const newV = a[key] ?? null;
+        const oldStr = JSON.stringify(oldV);
+        const newStr = JSON.stringify(newV);
+        if (oldStr !== newStr) {
+          derived.push({
+            field: key,
+            oldValue: oldV as JsonValue | null,
+            newValue: newV as JsonValue | null,
+            dataType: inferType(newV ?? oldV),
+          });
+        }
+      }
+      sourceChanges = derived;
+    }
+
+    if (!sourceChanges.length) return null;
 
     return (
       <Box style={{ border: `1px solid ${colors.soap300}`, borderRadius: '4px' }}>
         {renderTableHeader(['字段名称', '变动前', '变动后'])}
         
-        {changes.map((change, index) => (
+        {sourceChanges.map((change, index) => (
           <Flex
             key={index}
             padding={space.s}
             style={{
               backgroundColor: index % 2 === 0 ? 'white' : colors.soap50,
-              borderBottom: index < changes.length - 1 ? `1px solid ${colors.soap200}` : 'none'
+              borderBottom: index < sourceChanges.length - 1 ? `1px solid ${colors.soap200}` : 'none'
             }}
           >
             {/* 字段名称列 */}
