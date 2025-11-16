@@ -1,5 +1,15 @@
 # Cube Castle 项目变更日志
 
+## v1.6.2 - 文档：PR 策略与回切规则澄清 (2025-11-17)
+
+### 📚 文档
+- AGENTS.md：明确“主干（本地 master）+ 远程仅通过分支 PR（squash-merge）”策略，并新增“PR 合并后安全回切 master（ff-only + 清理分支）”强制要求。
+- docs/reference/01-DEVELOPER-QUICK-REFERENCE.md：新增“分支与 PR 工作流（主干 + 远程 PR）”与回切示例命令。
+- .github/pull_request_template.md：增加远程策略提醒（master 禁直推、PR 必有 Issue 与 Required checks）。
+- Makefile/scripts：新增 `scripts/ops/configure-branch-protection.sh` 和 `make protect-branch` 入口（一键配置仓库保护），不影响运行时行为。
+
+> 说明：仅文档/工具补充，未改变现有 CI 或业务行为；以 `AGENTS.md` 为唯一事实来源。
+
 ## v1.6.1 - REST 业务查询端点弃用公告（Plan 259‑T4 启动）(2025-11-16)
 
 ### ⚠️ 弃用（Deprecation）

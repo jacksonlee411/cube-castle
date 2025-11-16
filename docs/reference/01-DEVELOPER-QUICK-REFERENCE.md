@@ -1,6 +1,6 @@
 # Cube Castle 开发者快速参考
 
-版本: v2.1 | 最后更新: 2025-11-05 | 用途: 开发快速查阅手册
+版本: v2.1 | 最后更新: 2025-11-17 | 用途: 开发快速查阅手册
 
 > 说明：本文件为开发速查手册，原则与黑名单以仓库根目录 `AGENTS.md` 为唯一事实来源；若存在不一致，请以 `AGENTS.md` 为准并先校正。
 
@@ -49,6 +49,27 @@ cat docs/api/schema.graphql
 ---
 
 ## ⚡ 常用命令速查
+
+### 分支与 PR 工作流（主干 + 远程 PR）
+- 本地：在 `master` 上直接开发与提交（Trunk-Based）。
+- 远程：`master` 为受保护分支，禁止直接推送；仅在需要推送远程时，创建短生命周期分支并通过 PR 合并（默认 squash-merge）。
+- 快速命令：
+  ```bash
+  # 方式一：手工分支 + 推送后在远程发起 PR（目标 base=master）
+  git switch -c feat/<scope>
+  git push -u origin HEAD
+
+  # 方式二：自动化（需 GITHUB_TOKEN/gh 已配置）
+  make pr-255-soft-gate PR_HEAD=feat/<scope> PR_TITLE='feat: <title>'
+  ```
+- 合并后安全回切（防丢失他人变更）：
+  ```bash
+  git switch master
+  git fetch --prune
+  git pull --ff-only
+  git branch -d feat/<scope>   # 本地清理已合并分支
+  ```
+  工作区有未提交修改时，先 `git stash push -m "wip: <desc>"` 或导出补丁，再回切同步。
 
 ### 开发环境启动
 ```bash

@@ -21,9 +21,25 @@
 - 决策建议原则：当存在用户决策事项或开放问题时，必须同步给出基于最佳实践的建议与可行默认方案（含临时过渡与回收期限），不可仅抛出问答式问题；建议需与唯一事实来源一致，避免引入第二事实来源。
 
 ## 分支策略（单人开发强制）
-- 单人开发强制采用主干开发（Trunk-Based）：所有变更直接在主分支完成，避免分支切换导致内容丢失。
-- 提交前在本地通过快速门禁与编译；CI 以受保护分支的 Required checks 为准（以 .github/workflows/* 为唯一事实来源），未通过不得入主干。
-- 临时隔离优先使用本地 stash/patch；多人协作时恢复 PR 流程并遵循“提交与拉取请求规范”。
+- 主干开发（Trunk-Based）+ 远程 PR 守卫：日常在本地 `master` 直接开发与提交；远程 `master` 为受保护分支，禁止直接 push，推送到远程时仅通过“短生命周期分支 + PR”合并（默认 squash-merge）。
+- 必跑门禁：本地提交前跑快速门禁（编译/单测/fmt/lint）；PR 合并以受保护分支的 Required checks 为准（以 `.github/workflows/*` 为唯一事实来源），未通过不得入主干。
+- 分支命名：`feat/<scope>`、`fix/<scope>`、`chore/<scope>`；临时隔离优先使用本地 stash/patch；需要远程协作或归档时开启 PR。
+- 快速步骤（仅在需要推送远程时）：
+  - `git switch -c feat/<scope>` → `git push -u origin HEAD` → 以该分支发起 PR 合并到 `master`（使用 squash-merge）
+  - 或使用自动化：`make pr-255-soft-gate PR_HEAD=feat/<scope> PR_TITLE='feat: <title>'`（需准备 `GITHUB_TOKEN`）
+- PR 合并后的本地回切与同步（强制，确保不丢失他人变更）：
+  - 切回并快进同步（禁止重写历史）：
+    ```bash
+    git switch master
+    git fetch --prune
+    git pull --ff-only
+    ```
+  - 清理已合并分支（本地）：`git branch -d feat/<scope>`（远程分支会因“合并后自动删除分支”而被移除）
+  - 工作区需干净；如有未提交修改，先安全保存：
+    ```bash
+    git stash push -m "wip: <desc>"   # 或导出补丁：git diff > /tmp/<branch>.patch
+    ```
+  - 禁止事项：禁止对 `master` 使用 rebase/force-push；仅允许 fast-forward 同步。若出现非快进（本地分歧），先在功能分支处理并通过新的 PR 修正/回滚，避免破坏他人历史。
 
 ## 项目结构与模块组织
 - 命令服务位于 `cmd/hrms-server/command/`，查询服务位于 `cmd/hrms-server/query/`，共享中间件、鉴权、缓存与 GraphQL 工具集中在 `internal/`，严格遵循 PostgreSQL 原生 CQRS（命令→REST、查询→GraphQL）。
