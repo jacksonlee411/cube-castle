@@ -207,6 +207,7 @@
   - 产物/证据：`logs/plan258/*`、`reports/contracts/drift-report.json`、CI 工件 `plan258-drift-report`（阻断）  
   - 工作流：`.github/workflows/plan-258-gates.yml`（受保护分支 Required）  
   - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
+  - 最近一次成功运行 Run ID：19408157081（artifact：plan258-drift-report）
 
 #### Plan 258 · 临时差异登记与回收计划（Phase B 报告模式）
 // TODO-TEMPORARY(2025-11-23): 字段矩阵差异白名单（短期）— 等待 GraphQL 契约统一（profile: JSON、自增 sortOrder 非空）与审计字段透出策略评审；本条目到期前完成修复或移除白名单。
