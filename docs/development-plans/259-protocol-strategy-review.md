@@ -58,7 +58,8 @@
 - 决议：将 /api/v1/positions/{code}/assignments GET 标注为“兼容期（Deprecated）”，迁移到 GraphQL positionAssignments/assignments。
 - 迁移窗口：// TODO-TEMPORARY(2025-12-15): 完成前端调用迁移与测试证据沉淀（不超过一迭代）
 - 回收动作（后续子计划执行，非本文件实施）：
-  - 在 OpenAPI 标注 deprecated: true，并添加 Sunset/Link 头部示例与迁移指南（不在本次提交直接改契约）。
+ - 在 OpenAPI 标注 deprecated: true，并添加 Sunset/Link 头部示例与迁移指南（不在本次提交直接改契约）。
+  - 迁移指南：`docs/migrations/positions-assignments-to-graphql.md`（前端/集成调用示例、过滤器映射、验收标准与回滚）
   - 前端统一通过领域 API 门面访问 GraphQL（与 Plan 257 保持一致）；移除直接 REST 查询。
   - CI 门禁接入“REST 业务查询白名单”规则（Plan 255 规则扩展）。
   - 在 CHANGELOG.md 发布“弃用通告 + 迁移指南 + 回收时间表”，并在 12. 关联处纳入索引。
@@ -139,3 +140,4 @@
 - 变更通告：CHANGELOG.md
 - 原则索引：AGENTS.md
 - 子计划：259A（docs/development-plans/259A-protocol-duplication-and-whitelist-hardening.md）
+- 迁移指南：docs/migrations/positions-assignments-to-graphql.md

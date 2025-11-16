@@ -114,6 +114,13 @@
   - 公告：CHANGELOG.md v1.6.1（含迁移指南与 Sunset 时间）
   - Sunset：2025‑12‑20 00:00:00Z；回收：按 259 主计划（迁移→硬门禁→移除）
   - 提交：见本次变更（v1.6.1）
+  - 迁移指南：docs/migrations/positions-assignments-to-graphql.md（前端门面/GraphQL 示例与过滤器映射）
+
+### 新增（2025-11-16 — Plan 259‑T2 CI 软门禁聚合）
+- ✅ [Plan 259‑T2] 在 Plan 258 工作流聚合“权限契约校验 + 259A 协议重复矩阵（软门禁）”
+  - 工作流：.github/workflows/plan-258-gates.yml（新增两个 step，上传 `plan258-permissions-and-259A` 工件）
+  - 阈值：vars.PLAN259_BUSINESS_GET_THRESHOLD（默认=1；迁移完成后设为 0 切硬门禁）
+  - 提交：3bf0dc42
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
