@@ -4,6 +4,8 @@
 标题: 部署流水线简化（来源：202 计划拆分）  
 创建日期: 2025-11-15  
 版本: v1.2  
+状态: 已完成（2025-11-16）  
+完成情况: 门禁通过（端口映射冻结/镜像标签固定），冷启动达标（compose_up_ms≈1979ms；db_ready_seconds=10s）；证据：logs/plan253/compose-ports-and-images.log、logs/plan253/coldstart-20251116001139.log  
 关联计划: 202、203、221（Docker 基座）、CI
 
 ---
