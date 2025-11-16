@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch
 .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 .PHONY: generate-contracts verify-contracts
 .PHONY: guard-plan258
@@ -15,6 +15,9 @@ export SCHEDULER_MONITOR_ENABLED ?= true
 # 默认目标
 help:
 	@echo "🏰 Cube Castle - PostgreSQL 原生命令:"
+	@echo ""
+	@echo "🔒 仓库保护:"
+	@echo "  protect-branch    - 配置默认分支保护（仅允许 squash-merge，必需检查，禁止直推；需 gh 登录）"
 	@echo ""
 	@echo "📦 构建:"
 	@echo "  build            - 构建 command/query 两个 Go 服务二进制到 bin/"
@@ -146,6 +149,10 @@ guard-plan257:
 docker-build:
 	@echo "🐳 构建 Docker 镜像..."
 	docker build -t cube-castle:latest .
+
+protect-branch:
+	@echo "🔒 配置 GitHub 默认分支保护（需要 gh 已登录且具备仓库维护权限）..."
+	@bash scripts/ops/configure-branch-protection.sh
 
 # 最小依赖（PostgreSQL + Redis）
 docker-up:

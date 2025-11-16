@@ -12,10 +12,10 @@ jobs:
         label: [ubuntu, selfhosted]
         include:
           - label: ubuntu
-            runner: [ubuntu-latest]
+            runs_on: '["ubuntu-latest"]'
           - label: selfhosted
-            runner: [self-hosted, cubecastle, docker]
-    runs-on: ${{ matrix.runner }}
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runs_on) }}
     
     steps:
       - name: Detect docs-only/ci-only changes

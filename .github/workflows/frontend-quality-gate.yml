@@ -21,10 +21,10 @@ jobs:
         label: [ubuntu, selfhosted]
         include:
           - label: ubuntu
-            runner: [ubuntu-latest]
+            runs_on: '["ubuntu-latest"]'
           - label: selfhosted
-            runner: [self-hosted, cubecastle, docker]
-    runs-on: ${{ matrix.runner }}
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runs_on) }}
     timeout-minutes: 10
     
     steps:
