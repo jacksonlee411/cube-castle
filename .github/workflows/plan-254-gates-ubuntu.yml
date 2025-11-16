@@ -12,7 +12,7 @@ jobs:
     name: Plan 254 Gate – Ubuntu Minimal
     # TODO-TEMPORARY(2025-11-22): 临时最小化工作流用于验证“0 jobs”问题，待稳定后删除并回归 plan-254-gates.yml
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,6 +29,35 @@ jobs:
           npm ci
           npx playwright install --with-deps
           npx playwright --version
+      - name: Prepare dev JWT keys (RS256)
+        run: |
+          make jwt-dev-setup
+      - name: Compose Up (E2E backend only)
+        run: |
+          docker compose -f docker-compose.e2e.yml build postgres redis rest-service
+          docker compose -f docker-compose.e2e.yml up -d postgres redis rest-service
+      - name: Wait for backend services
+        run: |
+          set -e
+          echo "⏳ Waiting for backend (9090) health..."
+          for i in {1..60}; do
+            if curl -sf http://localhost:9090/health >/dev/null; then
+              echo "✅ Backend healthy"; break
+            fi
+            docker compose -f docker-compose.e2e.yml ps || true
+            sleep 3
+          done
+          # Final assert
+          curl -sf http://localhost:9090/health >/dev/null
+      - name: Mint dev JWT for E2E
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq curl
+          make jwt-dev-mint
+          echo "PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" >> $GITHUB_ENV
+          echo "PW_JWT=$(cat .cache/dev.jwt)" >> $GITHUB_ENV
+      - name: Architecture Gate (CQRS/Ports/Forbidden)
+        run: |
+          node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden
       - name: Preflight
         run: |
           echo "Plan 254 ubuntu preflight OK on $(uname -a)"
@@ -36,10 +65,22 @@ jobs:
           node -v || true
           npm -v || true
           echo "E2E_PLAN_ID=${{ github.run_number }}" > plan254-preflight.txt
+      - name: Dump backend logs on failure
+        if: failure()
+        run: |
+          mkdir -p logs/plan254
+          echo "🔎 Collecting docker compose logs..."
+          docker compose -f docker-compose.e2e.yml logs --no-color > logs/plan254/compose-logs.txt || true
+          echo "📋 docker compose ps:"
+          docker compose -f docker-compose.e2e.yml ps || true
       - name: Upload preflight artifact
         uses: actions/upload-artifact@v4
         with:
           name: plan254-preflight
           path: |
             plan254-preflight.txt
+            logs/plan254/**
           retention-days: 7
+      - name: Compose Down
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans
