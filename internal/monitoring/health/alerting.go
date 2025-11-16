@@ -32,7 +32,7 @@ type Alert struct {
 	Details    map[string]interface{} `json:"details,omitempty"`
 	Timestamp  time.Time              `json:"timestamp"`
 	Resolved   bool                   `json:"resolved"`
-	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
+	ResolvedAt *time.Time             `json:"resolved_at,omitempty"` //nolint:tagliatelle // TODO-TEMPORARY(2025-11-30): 对外字段统一使用camelCase，计划迁移为 "resolvedAt"；需协调Webhook消费方，迭代内完成收敛
 }
 
 // AlertRule 告警规则
@@ -43,17 +43,17 @@ type AlertRule struct {
 	Level         AlertLevel     `json:"level"`
 	Message       string         `json:"message"`
 	Cooldown      time.Duration  `json:"cooldown"`
-	MaxRetries    int            `json:"max_retries"`
-	EnabledBy     time.Time      `json:"enabled_by"`
+	MaxRetries    int            `json:"max_retries"` //nolint:tagliatelle // TODO-TEMPORARY(2025-11-30): 迁移为 "maxRetries"；对齐 Plan 255 命名守卫
+	EnabledBy     time.Time      `json:"enabled_by"`  //nolint:tagliatelle // TODO-TEMPORARY(2025-11-30): 迁移为 "enabledBy"
 	lastTriggered time.Time
 	retryCount    int
 }
 
 // AlertCondition 告警条件
 type AlertCondition struct {
-	StatusEquals     *HealthStatus  `json:"status_equals,omitempty"`
-	ResponseTimeGT   *time.Duration `json:"response_time_gt,omitempty"`
-	ConsecutiveFails *int           `json:"consecutive_fails,omitempty"`
+	StatusEquals     *HealthStatus  `json:"status_equals,omitempty"`      //nolint:tagliatelle // TODO-TEMPORARY(2025-11-30): 迁移为 "statusEquals"
+	ResponseTimeGT   *time.Duration `json:"response_time_gt,omitempty"`   //nolint:tagliatelle // TODO-TEMPORARY(2025-11-30): 迁移为 "responseTimeGt"
+	ConsecutiveFails *int           `json:"consecutive_fails,omitempty"`  //nolint:tagliatelle // TODO-TEMPORARY(2025-11-30): 迁移为 "consecutiveFails"
 }
 
 // AlertChannel 告警渠道接口
