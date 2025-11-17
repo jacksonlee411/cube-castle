@@ -38,6 +38,8 @@ startup.log
 !logs/plan221/*.log
 # Ignore local Plan 255 evidence logs (local-only, CI will archive separately)
 logs/plan255/
+# Ignore local Plan 254 evidence logs（CI 工件已保存）
+logs/plan254/
 
 # Temporary files
 *.tmp
