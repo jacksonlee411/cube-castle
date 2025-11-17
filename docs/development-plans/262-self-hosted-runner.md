@@ -14,6 +14,7 @@
 - ⚠️ `ci-selfhosted-diagnose` 未 checkout 仓库，`docker compose -f docker-compose.dev.yml config -q` 恒定报 `no such file or directory`（但用 `|| true` 吞掉），实际并未验证 Compose；验收条件“能运行 Docker Compose 工作负载”尚未满足。
 - ⚠️ `CI (Self-Hosted Runner Smoke)` 尚无成功运行记录，`logs/plan262/ci-summary-19411098135.txt` 显示尝试下载日志时报 404，时间表中的 T+0/1 里程碑仍未验收。
 - ⚠️ 尚未对任何重型工作流引入 `matrix.os=[ubuntu-latest,self-hosted]`，T+1/2 任务未执行。
+- ⚠️ 自 0e6c579abc0c 推送后，PR #17 的多条 Required 工作流仍在失败：`.github/workflows/ci.yml`（run_id=19421250549）、`docs-audit-quality.yml`、`contract-testing.yml`、`frontend-quality-gate.yml`、`frontend-e2e*.yml`、`api-compliance.yml`、`document-sync.yml` 等；由于 GitHub REST（`/actions/runs/<id>/logs`）返回 404，无法直接下载日志定位原因→当前“日志不可访问”阻断了“失败→分析→修复→重跑”的闭环，需要仓库管理员提供日志或解除限制。
 
 ## 1. 背景与动机
 - 现状：GitHub 托管 Runner 在高峰期存在排队/资源波动；部分工作流（E2E/Compose）对底层环境更敏感。
