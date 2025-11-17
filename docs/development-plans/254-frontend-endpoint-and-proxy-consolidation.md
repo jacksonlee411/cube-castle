@@ -3,8 +3,8 @@
 文档编号: 254  
 标题: 前端端点与代理整合（来源：202 计划拆分）  
 创建日期: 2025-11-15  
-版本: v1.1  
-状态: 已完成  
+版本: v1.2  
+状态: 已完成（已归档）  
 关联计划: 202、241（前端框架合流）、AGENTS（Docker 强制）
 
 ---
@@ -122,5 +122,7 @@
 
 维护者: 前端（E2E/后端协作）
 
-
-<!-- CI no-op: trigger plan-254 re-run; no behavior change -->
+> 归档说明（2025-11-17）  
+> - 本计划已完成并归档，正式 Gate（plan‑254‑gates）连续 3 次通过；已恢复为唯一正式门禁。  
+> - 运行记录：run 53 / 59 / 60（详见 215 执行日志）；工件：plan254-logs（含 compose-logs、playwright-report）。  
+> - 归档副本：docs/archive/development-plans/254-frontend-endpoint-and-proxy-consolidation.md

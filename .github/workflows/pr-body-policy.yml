@@ -6,7 +6,7 @@ on:
 
 jobs:
   policy:
-    name: PR Body Policy – warn-only
+    name: PR Body Policy – required
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate PR body
@@ -24,18 +24,20 @@ jobs:
           require_evidence='Evidence:|证据'
           require_rollback='Rollback:|回滚方案'
           if ! printf '%s' "$PR_BODY" | grep -Eq "$require_issue"; then
-            echo "::warning::PR body missing 'Closes #<id>'（必填：关联 Issue）"
+            echo "::error::PR body missing 'Closes #<id>'（必填：关联 Issue）"
             missing=$((missing+1))
           fi
           if ! printf '%s' "$PR_BODY" | grep -Eq "$require_evidence"; then
-            echo "::warning::PR body missing 'Evidence:'（必填：Actions 运行/工件链接）"
+            echo "::error::PR body missing 'Evidence:'（必填：Actions 运行/工件链接）"
             missing=$((missing+1))
           fi
           if ! printf '%s' "$PR_BODY" | grep -Eq "$require_rollback"; then
-            echo "::warning::PR body missing 'Rollback:'（必填：回滚方案）"
+            echo "::error::PR body missing 'Rollback:'（必填：回滚方案）"
             missing=$((missing+1))
           fi
           echo "Missing sections: $missing"
-          # warn-only: never fail the job
-          exit 0
-
+          if [ "$missing" -gt 0 ]; then
+            echo "❌ PR body policy failed: $missing required sections missing."
+            exit 1
+          fi
+          echo "✅ PR body policy passed."
