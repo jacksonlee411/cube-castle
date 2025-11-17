@@ -1,6 +1,8 @@
-# 自托管 Runner（Docker Ephemeral）使用说明
+# 自托管 Runner（Docker Compose 管控：Ephemeral + 持久化）
 
-本仓库遵循 AGENTS.md 的“Docker 强制”原则，自托管 Runner 也以 Docker Compose 管理，并且采用 Ephemeral（一次性）模式，执行完自动注销，避免脏环境。
+本仓库遵循 AGENTS.md 的“Docker 强制”原则，自托管 Runner 必须由 Docker Compose 管理：  
+- 默认：Ephemeral 一次性模式（`docker-compose.runner.yml`）  
+- 持久化：常驻接单模式（`docker-compose.runner.persist.yml`，由 watcher 保活）
 
 ## 一、准备密钥（任选其一）
 1) Registration Token（一次性）  
@@ -19,14 +21,24 @@
 
 ## 二、启动与停止
 ```bash
-# 启动（后台）
+# 启动 Ephemeral（一次性，Job 结束自动注销）
 docker compose -f docker-compose.runner.yml up -d
+
+# 启动持久化（建议结合 watchdog 保活）
+RunNER_TOKEN=... docker compose -f docker-compose.runner.persist.yml up -d
+# 或使用自动申请令牌脚本（推荐）
+bash scripts/ci/runner/start-ghcr-runner-persistent.sh
+nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &
 
 # 查看 Runner 容器日志
 docker logs -f cubecastle-gh-runner
 
 # 停止并清理
 docker compose -f docker-compose.runner.yml down -v
+# 或持久化：
+docker compose -f docker-compose.runner.persist.yml down -v
+# 停止看门狗：
+touch .ci/runner-watchdog.stop
 ```
 
 ## 三、验证
@@ -43,4 +55,3 @@ docker compose -f docker-compose.runner.yml down -v
 docker compose -f docker-compose.runner.yml down -v
 ```
 删除 Runners 页面的记录；归档 smoke 工作流（如不再需要）。
-
