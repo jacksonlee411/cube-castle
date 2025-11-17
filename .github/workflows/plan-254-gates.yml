@@ -1,7 +1,8 @@
 name: plan-254-gates
 
 on:
-  pull_request:
+  push:
+    branches: [ master, main, develop, feat/shared-dev ]
     paths:
       - 'docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md'
       - 'frontend/vite.config.ts'

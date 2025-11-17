@@ -2,7 +2,7 @@ name: 📚 文档与审计守护
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
     paths:
       - 'cmd/hrms-server/command/internal/audit/**'
       - 'docs/**'
@@ -11,7 +11,7 @@ on:
       - 'package.json'
       - '.github/workflows/docs-audit-quality.yml'
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
     paths:
       - 'cmd/hrms-server/command/internal/audit/**'
       - 'docs/**'

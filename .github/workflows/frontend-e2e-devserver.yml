@@ -2,10 +2,10 @@ name: Frontend E2E (DevServer)
 
 on:
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
   workflow_dispatch: {}
   push:
-    branches: [ master ]
+    branches: [ master, feat/shared-dev ]
     paths:
       - 'ci/e2e-touch/**'
 
