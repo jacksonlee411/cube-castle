@@ -1,0 +1,41 @@
+name: pr-body-policy
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  policy:
+    name: PR Body Policy – warn-only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate PR body
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          echo "PR #$PR_NUMBER $PR_HTML_URL"
+          echo "Title: $PR_TITLE"
+          echo "Body length: ${#PR_BODY}"
+          missing=0
+          require_issue='Closes #[0-9]+'
+          require_evidence='Evidence:|证据'
+          require_rollback='Rollback:|回滚方案'
+          if ! printf '%s' "$PR_BODY" | grep -Eq "$require_issue"; then
+            echo "::warning::PR body missing 'Closes #<id>'（必填：关联 Issue）"
+            missing=$((missing+1))
+          fi
+          if ! printf '%s' "$PR_BODY" | grep -Eq "$require_evidence"; then
+            echo "::warning::PR body missing 'Evidence:'（必填：Actions 运行/工件链接）"
+            missing=$((missing+1))
+          fi
+          if ! printf '%s' "$PR_BODY" | grep -Eq "$require_rollback"; then
+            echo "::warning::PR body missing 'Rollback:'（必填：回滚方案）"
+            missing=$((missing+1))
+          fi
+          echo "Missing sections: $missing"
+          # warn-only: never fail the job
+          exit 0
+

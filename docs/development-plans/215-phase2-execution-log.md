@@ -83,6 +83,17 @@
   - 首次成功运行登记：在本段落补充 CI 运行链接与工件名称（artifact: `plan255-logs`）。  
   - 运行链接：<https://github.com/jacksonlee411/cube-castle/actions/runs/19403010378>（status=completed, conclusion=success）；artifact: plan255-logs（保留 7 天）
 
+### 新增（2025-11-17 — Plan 254 门禁恢复并稳定）
+- ✅ Plan 254（前端端点与代理整合 Gate）已在正式工作流恢复并稳定通过（3 次成功）  
+  - 合流与统一：前端与 E2E 统一通过单体进程（:9090）访问 `/api/v1` 与 `/graphql`；Vite 代理与端点 SSoT 对齐  
+  - CI 修复：`make jwt-dev-mint` 在 runner 上以 `bash scripts/dev/mint-dev-jwt.sh` 调用，规避可执行位差异  
+  - 运行链接（最新 3 次）：  
+    - run 53：<https://github.com/jacksonlee411/cube-castle/actions/runs/19413508340>（success）  
+    - run 59：<https://github.com/jacksonlee411/cube-castle/actions/runs/19414115404>（success）  
+    - run 60：<https://github.com/jacksonlee411/cube-castle/actions/runs/19414172110>（success）  
+  - 工件（artifact）：`plan254-logs`（含 compose-logs、playwright-report、test-results；保留 14 天）  
+  - 待执行：将 `plan-254-gates` 纳入受保护分支 Required checks（在“Settings → Branches”配置）
+
 ### 新增（2025-11-16 — Plan 259 初次扫描）
 - ✅ [Plan 259] 只读校验已执行（权限映射 + 业务 GET 粗清单）
   - 执行时间（UTC）：2025-11-16 15:47:25

@@ -1,5 +1,17 @@
 # Cube Castle 项目变更日志
 
+## v1.6.3 - CI：Plan‑254 恢复并稳定（3×绿）+ JWT mint 调用修复 (2025-11-17)
+
+### ✅ 门禁与流水线
+- Plan‑254 Gate（前端端点与代理整合）恢复为正式工作流并稳定通过（连续 3 次成功）  
+  - 端点统一：前端与 E2E 统一经单体进程（:9090）访问 `/api/v1` 与 `/graphql`；Vite 代理与端点 SSoT 对齐  
+  - E2E：DevServer 自启（PW_SKIP_SERVER=0，PW_BASE_URL=http://localhost:3000），证据与报告作为工件上传（plan254-logs）  
+  - 运行链接：run 53/59/60（详见 215 执行日志）
+- CI 修复：`make jwt-dev-mint` 在 runner 上改为 `bash scripts/dev/mint-dev-jwt.sh` 调用，规避可执行位差异导致的 Permission denied
+
+### 📚 文档与登记
+- 215 执行日志新增“Plan‑254 门禁恢复并稳定”条目，登记 run 链接与工件索引
+
 ## v1.6.2 - 文档：PR 策略与回切规则澄清 (2025-11-17)
 
 ### 📚 文档
