@@ -138,21 +138,53 @@ log_step() {
 }
 
 log_step "Tenant B 尝试读取 (预期 403/404)"
-read_resp=$(request GET "$target" "$TENANT_B_TOKEN" "$TENANT_B_ID")
-status_b=${read_resp%% *}
-if [[ "$status_b" != "403" && "$status_b" != "404" ]]; then
-  echo "✖ Tenant B 读取未被拒绝 (状态 $status_b)"
-  exit 1
+gql_url="${BASE_URL}/graphql"
+# 使用 GraphQL 查询 positionAssignments 代替已移除的 REST 读取端点
+gql_query='{"query":"query($positionCode: PositionCode!, $pagination: PaginationInput){ positionAssignments(positionCode: $positionCode, pagination: $pagination){ totalCount edges { node { assignmentId positionCode } } }}","variables":{"positionCode":"'"${POSITION_CODE}"'","pagination":{"first":1}}}'
+tmp_resp=$(mktemp)
+status_b=$(curl -s -o "$tmp_resp" -w '%{http_code}' \
+  -X POST \
+  -H "Authorization: Bearer ${TENANT_B_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_B_ID}" \
+  -H 'Content-Type: application/json' \
+  "$gql_url" \
+  -d "$gql_query")
+body_b=$(cat "$tmp_resp"); rm -f "$tmp_resp"
+# 允许两种拒绝形式：HTTP 403/404，或 200 + 企业信封 success=false
+if [[ "$status_b" == "403" || "$status_b" == "404" ]]; then
+  echo "✔ 读取被拒绝 (状态 $status_b)"
+else
+  # 尝试解析企业级信封
+  success_flag=$(echo "$body_b" | jq -r '.success // empty')
+  if [[ "$status_b" == "200" && "$success_flag" == "false" ]]; then
+    echo "✔ 读取被拒绝 (HTTP 200, envelope success=false)"
+  else
+    echo "✖ Tenant B 读取未被拒绝 (状态 $status_b, body=$body_b)"
+    exit 1
+  fi
 fi
-echo "✔ 读取被拒绝 (状态 $status_b)"
 
 log_step "Tenant A 读取 (预期 200)"
-read_resp=$(request GET "$target" "$TENANT_A_TOKEN" "$TENANT_A_ID")
-status_a=${read_resp%% *}
+# 读取 1 条以校验访问权限
+tmp_resp=$(mktemp)
+status_a=$(curl -s -o "$tmp_resp" -w '%{http_code}' \
+  -X POST \
+  -H "Authorization: Bearer ${TENANT_A_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_A_ID}" \
+  -H 'Content-Type: application/json' \
+  "$gql_url" \
+  -d "$gql_query")
+body_a=$(cat "$tmp_resp"); rm -f "$tmp_resp"
 if [[ "$status_a" != "200" ]]; then
-  echo "✖ Tenant A 读取失败 (状态 $status_a)"
+  echo "✖ Tenant A 读取失败 (状态 $status_a, body=$body_a)"
   exit 1
 fi
+success_flag=$(echo "$body_a" | jq -r '.success // empty')
+if [[ "$success_flag" != "true" && "$success_flag" != "" ]]; then
+  echo "✖ Tenant A 读取返回非成功信封 (success=$success_flag, body=$body_a)"
+  exit 1
+fi
+echo "✔ Tenant A GraphQL 读取成功"
 
 if [[ -n "${EMPLOYEE_ID:-}" ]]; then
   DEFAULT_EMPLOYEE_ID="$EMPLOYEE_ID"

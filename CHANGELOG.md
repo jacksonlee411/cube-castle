@@ -1,5 +1,20 @@
 # Cube Castle 项目变更日志
 
+## v1.7.0 - feat!: 移除 REST 业务查询端点（Plan 259‑T4 完成） (2025-11-17)
+
+### 💥 破坏性变更
+- 移除 REST 业务查询端点：`GET /api/v1/positions/{code}/assignments`
+  - 依据：PostgreSQL 原生 CQRS（命令=REST、查询=GraphQL），消除双事实来源（与 Plan 202/255/259 对齐）
+  - 迁移：请改用 GraphQL
+    - `positionAssignments(positionCode, filter, pagination, sorting)`
+    - `assignments(organizationCode, positionCode, filter, pagination, sorting)`
+  - 权限：`position:assignments:read`（与 Plan 259‑T3 一致）
+  - 相关测试：`tests/consolidated/position-assignments-cross-tenant.sh` 已切换为 GraphQL 读取校验
+
+### 🧪 门禁与登记
+- 计划：Plan 259‑T4 完成（移除 REST 业务查询端点）；后续将仓库变量 `PLAN259_BUSINESS_GET_THRESHOLD=0` 切换为硬门禁
+- 证据：`docs/development-plans/215-phase2-execution-log.md` 新增记录（含脚本变更与门禁切换待办）
+
 ## v1.6.3 - CI：Plan‑254 恢复并稳定（3×绿）+ JWT mint 调用修复 (2025-11-17)
 
 ### ✅ 门禁与流水线

@@ -13,7 +13,7 @@ info:
     
     **Architecture Features:**
     - **Command Operations**: REST API (Port 9090) - All data modifications
-    - **Query Operations**: GraphQL (Port 8090) - All data retrieval
+    - **Query Operations**: GraphQL (/graphql on Port 9090) - All data retrieval
     - **Single Data Source**: PostgreSQL with temporal data support
     - **Authentication**: OAuth 2.0 Client Credentials Flow
     - **Authorization**: Permission-Based Access Control (PBAC) with 19 fine-grained permissions

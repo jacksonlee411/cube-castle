@@ -39,9 +39,9 @@
 - 证据归档：本计划产出统一落盘到 logs/plan259/**；执行登记在 docs/development-plans/215-phase2-execution-log.md 中新增记录。
 
 ## 6. 现状发现（证据索引）
-- 业务查询在 REST 与 GraphQL 重复（高风险：第二事实来源）
-  - REST：/api/v1/positions/{code}/assignments GET（docs/api/openapi.yaml:1925~1996）
-  - GraphQL：positionAssignments/assignments 查询（docs/api/schema.graphql:166、190）
+- （更新 2025‑11‑17）业务查询在 REST 与 GraphQL 的重复已清零（T4 完成）  
+  - REST：`GET /api/v1/positions/{code}/assignments` 已移除（OpenAPI 仅保留写路径）  
+  - GraphQL：保留 `positionAssignments/assignments` 查询（docs/api/schema.graphql:166、190）
 - 权限 scope 不一致（REST vs GraphQL）
   - GraphQL 运行时映射：positionAssignments/assignments → position:read（cmd/hrms-server/query/internal/auth/generated/graphql-permissions.json:12、14）
   - REST 契约：/positions/{code}/assignments GET → position:assignments:read（docs/api/openapi.yaml:1984）

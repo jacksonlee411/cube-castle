@@ -149,6 +149,17 @@
   - 决策：在端点移除前维持阈值=1（兼容“弃用窗口”）；端点移除后再切为 0
   - 修正操作：将变量更新回 1 并重新触发 plan-258-gates；Run ID: 19410253584（结论：success），工件：plan258-drift-report、plan258-permissions-and-259A
   - 后续：端点移除 PR 合并后，重置为 0 并登记
+
+### 新增（2025-11-17 — Plan 259‑T4 完成：移除 REST 业务查询端点）
+- ✅ [Plan 259‑T4] 移除 `GET /api/v1/positions/{code}/assignments`（REST 业务查询）  
+  - 合约（SSoT）：OpenAPI 当前已不包含该 GET（仅保留 POST/PATCH/POST close），保持与 202/255 原则一致  
+  - 实现：命令服务未暴露该 GET（仅写路径）；验证路径参见 `internal/organization/handler/position_handler.go`  
+  - 测试修订：`tests/consolidated/position-assignments-cross-tenant.sh` 读取校验改为 GraphQL `positionAssignments`，并容忍“HTTP 200 + 企业信封 success=false”的拒绝形式  
+  - 结果：本地脚本通过，GraphQL 查询对 A/B 租户的鉴权表现符合预期（A=200/success=true，B=403 或 200/success=false）
+- 🔜 门禁阈值切换（需要远程变量更新）：将仓库变量 `PLAN259_BUSINESS_GET_THRESHOLD` 从 1 → 0 以启用硬门禁  
+  - 待执行命令（需要网络权限）：更新 GitHub Actions Repository Variable 并手动触发 `plan-258-gates`  
+  - 预期：`reports/plan259/protocol-duplication-matrix.json` 中 business GET 计数=0；工作流结论=success  
+  - 执行后在本段落补充 Run ID 与工件名称
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
