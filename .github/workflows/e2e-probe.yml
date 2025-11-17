@@ -2,6 +2,8 @@ name: E2E Job Probe
 
 on:
   workflow_dispatch: {}
+  pull_request:
+    branches: [ main, master, develop ]
   push:
     branches: [ master ]
     paths:
@@ -30,4 +32,3 @@ jobs:
           docker compose version || true
       - name: Done
         run: echo "✅ Probe job created successfully"
-
