@@ -12,10 +12,10 @@ on:
         required: false
         default: 'false'
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
     types: [opened, synchronize, reopened]
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
 
 jobs:
   contract-drift-gate:

@@ -2,9 +2,9 @@ name: 契约测试自动化验证
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
     types: [opened, synchronize, reopened]
 
 jobs:
@@ -23,6 +23,7 @@ jobs:
             - 'AGENTS.md'
             - '**/*.md'
             - 'docs/**'
+            - '!docs/api/**'
             - 'reports/**'
             - 'scripts/plan222/**'
             - 'docs/development-plans/**'
@@ -128,6 +129,7 @@ jobs:
             - 'AGENTS.md'
             - '**/*.md'
             - 'docs/**'
+            - '!docs/api/**'
             - 'reports/**'
             - 'scripts/plan222/**'
             - 'docs/development-plans/**'
