@@ -1,6 +1,6 @@
 name: 契约测试自动化验证
 
-on:
+'on':
   push:
     branches: [ main, master, develop, feat/shared-dev ]
   pull_request:
