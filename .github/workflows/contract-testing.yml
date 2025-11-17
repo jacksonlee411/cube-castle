@@ -105,8 +105,7 @@ jobs:
       run: node scripts/contract/drift-check.js --include-fields
 
     - name: 上传漂移对比报告（Plan 256）
-      if: steps.changes.outputs.docs_only != 'true'
-      if: always()
+      if: ${{ steps.changes.outputs.docs_only != 'true' && always() }}
       uses: actions/upload-artifact@v4
       with:
         name: plan256-drift-report
@@ -201,15 +200,13 @@ jobs:
         npm run build:verify
         
     - name: 生成契约测试报告
-      if: steps.changes.outputs.docs_only != 'true'
-      if: always()
+      if: ${{ steps.changes.outputs.docs_only != 'true' && always() }}
       run: |
         cd frontend
         npm run test:contract -- --reporter=json --outputFile=contract-test-results.json
         
     - name: 上传测试报告
-      if: steps.changes.outputs.docs_only != 'true'
-      if: always()
+      if: ${{ steps.changes.outputs.docs_only != 'true' && always() }}
       uses: actions/upload-artifact@v4
       with:
         name: contract-test-results
