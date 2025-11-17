@@ -13,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout 仓库（diff 基线）
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
@@ -52,10 +57,6 @@ jobs:
         echo "Docs/CI-only changes detected. Skipping contract snapshot heavy steps."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
         exit 0
-    - name: Checkout代码
-      if: steps.changes.outputs.docs_only != 'true'
-      uses: actions/checkout@v4
-
     - name: 设置 Go 环境
       if: steps.changes.outputs.docs_only != 'true'
       uses: actions/setup-go@v5
@@ -118,6 +119,11 @@ jobs:
     needs: contract-snapshot
     
     steps:
+    - name: Checkout 仓库（diff 基线）
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
@@ -157,10 +163,6 @@ jobs:
         echo "Docs/CI-only changes detected. Skipping contract testing heavy steps."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
         exit 0
-    - name: Checkout代码
-      if: steps.changes.outputs.docs_only != 'true'
-      uses: actions/checkout@v4
-      
     - name: 设置Node.js环境
       if: steps.changes.outputs.docs_only != 'true'
       uses: actions/setup-node@v4
