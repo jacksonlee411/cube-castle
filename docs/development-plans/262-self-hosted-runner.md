@@ -14,6 +14,7 @@
 - ⚠️ `ci-selfhosted-diagnose` 未 checkout 仓库，`docker compose -f docker-compose.dev.yml config -q` 恒定报 `no such file or directory`（但用 `|| true` 吞掉），实际并未验证 Compose；验收条件“能运行 Docker Compose 工作负载”尚未满足。
 - ⚠️ `CI (Self-Hosted Runner Smoke)` 尚无成功运行记录，`logs/plan262/ci-summary-19411098135.txt` 显示尝试下载日志时报 404，时间表中的 T+0/1 里程碑仍未验收。
 - ⚠️ 尚未对任何重型工作流引入 `matrix.os=[ubuntu-latest,self-hosted]`，T+1/2 任务未执行。
+- ⚠️ `cubecastle-gh-runner` 容器在 Docker 中持续 Restarting，`docker logs cubecastle-gh-runner` 显示 `Cannot configure the runner because it is already configured` —— 容器第一次注册后已在 `/home/runner/.runner` 保留配置，但当前 compose 命令每次启动仍执行 `./config.sh ... --replace && ./run.sh`，导致重复配置直接退出。必须在迁移到 Compose 时同时改造入口：若 `.runner` 已存在则只执行 `./run.sh`，仅首启执行 `./config.sh && ./run.sh`，或先 `./config.sh remove` 清理后再按新逻辑注册。
 
 ## 1. 背景与动机
 - 现状：GitHub 托管 Runner 在高峰期存在排队/资源波动；部分工作流（E2E/Compose）对底层环境更敏感。
@@ -41,6 +42,7 @@
 2) 启动 Runner（容器化，方案A）
    - **目标实现**：通过 `docker compose -f docker-compose.runner.yml up -d` 启动 Ephemeral，或 `docker compose -f docker-compose.runner.persist.yml up -d`（待补充）启动持久化 Runner，确保“容器统一受 Compose 管控”。
    - **当前实际**：以 `bash scripts/ci/runner/start-ghcr-runner-persistent.sh` 直接 `docker run`，随后用 `scripts/ci/runner/watchdog.sh` 保活 ⇒ 需在 T+0/1 内迁移至 Compose。
+   - **新增诊断**：现有 `docker-compose.runner.persist.yml` 的 command 结尾为 `./config.sh ... --replace && ./run.sh`，一旦容器目录已经有 `.runner/.credentials`，重启时就会报 “already configured” 并退出，引起 Restarting 风暴。迁移到 Compose 时需更新命令为 `if [ ! -f /home/runner/.runner ]; then ./config.sh ...; fi; ./run.sh`，或在 entrypoint 中先尝试 `./config.sh remove` 后再配置。
    - 验证在线后启动看门狗：`nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &`
    - 停止：`docker rm -f cubecastle-gh-runner`；停止看门狗：`touch .ci/runner-watchdog.stop`
 3) 验证在线

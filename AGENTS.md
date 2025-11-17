@@ -23,6 +23,7 @@
 ## 分支策略（单人开发强制）
 - 主干开发（Trunk-Based）+ 远程 PR 守卫：日常在本地 `master` 直接开发与提交；远程 `master` 为受保护分支，禁止直接 push，推送到远程时仅通过“短生命周期分支 + PR”合并（默认 squash-merge）。
 - 必跑门禁：本地提交前跑快速门禁（编译/单测/fmt/lint）；PR 合并以受保护分支的 Required checks 为准（以 `.github/workflows/*` 为唯一事实来源），未通过不得入主干。
+<<<<<<< HEAD
 - 分支策略唯一性：当前仓库所有开发工作（含 PR）一律在共享分支 `feat/shared-dev` 上完成，禁止创建除 `master`/`feat/shared-dev` 以外的任何本地或远程分支；若需要临时隔离，请使用 `git stash` 或导出补丁。
 - 快速步骤（推送/开 PR 时）：直接在 `feat/shared-dev` 上整理提交 → `git push -u origin feat/shared-dev` → 以该分支发起或更新 PR 合并到 `master`（采用 squash-merge）；严禁 `git switch -c ...` 或其他方式衍生新分支。
 - 单机多终端最简安全实践（最稳且省心）：本仓库当前固定使用共享开发分支 `feat/shared-dev`，所有终端都在该分支上工作，禁止因为多终端需求而在各终端切换到其他分支；如需同步/验证 `master`，另起一个只读工作树（`git worktree add ../cube-castle-master master`），仅在该目录执行 `git pull --ff-only` 做快进或验证，避免在开发目录切换分支导致脏状态或跨终端混淆。
@@ -32,6 +33,25 @@
   git pull --ff-only
   ```
   如存在历史遗留分支需清理，可在当前工作区显式删除：`git branch -d <old-branch>`；新建分支被禁止。工作区需干净，如有未提交修改，请先 `git stash push -m "wip: <desc>"` 或导出补丁（`git diff > /tmp/<branch>.patch`）后再同步。
+=======
+- 分支命名：`feat/<scope>`、`fix/<scope>`、`chore/<scope>`；临时隔离优先使用本地 stash/patch；需要远程协作或归档时开启 PR。
+- 快速步骤（仅在需要推送远程时）：
+  - `git switch -c feat/<scope>` → `git push -u origin HEAD` → 以该分支发起 PR 合并到 `master`（使用 squash-merge）
+  - 或使用自动化：`make pr-255-soft-gate PR_HEAD=feat/<scope> PR_TITLE='feat: <title>'`（需准备 `GITHUB_TOKEN`）
+- 单机多终端最简安全实践：保持当前工作树统一在同一功能分支（当前约定共享分支：`feat/shared-dev`，如无则从 `master` 创建并复用），所有终端共享该分支开发；另起一个仅用于同步/验证的工作树 `git worktree add ../cube-castle-master master`，在该目录执行 `git pull --ff-only` 快进 `master`，避免切回 `master` 丢失本地改动。
+- PR 合并后的本地回切与同步（强制，确保不丢失他人变更）：
+  - 切回并快进同步（禁止重写历史）：
+    ```bash
+    git switch master
+    git fetch --prune
+    git pull --ff-only
+    ```
+  - 清理已合并分支（本地）：`git branch -d feat/<scope>`（远程分支会因“合并后自动删除分支”而被移除）
+  - 工作区需干净；如有未提交修改，先安全保存：
+    ```bash
+    git stash push -m "wip: <desc>"   # 或导出补丁：git diff > /tmp/<branch>.patch
+    ```
+>>>>>>> origin/master
   - 禁止事项：禁止对 `master` 使用 rebase/force-push；仅允许 fast-forward 同步。若出现非快进（本地分歧），先在功能分支处理并通过新的 PR 修正/回滚，避免破坏他人历史。
 
 ## 项目结构与模块组织

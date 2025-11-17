@@ -13,12 +13,15 @@ services:
       RUNNER_TOKEN: ${RUNNER_TOKEN}
       ACCESS_TOKEN: ${GH_RUNNER_PAT}
     command: >
-      bash -lc "./config.sh --url https://github.com/$${RUNNER_REPO}
+      bash -lc "if [ ! -f /home/runner/.runner ]; then
+      ./config.sh --url https://github.com/$${RUNNER_REPO}
       --token $${RUNNER_TOKEN}
       --name $${RUNNER_NAME}
       --labels '$${RUNNER_LABELS}'
       --work $${RUNNER_WORKDIR}
-      --unattended --replace && ./run.sh"
+      --unattended --replace;
+      fi;
+      ./run.sh"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./secrets:/secrets:ro
