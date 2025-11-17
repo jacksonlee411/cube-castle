@@ -27,6 +27,7 @@
 - 快速步骤（仅在需要推送远程时）：
   - `git switch -c feat/<scope>` → `git push -u origin HEAD` → 以该分支发起 PR 合并到 `master`（使用 squash-merge）
   - 或使用自动化：`make pr-255-soft-gate PR_HEAD=feat/<scope> PR_TITLE='feat: <title>'`（需准备 `GITHUB_TOKEN`）
+- 单机多终端最简安全实践：保持当前工作树统一在同一功能分支（当前约定共享分支：`feat/shared-dev`，如无则从 `master` 创建并复用），所有终端共享该分支开发；另起一个仅用于同步/验证的工作树 `git worktree add ../cube-castle-master master`，在该目录执行 `git pull --ff-only` 快进 `master`，避免切回 `master` 丢失本地改动。
 - PR 合并后的本地回切与同步（强制，确保不丢失他人变更）：
   - 切回并快进同步（禁止重写历史）：
     ```bash
