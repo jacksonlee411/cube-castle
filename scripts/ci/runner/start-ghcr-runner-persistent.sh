@@ -2,7 +2,7 @@
 set -euo pipefail
 #
 # start-ghcr-runner-persistent.sh
-# 持久化（非 Ephemeral）Runner：注册后常驻接单
+# 持久化（非 Ephemeral）Runner：注册后常驻接单，改为由 docker compose 管控
 # 依赖：secrets/.env.local 中提供 GH_RUNNER_PAT 或 GITHUB_TOKEN（scope: repo）
 #
 
@@ -33,16 +33,8 @@ if [[ -z "$RUNNER_TOKEN" ]]; then
 fi
 echo "✅ 已获取注册令牌"
 
-echo "🐳 拉取 Runner 镜像（GHCR 官方）..."
-docker pull ghcr.io/actions/actions-runner:2.315.0 >/dev/null 2>&1 || docker pull ghcr.io/actions/actions-runner:latest
-
-echo "🚀 启动持久化 Runner（非 Ephemeral）..."
-docker rm -f cubecastle-gh-runner >/dev/null 2>&1 || true
-docker run -d --name cubecastle-gh-runner \
-  --restart unless-stopped \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/actions/actions-runner:latest \
-  bash -lc "./config.sh --url https://github.com/${OWNER_REPO} --token ${RUNNER_TOKEN} --name cc-$(hostname) --labels 'self-hosted,cubecastle,linux,x64,docker' --work _work --unattended --replace && ./run.sh"
+echo "🐳 启动持久化 Runner（compose 管控，非 Ephemeral）..."
+RUNNER_TOKEN="$RUNNER_TOKEN" GH_RUNNER_PAT="$PAT" docker compose -f docker-compose.runner.persist.yml up -d
 
 echo "⏳ 等待 Runner 就绪（最长 90s）..."
 for i in {1..60}; do
@@ -56,4 +48,3 @@ done
 
 echo "⚠️ Runner 未在预期时间内确认就绪，请查看日志：docker logs -f cubecastle-gh-runner"
 exit 5
-
