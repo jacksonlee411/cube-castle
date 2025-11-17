@@ -49,7 +49,8 @@ cat >"$TMP" <<JSON
       "gates-250",
       "Compose/Image Gates (Blocking)",
       "gates-255",
-      "Plan 254 Gate – ubuntu"
+      "Plan 254 Gate – ubuntu",
+      "PR Body Policy – required"
     ]
   },
   "enforce_admins": true,
