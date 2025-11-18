@@ -15,6 +15,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: 安装 Docker Compose 插件
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose-plugin
+
       - name: 准备诊断 Compose
         run: |
           cat >smoke-compose.yml <<'EOF'

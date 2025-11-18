@@ -17,6 +17,11 @@ jobs:
           docker version
           docker compose version
 
+      - name: 安装 Docker Compose 插件
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose-plugin
+
       - name: 验证 Compose 配置
         run: |
           set -xe
