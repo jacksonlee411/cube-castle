@@ -220,7 +220,7 @@ jobs:
 
       - name: 上传合规性报告
         if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: api-compliance-report
           path: api-compliance-report.md
