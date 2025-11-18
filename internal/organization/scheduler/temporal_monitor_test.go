@@ -93,6 +93,44 @@ func TestTemporalMonitorCollectMetricsHealthy(t *testing.T) {
 	}
 }
 
+func TestTemporalMonitorGetMetricsHandler(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	expectMetricsQueries(mock, monitorCounts{
+		total:        5,
+		current:      4,
+		future:       1,
+		historical:   0,
+		duplicate:    0,
+		missing:      0,
+		timeline:     0,
+		inconsistent: 0,
+		orphan:       0,
+	})
+
+	monitor := NewTemporalMonitor(db, pkglogger.NewLogger(pkglogger.WithWriter(io.Discard)))
+	handler := monitor.GetMetricsHandler()
+	result, err := handler(context.Background())
+	if err != nil {
+		t.Fatalf("GetMetricsHandler returned error: %v", err)
+	}
+	metrics, ok := result.(*MonitoringMetrics)
+	if !ok {
+		t.Fatalf("expected *MonitoringMetrics, got %T", result)
+	}
+	if metrics.TotalOrganizations != 5 || metrics.AlertLevel != "HEALTHY" {
+		t.Fatalf("unexpected metrics response: %+v", metrics)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations not met: %v", err)
+	}
+}
+
 func TestTemporalMonitorCheckAlertsCritical(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
