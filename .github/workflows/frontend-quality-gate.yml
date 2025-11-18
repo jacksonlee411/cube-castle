@@ -31,25 +31,25 @@ jobs:
     - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        filters:
-          docs_only:
-            - 'AGENTS.md'
-            - '**/*.md'
-            - 'docs/**'
-            - 'reports/**'
-            - 'scripts/plan222/**'
-            - 'docs/development-plans/**'
-            - '!frontend/**'
-            - '!cmd/**'
-            - '!internal/**'
-            - '!pkg/**'
-            - '!database/**'
-            - '!tests/**'
-            - '!go.*'
-            - '!package*.json'
-            - '!.github/workflows/**'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            docs_only:
+              - 'AGENTS.md'
+              - '**/*.md'
+              - 'docs/**'
+              - 'reports/**'
+              - 'scripts/plan222/**'
+              - 'docs/development-plans/**'
+              - '!frontend/**'
+              - '!cmd/**'
+              - '!internal/**'
+              - '!pkg/**'
+              - '!database/**'
+              - '!tests/**'
+              - '!go.*'
+              - '!package*.json'
+              - '!.github/workflows/**'
           ci_only:
             - '.github/workflows/**'
             - '!frontend/**'
@@ -206,25 +206,25 @@ jobs:
     - name: Detect docs-only/ci-only changes (re-evaluate)
       id: changes
       uses: dorny/paths-filter@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        filters:
-          docs_only:
-            - 'AGENTS.md'
-            - '**/*.md'
-            - 'docs/**'
-            - 'reports/**'
-            - 'scripts/plan222/**'
-            - 'docs/development-plans/**'
-            - '!frontend/**'
-            - '!cmd/**'
-            - '!internal/**'
-            - '!pkg/**'
-            - '!database/**'
-            - '!tests/**'
-            - '!go.*'
-            - '!package*.json'
-            - '!.github/workflows/**'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            docs_only:
+              - 'AGENTS.md'
+              - '**/*.md'
+              - 'docs/**'
+              - 'reports/**'
+              - 'scripts/plan222/**'
+              - 'docs/development-plans/**'
+              - '!frontend/**'
+              - '!cmd/**'
+              - '!internal/**'
+              - '!pkg/**'
+              - '!database/**'
+              - '!tests/**'
+              - '!go.*'
+              - '!package*.json'
+              - '!.github/workflows/**'
           ci_only:
             - '.github/workflows/**'
             - '!frontend/**'
