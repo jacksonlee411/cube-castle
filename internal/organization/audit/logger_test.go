@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
@@ -360,6 +361,68 @@ func TestLogOrganizationCreateCapturesNewValues(t *testing.T) {
 	req := &types.CreateOrganizationRequest{}
 	if err := auditLogger.LogOrganizationCreate(context.Background(), req, result, "user-1", "req-create", "reason"); err != nil {
 		t.Fatalf("LogOrganizationCreate returned error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sqlmock expectations not met: %v", err)
+	}
+}
+
+func TestGetAuditHistoryReturnsEvents(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
+	}
+	defer db.Close()
+
+	auditLogger := NewAuditLogger(db, pkglogger.NewNoopLogger())
+	tenantID := uuid.New()
+	resourceID := "ORG-200"
+	now := time.Now()
+	eventID := uuid.New()
+
+	mock.ExpectQuery("FROM audit_logs").WithArgs(ResourceTypeOrganization, resourceID, tenantID, 25).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "tenant_id", "event_type", "resource_type", "resource_id",
+			"actor_id", "actor_type", "action_name", "request_id",
+			"operation_reason", "timestamp", "success",
+			"error_code", "error_message", "request_data", "response_data",
+			"modified_fields", "changes", "record_id", "business_context",
+		}).AddRow(
+			eventID,
+			tenantID,
+			EventTypeUpdate,
+			ResourceTypeOrganization,
+			resourceID,
+			"user-1",
+			ActorTypeUser,
+			"UpdateOrganization",
+			"req-1",
+			"reason",
+			now,
+			true,
+			"",
+			"",
+			`{"before":"data"}`,
+			`{"after":"data"}`,
+			`["field"]`,
+			`[{"field":"name","oldValue":"Old","newValue":"New","dataType":"string"}]`,
+			eventID.String(),
+			`{"correlationId":"cid-1"}`,
+		))
+
+	result, err := auditLogger.GetAuditHistory(context.Background(), ResourceTypeOrganization, resourceID, tenantID, 25)
+	if err != nil {
+		t.Fatalf("GetAuditHistory returned error: %v", err)
+	}
+	if len(result) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(result))
+	}
+	if result[0].ActionName != "UpdateOrganization" || result[0].OperationReason != "reason" {
+		t.Fatalf("unexpected event payload: %+v", result[0])
+	}
+	if ctxValue := result[0].BusinessContext["correlationId"]; ctxValue != "cid-1" {
+		t.Fatalf("expected correlationId cid-1, got %v", ctxValue)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
