@@ -11,7 +11,13 @@ jobs:
     timeout-minutes: 30
     env:
       COMPOSE_PROJECT_NAME: cc-selfhosted-smoke
+      COMPOSE_HTTP_TIMEOUT: 300
     steps:
+      - name: 预清理旧 smoke 容器
+        run: |
+          set -euo pipefail
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml down -v --remove-orphans || true
+
       - name: Checkout 仓库
         uses: actions/checkout@v4
         with:
@@ -67,8 +73,13 @@ jobs:
 
       - name: 等待健康检查
         run: |
-          set -xe
-          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml wait
+          set -euo pipefail
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml wait || (
+            echo "⚠️ Compose wait failed, dumping diagnostics" && \
+            COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps && \
+            COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml logs && \
+            exit 1
+          )
 
       - name: 健康检查自检
         run: |
