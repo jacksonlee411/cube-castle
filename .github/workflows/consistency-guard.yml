@@ -115,7 +115,6 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        ports: ["5432:5432"]
         env:
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
@@ -172,7 +171,7 @@ jobs:
                 updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
                 deleted_at TIMESTAMP
               );
-            SQL
+SQL
           fi
 
       - name: Run temporal consistency inspection (read-only)
