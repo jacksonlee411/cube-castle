@@ -59,25 +59,25 @@ jobs:
     - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          filters: |
-            docs_only:
-              - 'AGENTS.md'
-              - '**/*.md'
-              - 'docs/**'
-              - 'reports/**'
-              - 'scripts/plan222/**'
-              - 'docs/development-plans/**'
-              - '!.github/workflows/**'
-            ci_only:
-              - '.github/workflows/**'
-              - '!frontend/**'
-              - '!cmd/**'
-              - '!internal/**'
-              - '!pkg/**'
-              - '!database/**'
-              - '!tests/**'
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        filters: |
+          docs_only:
+            - 'AGENTS.md'
+            - '**/*.md'
+            - 'docs/**'
+            - 'reports/**'
+            - 'scripts/plan222/**'
+            - 'docs/development-plans/**'
+            - '!.github/workflows/**'
+          ci_only:
+            - '.github/workflows/**'
+            - '!frontend/**'
+            - '!cmd/**'
+            - '!internal/**'
+            - '!pkg/**'
+            - '!database/**'
+            - '!tests/**'
     - name: Docs/CI-only fast pass (Plan 261 临时短路)
       if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
       run: |
