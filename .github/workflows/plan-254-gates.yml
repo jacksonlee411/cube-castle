@@ -12,7 +12,7 @@ on:
       - 'scripts/quality/architecture-validator.js'
       - 'docker-compose.e2e.yml'
       - 'AGENTS.md'
-  push:
+  pull_request:
     branches: [ main, master, develop ]
     paths:
       - 'docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md'
