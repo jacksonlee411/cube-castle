@@ -88,4 +88,7 @@
 ## 6. 更新记录
 
 - 2025-11-18：首次创建，列出全部 36 条 workflow、状态与建议。 (BY: Codex)
-- 2025-11-18：根据“无效/重复全部退役”要求，直接从仓库移除以下 workflow 文件，以消除僵尸配置与 0s failure 噪音：`ci.yml`（旧主 CI）、`go-backend-tests.yml`（go-app 目录缺失）、`plan-240e-regression.yml`（旧计划回归）、`test.yml`（定时 extended tests）、`e2e-tests.yml`（旧版前端 E2E）。如需恢复，需从历史提交重新拷贝并重新启用；若未来有替代方案，请在对应计划文档中登记。 (BY: Codex)
+- 2025-11-18：根据“无效/重复全部退役”要求，已分两批从仓库移除以下 workflow，清理 0s failure 噪音与僵尸配置：
+  - 批次 1：`ci.yml`（旧主 CI）、`go-backend-tests.yml`（go-app 目录缺失）、`plan-240e-regression.yml`（旧回归）、`test.yml`（定时 extended tests）、`e2e-tests.yml`（旧版前端 E2E）。
+  - 批次 2：`ci-selfhosted-diagnose.yml`、`ci-selfhosted-smoke.yml`（自托管 runner 暂停）、`e2e-devserver-probe.yml`、`e2e-probe.yml`（探针类重复）、`frontend-e2e-devserver.yml`（与主 E2E 重叠）、`ops-scripts-quality.yml`、`audit-consistency.yml`、`docs-audit-quality.yml`、`duplicate-code-detection.yml`、`plan-253-publish.yml`。
+  如需恢复，需从历史提交重新拷贝并重新启用；若有替代方案，请在对应计划文档中登记。 (BY: Codex)
