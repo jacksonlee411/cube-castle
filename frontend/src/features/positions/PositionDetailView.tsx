@@ -65,6 +65,13 @@ interface VersionEntry {
 }
 
 type DetailQueryResult = ReturnType<typeof useTemporalEntityDetail>
+type PositionTemporalDetailData = {
+  position?: PositionRecord
+  timeline?: PositionTimelineEvent[]
+  currentAssignment?: PositionAssignmentRecord | null
+  transfers?: PositionTransferRecord[]
+  versions?: PositionRecord[]
+} | null
 
 export interface PositionDetailViewProps {
   code?: string
@@ -104,6 +111,8 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
 
   const detailErrorMessage = detailQuery.error instanceof Error ? detailQuery.error.message : undefined
 
+  const detailData = (detailQuery.data as PositionTemporalDetailData) ?? null
+
   const { position, timeline, currentAssignment, transfers, versions } = useMemo(() => {
     if (isCreateMode) {
       return {
@@ -115,7 +124,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
       }
     }
 
-    const graph = detailQuery.data
+    const graph = detailData
     return {
       position: graph?.position ?? undefined,
       timeline: graph?.timeline ?? [],
@@ -123,7 +132,7 @@ export const PositionDetailView: React.FC<PositionDetailViewProps> = ({
       transfers: graph?.transfers ?? [],
       versions: graph?.versions ?? [],
     }
-  }, [detailQuery.data, isCreateMode])
+  }, [detailData, isCreateMode])
 
   const versionEntries: VersionEntry[] = useMemo(() => {
     const sorted = positionTimelineAdapter.sortSources(versions)
