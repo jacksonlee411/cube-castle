@@ -1,0 +1,60 @@
+name: CI (Self-Hosted Runner Smoke)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/shared-dev]
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, cubecastle, docker]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout 仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 准备诊断 Compose
+        run: |
+          cat >smoke-compose.yml <<'EOF'
+          services:
+            postgres:
+              image: postgres:15-alpine
+              environment:
+                POSTGRES_PASSWORD: runner
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 2s
+                timeout: 5s
+                retries: 15
+            redis:
+              image: redis:7-alpine
+              command: ["redis-server", "--save", "", "--appendonly", "no"]
+              healthcheck:
+                test: ["CMD", "redis-cli", "PING"]
+                interval: 2s
+                timeout: 5s
+                retries: 15
+          EOF
+
+      - name: 启动 Compose 工作负载
+        run: |
+          set -xe
+          docker compose -f smoke-compose.yml up -d
+          docker compose -f smoke-compose.yml ps
+
+      - name: 等待健康检查
+        run: |
+          set -xe
+          docker compose -f smoke-compose.yml wait
+
+      - name: 健康检查自检
+        run: |
+          set -euo pipefail
+          docker compose -f smoke-compose.yml ps --format json | jq -r '.[] | "\(.Name) \(.State.Health.Status)"'
+
+      - name: 清理
+        if: always()
+        run: |
+          docker compose -f smoke-compose.yml down -v

@@ -2,7 +2,7 @@
 
 本仓库遵循 AGENTS.md 的“Docker 强制”原则，自托管 Runner 必须由 Docker Compose 管理：  
 - 默认：Ephemeral 一次性模式（`docker-compose.runner.yml`）  
-- 持久化：常驻接单模式（`docker-compose.runner.persist.yml`，由 watcher 保活）
+- 持久化：常驻接单模式（`docker-compose.runner.persist.yml` + `persistent-entrypoint.sh` 幂等初始化，由 watcher 保活）
 
 ## 一、准备密钥（任选其一）
 1) Registration Token（一次性）  
@@ -24,11 +24,12 @@
 # 启动 Ephemeral（一次性，Job 结束自动注销）
 docker compose -f docker-compose.runner.yml up -d
 
-# 启动持久化（建议结合 watchdog 保活）
-RunNER_TOKEN=... docker compose -f docker-compose.runner.persist.yml up -d
-# 或使用自动申请令牌脚本（推荐）
+# 启动持久化（推荐：自动申请令牌 + Compose 幂等入口）
 bash scripts/ci/runner/start-ghcr-runner-persistent.sh
 nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &
+
+# 若已拥有 RUNNER_TOKEN，可手动启动持久化
+RUNNER_TOKEN=... docker compose -f docker-compose.runner.persist.yml up -d
 
 # 查看 Runner 容器日志
 docker logs -f cubecastle-gh-runner
@@ -40,6 +41,8 @@ docker compose -f docker-compose.runner.persist.yml down -v
 # 停止看门狗：
 touch .ci/runner-watchdog.stop
 ```
+
+> 入口说明：`docker-compose.runner.persist.yml` 使用 `runner/persistent-entrypoint.sh`，如检测到已有 `.runner/.credentials` 或 `.credentials*` 将跳过 `config.sh`，避免 “already configured” 重启；需要重配时设置 `FORCE_RECONFIGURE=true`。
 
 ## 三、验证
 - 仓库 Settings → Actions → Runners，应看到在线 Runner（labels: self-hosted,cubecastle,linux,x64,docker）

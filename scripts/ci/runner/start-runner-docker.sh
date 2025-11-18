@@ -27,7 +27,7 @@ if [[ -z "$PAT" ]]; then
 fi
 
 echo "🐳 构建自定义 Runner 镜像（含 docker/compose）..."
-docker build -t cc-actions-runner-docker:2.315.0 -f "${ROOT}/runner/Dockerfile.docker" "${ROOT}/runner"
+docker build -t cc-actions-runner-docker:2.329.0 -f "${ROOT}/runner/Dockerfile.docker" "${ROOT}/runner"
 
 echo "🔑 申请注册令牌..."
 TOKEN_JSON="$(curl -fsSL -X POST -H "Authorization: Bearer ${PAT}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${OWNER_REPO}/actions/runners/registration-token")"

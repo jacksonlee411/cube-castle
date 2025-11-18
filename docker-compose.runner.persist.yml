@@ -1,0 +1,24 @@
+services:
+  gh-runner:
+    image: ghcr.io/actions/actions-runner:2.329.0
+    container_name: cubecastle-gh-runner
+    environment:
+      # 仓库与 Runner 标识，可被外部覆盖
+      RUNNER_REPO: ${RUNNER_REPO:-jacksonlee411/cube-castle}
+      RUNNER_NAME: ${RUNNER_NAME:-cc-runner-${HOSTNAME}}
+      RUNNER_LABELS: ${RUNNER_LABELS:-self-hosted,cubecastle,linux,x64,docker}
+      RUNNER_WORKDIR: ${RUNNER_WORKDIR:-/home/runner/_work}
+      DISABLE_AUTO_UPDATE: "true"
+      # 令牌优先级：start 脚本注入 RUNNER_TOKEN，其次 GH_RUNNER_REG_TOKEN，再其次 GH_RUNNER_PAT
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-${GH_RUNNER_REG_TOKEN:-${GH_RUNNER_PAT}}}
+      FORCE_RECONFIGURE: ${FORCE_RECONFIGURE:-false}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-data:/home/runner
+      - ./runner/persistent-entrypoint.sh:/persistent-entrypoint.sh:ro
+      - ./secrets:/secrets:ro
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/persistent-entrypoint.sh"]
+
+volumes:
+  runner-data:

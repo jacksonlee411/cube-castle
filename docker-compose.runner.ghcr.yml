@@ -1,6 +1,6 @@
 services:
   gh-runner:
-    image: ghcr.io/actions/actions-runner:2.315.0
+    image: ghcr.io/actions/actions-runner:2.329.0
     container_name: cubecastle-gh-runner
     environment:
       RUNNER_NAME: cc-runner-${HOSTNAME}
@@ -14,4 +14,3 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./secrets:/secrets:ro
     restart: unless-stopped
-

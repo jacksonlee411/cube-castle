@@ -7,14 +7,13 @@
 ---
 
 ## 0. 当前执行状态（2025-11-17）
-- ✅ 基础产物已落库：`docker-compose.runner.yml`（Ephemeral Compose 模式）、`.github/workflows/ci-selfhosted-*.yml` 以及 `scripts/ci/runner/*`。
+- ✅ 基础产物补齐：`docker-compose.runner.yml`（Ephemeral）、`docker-compose.runner.persist.yml`（持久化，内置幂等入口 `runner/persistent-entrypoint.sh` 避免重复 config）、`.github/workflows/ci-selfhosted-{diagnose,smoke}.yml` 以及 `scripts/ci/runner/*`。
 - ✅ 实际运行环境已存在持久化 Runner：命令 `scripts/ci/runner/start-ghcr-runner-persistent.sh` + `scripts/ci/runner/watchdog.sh` 持续拉起 `cubecastle-gh-runner`（证据：`logs/ci-monitor/runner-watchdog-20251117_023435.log`、`runner-watchdog-20251117_065943.log`，可见容器多次重启后仍在线）。
 - ✅ 诊断工作流已在自托管节点跑通一次（`logs/ci-monitor/run-19414150520.zip/0_Self-Hosted Runner Diagnose.txt`），输出 Docker/Docker Compose 版本。
-- ⚠️ 运行方式与目标不符：生产中使用的是 `docker run` + 看门狗的持久化脚本，而非“由 docker-compose.runner*.yml 统一管理”的方案；README 仍描述“Ephemeral Compose 为默认”，存在跨层事实冲突。
-- ⚠️ `ci-selfhosted-diagnose` 未 checkout 仓库，`docker compose -f docker-compose.dev.yml config -q` 恒定报 `no such file or directory`（但用 `|| true` 吞掉），实际并未验证 Compose；验收条件“能运行 Docker Compose 工作负载”尚未满足。
-- ⚠️ `CI (Self-Hosted Runner Smoke)` 尚无成功运行记录，`logs/plan262/ci-summary-19411098135.txt` 显示尝试下载日志时报 404，时间表中的 T+0/1 里程碑仍未验收。
-- ⚠️ 尚未对任何重型工作流引入 `matrix.os=[ubuntu-latest,self-hosted]`，T+1/2 任务未执行。
-- ⚠️ `cubecastle-gh-runner` 容器在 Docker 中持续 Restarting，`docker logs cubecastle-gh-runner` 显示 `Cannot configure the runner because it is already configured` —— 容器第一次注册后已在 `/home/runner/.runner` 保留配置，但当前 compose 命令每次启动仍执行 `./config.sh ... --replace && ./run.sh`，导致重复配置直接退出。必须在迁移到 Compose 时同时改造入口：若 `.runner` 已存在则只执行 `./run.sh`，仅首启执行 `./config.sh && ./run.sh`，或先 `./config.sh remove` 清理后再按新逻辑注册。
+- ⚠️ 运行方式尚待迁移：目前线上仍是 `docker run` + 看门狗，需切换为 `docker-compose.runner.persist.yml` 统一管控。
+- ⚠️ 诊断/冒烟待实跑验收：`ci-selfhosted-diagnose`/`ci-selfhosted-smoke` 已补全（含 checkout 与 compose 校验），但尚无最新成功 run 记录；时间表 T+0/1 未验收。
+  - ⚠️ 尚未对任何重型工作流引入 `matrix.os=[ubuntu-latest,self-hosted]`，T+1/2 任务未执行。
+- ⚠️ `cubecastle-gh-runner` 容器曾因重复 config 导致 Restarting，已在 `runner/persistent-entrypoint.sh` 幂等化处理；迁移到 Compose 后需以该入口替换旧启动方式。
 
 ## 1. 背景与动机
 - 现状：GitHub 托管 Runner 在高峰期存在排队/资源波动；部分工作流（E2E/Compose）对底层环境更敏感。
@@ -22,7 +21,7 @@
 - 约束：严格遵循 AGENTS.md——所有服务（含 Runner）以 Docker Compose 管理；密钥存放 secrets/，不入库；临时措施需标注并可回收。
 
 ## 2. 方案概述
-- 架构（已实施：方案A Persistent）：基于 GHCR 官方镜像 `ghcr.io/actions/actions-runner:2.315.0` 启动“持久化 Runner”，通过 `scripts/ci/runner/start-ghcr-runner-persistent.sh` 注册并常驻，结合 `scripts/ci/runner/watchdog.sh` 每 60s 健康巡检，异常自动重拉。
+- 架构（已实施：方案A Persistent）：基于 GHCR 官方镜像 `ghcr.io/actions/actions-runner:2.329.0` 启动“持久化 Runner”，通过 `scripts/ci/runner/start-ghcr-runner-persistent.sh` 注册并常驻，结合 `scripts/ci/runner/watchdog.sh` 每 60s 健康巡检，异常自动重拉。
 - 备选（方案B Ephemeral）：基于 `runner/Dockerfile.docker` 自建镜像或 myoung34/github-runner 的 ephemeral 模式，每个 Job 结束自动注销 Runner，降低脏环境风险（可在稳定后切换或双轨）。
 - 注册方式（两选一）：
   1) 仓库 Registration Token（脚本自动申请，一次性）；
@@ -40,15 +39,15 @@
      GH_RUNNER_REG_TOKEN=xxxx
    ```
 2) 启动 Runner（容器化，方案A）
-   - **目标实现**：通过 `docker compose -f docker-compose.runner.yml up -d` 启动 Ephemeral，或 `docker compose -f docker-compose.runner.persist.yml up -d`（待补充）启动持久化 Runner，确保“容器统一受 Compose 管控”。
-   - **当前实际**：以 `bash scripts/ci/runner/start-ghcr-runner-persistent.sh` 直接 `docker run`，随后用 `scripts/ci/runner/watchdog.sh` 保活 ⇒ 需在 T+0/1 内迁移至 Compose。
-   - **新增诊断**：现有 `docker-compose.runner.persist.yml` 的 command 结尾为 `./config.sh ... --replace && ./run.sh`，一旦容器目录已经有 `.runner/.credentials`，重启时就会报 “already configured” 并退出，引起 Restarting 风暴。迁移到 Compose 时需更新命令为 `if [ ! -f /home/runner/.runner ]; then ./config.sh ...; fi; ./run.sh`，或在 entrypoint 中先尝试 `./config.sh remove` 后再配置。
+   - **目标实现**：通过 `docker compose -f docker-compose.runner.yml up -d` 启动 Ephemeral，或 `docker compose -f docker-compose.runner.persist.yml up -d` 启动持久化 Runner，确保“容器统一受 Compose 管控”。
+   - **当前实际**：以 `bash scripts/ci/runner/start-ghcr-runner-persistent.sh` 直接 `docker run`，随后用 `scripts/ci/runner/watchdog.sh` 保活 ⇒ 需在 T+0/1 内迁移至 Compose（已提供幂等入口 `runner/persistent-entrypoint.sh`）。
+   - **新增诊断**：`docker-compose.runner.persist.yml` 入口已更新为检查 `.runner/.credentials` 与遗留 `.credentials*` 后再决定是否执行 `config.sh`，避免 “already configured” 的 Restarting；若需要重配可设置 `FORCE_RECONFIGURE=true`。
    - 验证在线后启动看门狗：`nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &`
    - 停止：`docker rm -f cubecastle-gh-runner`；停止看门狗：`touch .ci/runner-watchdog.stop`
 3) 验证在线
    - GitHub → Settings → Actions → Runners 应看到在线 Runner（labels 包含 cubecastle、docker）
 4) 验证工作流（示例）
-   - 手动触发 `.github/workflows/ci-selfhosted-diagnose.yml`；应在自托管 Runner 执行并通过基本检查（docker/compose/环境）。**TODO**：在 job 中增加 `actions/checkout@v4`，移除 `|| true`，确保 Compose 校验真实失败即报警。
+   - 手动触发 `.github/workflows/ci-selfhosted-diagnose.yml`；应在自托管 Runner 执行并通过基本检查（docker/compose/环境），已包含 checkout 与 Compose config -q。
    - 手动触发 `.github/workflows/ci-selfhosted-smoke.yml`，记录成功 runId 及日志链接。
 
 ## 4. 工作流使用方式

@@ -1,4 +1,4 @@
-FROM ghcr.io/actions/actions-runner:2.315.0
+FROM ghcr.io/actions/actions-runner:2.329.0
 
 USER root
 # Install prerequisites and configure Docker official APT repo, then install docker-ce-cli and compose plugin

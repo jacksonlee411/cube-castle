@@ -20,7 +20,7 @@
 - 方案与状态：`docs/development-plans/262-self-hosted-runner.md`
 - Compose 描述：
   - `docker-compose.runner.yml`（Ephemeral）
-  - `docker-compose.runner.persist.yml`（持久化，需按 Plan 262 修正 command）
+  - `docker-compose.runner.persist.yml`（持久化，已内置幂等入口避免重复 config）
 - 脚本工具：`scripts/ci/runner/README.md`、`scripts/ci/runner/start-ghcr-runner-persistent.sh`、`scripts/ci/runner/watchdog.sh`
 - 工作流：`.github/workflows/ci-selfhosted-diagnose.yml`、`.github/workflows/ci-selfhosted-smoke.yml`
 - 日志目录：`logs/ci-monitor/`（watchdog、工作流 run 摘要）
@@ -55,18 +55,16 @@ docker compose -f docker-compose.runner.yml logs -f
 
 Job 结束后容器自动退出，可 `docker compose ... down -v` 清理。若需重新注册，重复执行上方命令即可。
 
-### 4.2 持久化（Plan 262 当前运行方式）
+### 4.2 持久化（Plan 262 推荐默认，Compose 管控）
 > 适合需要常驻 Runner、缓存依赖/镜像层的场景；必须结合看门狗。
 
 ```bash
-# 建议使用脚本封装注册逻辑
+# 申请注册令牌并通过 Compose 启动（幂等，已避免重复 config）
 bash scripts/ci/runner/start-ghcr-runner-persistent.sh
 
 # 启动看门狗（默认 60s 轮询）
 nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &
 ```
-
-> ⚠️ 若改为 Compose 承载持久化 Runner，请同时修正 `docker-compose.runner.persist.yml` 的 command：首次启动执行 `./config.sh ... && ./run.sh`，后续复用已有 `.runner` 目录只执行 `./run.sh`，避免 “already configured” 无限重启（Plan 262 当前风险）。
 
 ### 4.3 停止与回滚
 ```bash
@@ -89,7 +87,7 @@ touch .ci/runner-watchdog.stop                               # 让看门狗退�
 ## 6. 常见问题排查
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| 容器反复 Restarting，日志显示 `Cannot configure the runner because it is already configured` | `docker-compose.runner.persist.yml` 每次都执行 `./config.sh --replace`，已有 `.runner` 导致冲突 | 启动前 `./config.sh remove`，或按 Plan 262 建议在 entrypoint 里检测 `.runner` 后只执行 `./run.sh` |
+| 容器反复 Restarting，日志显示 `Cannot configure the runner because it is already configured` | 旧版入口总是执行 `./config.sh --replace`，已有 `.runner`/`.credentials` 导致冲突 | 新版 `docker-compose.runner.persist.yml` 使用幂等入口 `persistent-entrypoint.sh`（检测 `.runner/.credentials` 或 `.credentials*` 后决定是否 config）；必要时设置 `FORCE_RECONFIGURE=true` 清理后重配 |
 | 工作流仍跑在 `ubuntu-latest` | 工作流 `runs-on` 未包含 `self-hosted,cubecastle,docker` 标签 | 修改目标工作流，或在 PR 中添加 matrix `os: [ubuntu-latest, self-hosted]` |
 | 诊断 job 卡在 `docker compose ... config -q` | 工作流未 checkout 仓库导致 compose 文件不存在 | 在 job 中补 `actions/checkout@v4`，或确保命令运行目录包含 compose 文件（Plan 262 已记录该问题） |
 | 令牌过期 | Registration Token 仅 1 小时有效 | 重新申请 token 并更新 `secrets/.env.local`；若使用 PAT，确认未过期且 scope 正确 |

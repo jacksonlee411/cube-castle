@@ -34,7 +34,13 @@ fi
 echo "✅ 已获取注册令牌"
 
 echo "🐳 启动持久化 Runner（compose 管控，非 Ephemeral）..."
-RUNNER_TOKEN="$RUNNER_TOKEN" GH_RUNNER_PAT="$PAT" docker compose -f docker-compose.runner.persist.yml up -d
+RUNNER_TOKEN="$RUNNER_TOKEN" \
+GH_RUNNER_PAT="$PAT" \
+RUNNER_REPO="$OWNER_REPO" \
+RUNNER_NAME="${RUNNER_NAME:-cc-runner-${HOSTNAME}}" \
+RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,cubecastle,linux,x64,docker}" \
+RUNNER_WORKDIR="${RUNNER_WORKDIR:-/home/runner/_work}" \
+docker compose -f docker-compose.runner.persist.yml up -d
 
 echo "⏳ 等待 Runner 就绪（最长 90s）..."
 for i in {1..60}; do
