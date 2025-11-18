@@ -25,35 +25,30 @@ jobs:
       - name: Enforce deprecated permissions
         run: |
           bash scripts/ci/check-permissions.sh
-        working-directory: ./cube-castle
         env:
           ENFORCE: "1"
 
       - name: Enforce REST read queries (CQRS guard)
         run: |
           bash scripts/ci/check-rest-queries.sh
-        working-directory: ./cube-castle
         env:
           ENFORCE: "1"
 
       - name: Enforce hardcoded configs (CORS/ports/tenant)
         run: |
           bash scripts/ci/check-hardcoded-configs.sh
-        working-directory: ./cube-castle
         env:
           ENFORCE: "1"
 
       - name: Enforce frontend REST query guard (CQRS)
         run: |
           bash scripts/ci/check-rest-queries.sh
-        working-directory: ./cube-castle
         env:
           ENFORCE: "1"
 
       - name: Enforce cmd config guard (CORS/JWT inline/ports)
         run: |
           bash scripts/ci/check-hardcoded-configs.sh
-        working-directory: ./cube-castle
         env:
           ENFORCE: "1"
           SCAN_SCOPE: "cmd"
@@ -65,7 +60,6 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        ports: ["5432:5432"]
         env:
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
@@ -145,33 +139,11 @@ jobs:
         env:
           DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
-          # If a minimal schema file exists, apply it; otherwise, create the essential table.
+          set -euo pipefail
           if [ -f database/schema.sql ]; then
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/schema.sql
           else
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
-              CREATE TABLE IF NOT EXISTS organization_units (
-                record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                tenant_id UUID NOT NULL,
-                code TEXT NOT NULL,
-                parent_code TEXT,
-                name TEXT NOT NULL,
-                unit_type TEXT NOT NULL,
-                status TEXT NOT NULL,
-                level INT,
-                path TEXT,
-                sort_order INT,
-                description TEXT,
-                effective_date DATE NOT NULL,
-                end_date DATE,
-                is_current BOOLEAN NOT NULL DEFAULT false,
-                is_temporal BOOLEAN NOT NULL DEFAULT false,
-                change_reason TEXT,
-                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                deleted_at TIMESTAMP
-              );
-SQL
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f sql/inspection/minimal_organization_units_schema.sql
           fi
 
       - name: Run temporal consistency inspection (read-only)
