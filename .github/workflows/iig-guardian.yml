@@ -77,209 +77,206 @@ jobs:
           echo "Docs-only changes detected. Skipping IIG guardian heavy checks."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name:        
+      - name: Checkout repository
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  #             
+          fetch-depth: 0  # 获取完整历史
 
-      - name:     Node.js  
+      - name: Setup Node.js runtime
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
 
-    - name:        
-      if: steps.changes.outputs.docs_only != 'true'
-      run: |
-        #   jscpd  P3.1        
-        npm install -g jscpd@latest
-        echo "  jscpd  : $(jscpd --version)"
-        
-        #          
-        chmod +x scripts/quality/*.sh
-        chmod +x scripts/quality/*.js
+      - name: Install guardian toolchain
+        if: steps.changes.outputs.docs_only != 'true'
+        run: |
+          npm install -g jscpd@latest
+          echo "jscpd version: $(jscpd --version)"
+          chmod +x scripts/quality/*.sh
+          chmod +x scripts/quality/*.js
 
-    - name:         
-      if: steps.changes.outputs.docs_only != 'true'
-      run: |
-        mkdir -p reports/iig-guardian
-        mkdir -p reports/duplicate-code
-        mkdir -p reports/architecture
-        mkdir -p reports/document-sync
+      - name: Prepare report directories
+        if: steps.changes.outputs.docs_only != 'true'
+        run: |
+          mkdir -p reports/iig-guardian
+          mkdir -p reports/duplicate-code
+          mkdir -p reports/architecture
+          mkdir -p reports/document-sync
 
-    - name:             
-      run: |
-        chmod +x scripts/code-smell-check-quick.sh
-        scripts/code-smell-check-quick.sh \
-          --with-types \
-          --type-threshold "${{ env.TYPE_SAFETY_THRESHOLD }}" \
-          --ci-output "reports/iig-guardian/code-smell-ci-${{ github.run_id }}.md"
+      - name: Run code smell quick check
+        if: steps.changes.outputs.docs_only != 'true'
+        run: |
+          chmod +x scripts/code-smell-check-quick.sh
+          scripts/code-smell-check-quick.sh \
+            --with-types \
+            --type-threshold "${{ env.TYPE_SAFETY_THRESHOLD }}" \
+            --ci-output "reports/iig-guardian/code-smell-ci-${{ github.run_id }}.md"
 
-    - name:            (      )
-      if: env.FEATURE_DESCRIPTION == 'auto-detected-changes'
-      run: |
-        #              
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
-        else
-          CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
-        fi
-        
-        echo "      :"
-        echo "$CHANGED_FILES"
-        
-        #       
-        FEATURE_TYPE="unknown"
-        if echo "$CHANGED_FILES" | grep -q "api/"; then
-          FEATURE_TYPE="api-endpoint"
-        elif echo "$CHANGED_FILES" | grep -q "components/"; then
-          FEATURE_TYPE="frontend-component"
-        elif echo "$CHANGED_FILES" | grep -q "hooks/"; then
-          FEATURE_TYPE="react-hook"
-        elif echo "$CHANGED_FILES" | grep -q "handlers/"; then
-          FEATURE_TYPE="backend-handler"
-        elif echo "$CHANGED_FILES" | grep -q "services/"; then
-          FEATURE_TYPE="backend-service"
-        fi
-        
-        echo "DETECTED_FEATURE_TYPE=$FEATURE_TYPE" >> $GITHUB_ENV
-        echo "         : $FEATURE_TYPE"
-
-    - name: Guardian:   IIG      
-      if: env.GUARDIAN_MODE == 'guard'
-      run: |
-        echo "Guardian:   IIG     -       "
-        echo "      : $FEATURE_DESCRIPTION"
-        echo "       : $RISK_TOLERANCE"
-        
-        #   IIG    
-        node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard || exit_code=$?
-        
-        echo "IIG_GUARDIAN_EXIT_CODE=${exit_code:-0}" >> $GITHUB_ENV
-        
-        #              
-        if [ "${exit_code:-0}" -ne 0 ]; then
-          if [ "$RISK_TOLERANCE" = "low" ]; then
-            echo "        : IIG            "
-            exit 1
-          elif [ "$RISK_TOLERANCE" = "medium" ]; then
-            echo "          : IIG            "
-            echo "IIG_GUARDIAN_WARNING=true" >> $GITHUB_ENV
+      - name: "          (      )"
+        if: env.FEATURE_DESCRIPTION == 'auto-detected-changes'
+        run: |
+          #              
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
           else
-            echo "         : IIG          "
-            echo "IIG_GUARDIAN_INFO=true" >> $GITHUB_ENV
+            CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
           fi
-        else
-          echo "  IIG      "
-        fi
-
-    - name:     IIG      
-      if: env.GUARDIAN_MODE == 'check'
-      run: |
-        echo "    IIG     -       "
-        node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --check
-
-    - name:     IIG      
-      if: env.GUARDIAN_MODE == 'analysis'
-      run: |
-        echo "    IIG     -       "
-        
-        #     P3        
-        echo "    P3.1      ..."
-        bash scripts/quality/duplicate-detection.sh --verbose || true
-        
-        echo "    P3.2    ..."
-        node scripts/quality/architecture-validator.js --verbose || true
-        
-        echo "    P3.3    ..."
-        node scripts/quality/document-sync.js --verbose || true
-        
-        echo "    IIG    ..."
-        node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard
-
-    - name:           
-      if: always()
-      run: |
-        echo "    IIG      ..."
-        
-        #        
-        REPORTS_SUMMARY="reports/iig-guardian/      .md"
-        
-        cat > "$REPORTS_SUMMARY" << 'EOF'
-        # Guardian: IIG          
-        
-        ##       
-        - **    **: ${{ env.FEATURE_DESCRIPTION }}
-        - **    **: ${{ env.GUARDIAN_MODE }}  
-        - **     **: ${{ env.RISK_TOLERANCE }}
-        - **    **: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        - **    **: ${{ github.event_name }}
-        
-        ##   IIG    
-        EOF
-        
-        if [ -f "reports/iig-guardian/iig-guardian-report.json" ]; then
-          echo "  IIG       " >> "$REPORTS_SUMMARY"
+          
+          echo "      :"
+          echo "$CHANGED_FILES"
           
           #       
-          if command -v jq >/dev/null 2>&1; then
-            TOTAL_IMPLEMENTATIONS=$(jq -r '.statistics.analysedImplementations // 0' reports/iig-guardian/iig-guardian-report.json)
-            DETECTED_DUPLICATES=$(jq -r '.statistics.detectedDuplicates // 0' reports/iig-guardian/iig-guardian-report.json)
-            RISK_LEVEL=$(jq -r '.checkResults.assessment.overallRisk // "UNKNOWN"' reports/iig-guardian/iig-guardian-report.json)
-            
-            cat >> "$REPORTS_SUMMARY" << EOF
-        - **     **: $TOTAL_IMPLEMENTATIONS  
-        - **     **: $DETECTED_DUPLICATES    
-        - **    **: $RISK_LEVEL
-        EOF
+          FEATURE_TYPE="unknown"
+          if echo "$CHANGED_FILES" | grep -q "api/"; then
+            FEATURE_TYPE="api-endpoint"
+          elif echo "$CHANGED_FILES" | grep -q "components/"; then
+            FEATURE_TYPE="frontend-component"
+          elif echo "$CHANGED_FILES" | grep -q "hooks/"; then
+            FEATURE_TYPE="react-hook"
+          elif echo "$CHANGED_FILES" | grep -q "handlers/"; then
+            FEATURE_TYPE="backend-handler"
+          elif echo "$CHANGED_FILES" | grep -q "services/"; then
+            FEATURE_TYPE="backend-service"
           fi
-        else
-          echo "   IIG       " >> "$REPORTS_SUMMARY"
-        fi
-        
-        echo "         : $REPORTS_SUMMARY"
-
-    - name:     IIG    
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: iig-guardian-reports-${{ github.run_number }}
-        path: |
-          reports/iig-guardian/
-          reports/duplicate-code/
-          reports/architecture/
-          reports/document-sync/
-          !reports/**/*.tmp
-        retention-days: 30
-
-    - name:   PR   - IIG    
-      if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const path = './reports/iig-guardian/iig-guardian-report.json';
           
-          let comment = `## Guardian: IIG        \n\n`;
-          comment += `**    **: ${process.env.FEATURE_DESCRIPTION}\n`;
-          comment += `**    **: ${process.env.GUARDIAN_MODE}\n`;
-          comment += `**     **: ${process.env.RISK_TOLERANCE}\n\n`;
+          echo "DETECTED_FEATURE_TYPE=$FEATURE_TYPE" >> $GITHUB_ENV
+          echo "         : $FEATURE_TYPE"
+
+      - name: "Guardian:   IIG      "
+        if: env.GUARDIAN_MODE == 'guard'
+        run: |
+          echo "Guardian:   IIG     -       "
+          echo "      : $FEATURE_DESCRIPTION"
+          echo "       : $RISK_TOLERANCE"
           
-          if (fs.existsSync(path)) {
-            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
-            const stats = report.statistics || {};
-            const assessment = report.checkResults?.assessment || {};
+          #   IIG    
+          node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard || exit_code=$?
+          
+          echo "IIG_GUARDIAN_EXIT_CODE=${exit_code:-0}" >> $GITHUB_ENV
+          
+          #              
+          if [ "${exit_code:-0}" -ne 0 ]; then
+            if [ "$RISK_TOLERANCE" = "low" ]; then
+              echo "        : IIG            "
+              exit 1
+            elif [ "$RISK_TOLERANCE" = "medium" ]; then
+              echo "          : IIG            "
+              echo "IIG_GUARDIAN_WARNING=true" >> $GITHUB_ENV
+            else
+              echo "         : IIG          "
+              echo "IIG_GUARDIAN_INFO=true" >> $GITHUB_ENV
+            fi
+          else
+            echo "  IIG      "
+          fi
+
+      - name: "    IIG      "
+        if: env.GUARDIAN_MODE == 'check'
+        run: |
+          echo "    IIG     -       "
+          node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --check
+
+      - name: "    IIG      "
+        if: env.GUARDIAN_MODE == 'analysis'
+        run: |
+          echo "    IIG     -       "
+          
+          #     P3        
+          echo "    P3.1      ..."
+          bash scripts/quality/duplicate-detection.sh --verbose || true
+          
+          echo "    P3.2    ..."
+          node scripts/quality/architecture-validator.js --verbose || true
+          
+          echo "    P3.3    ..."
+          node scripts/quality/document-sync.js --verbose || true
+          
+          echo "    IIG    ..."
+          node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard
+
+      - name: "          "
+        if: always()
+        run: |
+          echo "    IIG      ..."
+          
+          #        
+          REPORTS_SUMMARY="reports/iig-guardian/      .md"
+          
+          {
+            echo "# Guardian: IIG"
+            echo
+            echo "##       "
+            echo "- **    **: ${{ env.FEATURE_DESCRIPTION }}"
+            echo "- **    **: ${{ env.GUARDIAN_MODE }}  "
+            echo "- **     **: ${{ env.RISK_TOLERANCE }}"
+            echo "- **    **: $(date -u +\"%Y-%m-%d %H:%M:%S UTC\")"
+            echo "- **    **: ${{ github.event_name }}"
+            echo
+            echo "##   IIG    "
+          } > "$REPORTS_SUMMARY"
+          
+          if [ -f "reports/iig-guardian/iig-guardian-report.json" ]; then
+            echo "  IIG       " >> "$REPORTS_SUMMARY"
             
-            comment += `###       \n\n`;
-            comment += `|    |    |\n`;
-            comment += `|------|------|\n`;
-            comment += `|        | ${stats.analysedImplementations || 0}   |\n`;
-            comment += `|         | ${stats.detectedDuplicates || 0}   |\n`;
-            comment += `|        | **${assessment.overallRisk || 'UNKNOWN'}** |\n`;
-            comment += `|         | ${stats.p3Integration?.duplicateCodeRate || 0}% |\n`;
+            #       
+            if command -v jq >/dev/null 2>&1; then
+              TOTAL_IMPLEMENTATIONS=$(jq -r '.statistics.analysedImplementations // 0' reports/iig-guardian/iig-guardian-report.json)
+              DETECTED_DUPLICATES=$(jq -r '.statistics.detectedDuplicates // 0' reports/iig-guardian/iig-guardian-report.json)
+              RISK_LEVEL=$(jq -r '.checkResults.assessment.overallRisk // "UNKNOWN"' reports/iig-guardian/iig-guardian-report.json)
+              {
+                echo "- **     **: $TOTAL_IMPLEMENTATIONS  "
+                echo "- **     **: $DETECTED_DUPLICATES    "
+                echo "- **    **: $RISK_LEVEL"
+              } >> "$REPORTS_SUMMARY"
+            fi
+          else
+            echo "   IIG       " >> "$REPORTS_SUMMARY"
+          fi
+          
+          echo "         : $REPORTS_SUMMARY"
+
+      - name:     IIG    
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iig-guardian-reports-${{ github.run_number }}
+          path: |
+            reports/iig-guardian/
+            reports/duplicate-code/
+            reports/architecture/
+            reports/document-sync/
+            !reports/**/*.tmp
+          retention-days: 30
+
+      - name:   PR   - IIG    
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = './reports/iig-guardian/iig-guardian-report.json';
+            
+            let comment = `## Guardian: IIG        \n\n`;
+            comment += `**    **: ${process.env.FEATURE_DESCRIPTION}\n`;
+            comment += `**    **: ${process.env.GUARDIAN_MODE}\n`;
+            comment += `**     **: ${process.env.RISK_TOLERANCE}\n\n`;
+            
+            if (fs.existsSync(path)) {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+              const stats = report.statistics || {};
+              const assessment = report.checkResults?.assessment || {};
+              
+              comment += `###       \n\n`;
+              comment += `|    |    |\n`;
+              comment += `|------|------|\n`;
+              comment += `|        | ${stats.analysedImplementations || 0}   |\n`;
+              comment += `|         | ${stats.detectedDuplicates || 0}   |\n`;
+              comment += `|        | **${assessment.overallRisk || 'UNKNOWN'}** |\n`;
+              comment += `|         | ${stats.p3Integration?.duplicateCodeRate || 0}% |\n`;
             comment += `|         | ${stats.p3Integration?.architectureViolations || 0}   |\n`;
             comment += `|         | ${stats.p3Integration?.documentSyncRate || 0}% |\n\n`;
             
@@ -311,63 +308,63 @@ jobs:
               comment += `\n`;
             }
             
-          } else {
-            comment += `   IIG                    \n\n`;
-          }
-          
-          //     
-          const exitCode = process.env.IIG_GUARDIAN_EXIT_CODE || '0';
-          if (exitCode !== '0') {
-            if (process.env.RISK_TOLERANCE === 'low') {
-              comment += `  **IIG    **:                 \n`;
             } else {
-              comment += `   **IIG    **:                  \n`;
+              comment += `   IIG                    \n\n`;
             }
-          } else {
-            comment += `  **IIG    **:            \n`;
-          }
-          
-          comment += `\n  [      ](../actions/runs/${{ github.run_id }})`;
-          
-          await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+            
+            //     
+            const exitCode = process.env.IIG_GUARDIAN_EXIT_CODE || '0';
+            if (exitCode !== '0') {
+              if (process.env.RISK_TOLERANCE === 'low') {
+                comment += `  **IIG    **:                 \n`;
+              } else {
+                comment += `   **IIG    **:                  \n`;
+              }
+            } else {
+              comment += `  **IIG    **:            \n`;
+            }
+            
+            comment += `\n  [      ](../actions/runs/${{ github.run_id }})`;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
-    - name:         
-      if: always()
-      run: |
-        echo "    IIG        ..."
-        
-        EXIT_CODE="${IIG_GUARDIAN_EXIT_CODE:-0}"
-        RISK_TOLERANCE="${RISK_TOLERANCE:-medium}"
-        
-        echo "  IIG     : $EXIT_CODE"
-        echo "       : $RISK_TOLERANCE"
-        
-        if [ "$EXIT_CODE" != "0" ]; then
-          case "$RISK_TOLERANCE" in
-            "low")
-              echo "        :       "
-              echo "  IIG                "
-              exit 1
-              ;;
-            "medium")
-              echo "         :       "
-              echo "   IIG                  "
-              ;;
-            "high")
-              echo "        :       "
-              echo "   IIG             "
-              ;;
-          esac
-        else
-          echo "  IIG        "
-        fi
-        
-        echo "Guardian: IIG        "
+      - name:         
+        if: always()
+        run: |
+          echo "    IIG        ..."
+          
+          EXIT_CODE="${IIG_GUARDIAN_EXIT_CODE:-0}"
+          RISK_TOLERANCE="${RISK_TOLERANCE:-medium}"
+          
+          echo "  IIG     : $EXIT_CODE"
+          echo "       : $RISK_TOLERANCE"
+          
+          if [ "$EXIT_CODE" != "0" ]; then
+            case "$RISK_TOLERANCE" in
+              "low")
+                echo "        :       "
+                echo "  IIG                "
+                exit 1
+                ;;
+              "medium")
+                echo "         :       "
+                echo "   IIG                  "
+                ;;
+              "high")
+                echo "        :       "
+                echo "   IIG             "
+                ;;
+            esac
+          else
+            echo "  IIG        "
+          fi
+          
+          echo "Guardian: IIG        "
 
   post-guardian-analysis:
     name:   IIG      
