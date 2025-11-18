@@ -1,4 +1,4 @@
-name: 🛡️ IIG护卫系统 (Implementation Inventory Guardian)
+name: Guardian: IIG护卫系统 (Implementation Inventory Guardian)
 
 on:
   push:
@@ -40,7 +40,7 @@ env:
 
 jobs:
   iig-guardian-check:
-    name: 🛡️ IIG护卫检查
+    name: Guardian: IIG护卫检查
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,10 +148,10 @@ jobs:
         echo "DETECTED_FEATURE_TYPE=$FEATURE_TYPE" >> $GITHUB_ENV
         echo "🤖 检测到功能类型: $FEATURE_TYPE"
 
-    - name: 🛡️ 执行IIG护卫完整检查
+    - name: Guardian: 执行IIG护卫完整检查
       if: env.GUARDIAN_MODE == 'guard'
       run: |
-        echo "🛡️ 启动IIG护卫系统 - 完整护卫模式"
+        echo "Guardian: 启动IIG护卫系统 - 完整护卫模式"
         echo "🎯 功能描述: $FEATURE_DESCRIPTION"
         echo "🔧 风险容忍度: $RISK_TOLERANCE"
         
@@ -209,7 +209,7 @@ jobs:
         REPORTS_SUMMARY="reports/iig-guardian/综合质量报告.md"
         
         cat > "$REPORTS_SUMMARY" << 'EOF'
-        # 🛡️ IIG护卫系统综合质量报告
+        # Guardian: IIG护卫系统综合质量报告
         
         ## 📋 检查概要
         - **功能描述**: ${{ env.FEATURE_DESCRIPTION }}
@@ -263,7 +263,7 @@ jobs:
           const fs = require('fs');
           const path = './reports/iig-guardian/iig-guardian-report.json';
           
-          let comment = `## 🛡️ IIG护卫系统检查报告\n\n`;
+          let comment = `## Guardian: IIG护卫系统检查报告\n\n`;
           comment += `**功能描述**: ${process.env.FEATURE_DESCRIPTION}\n`;
           comment += `**护卫模式**: ${process.env.GUARDIAN_MODE}\n`;
           comment += `**风险容忍度**: ${process.env.RISK_TOLERANCE}\n\n`;
@@ -367,7 +367,7 @@ jobs:
           echo "✅ IIG护卫质量门禁通过"
         fi
         
-        echo "🛡️ IIG护卫系统检查完成"
+        echo "Guardian: IIG护卫系统检查完成"
 
   post-guardian-analysis:
     name: 📊 IIG护卫后续分析
