@@ -25,6 +25,8 @@ import {
 } from './payload'
 import { PositionFormFields } from './FormFields'
 import { usePositionCatalogOptions } from '@/shared/hooks/usePositionCatalogOptions'
+import type { UpdatePositionRequest, CreatePositionVersionRequest } from '@/shared/types/positions'
+import temporalEntitySelectors from '@/shared/testids/temporalEntity'
 
 export const PositionForm: React.FC<PositionFormProps> = ({ mode, position, onCancel, onSuccess }) => {
   const createMutation = useCreatePosition()

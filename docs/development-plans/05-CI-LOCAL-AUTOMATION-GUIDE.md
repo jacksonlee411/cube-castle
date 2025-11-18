@@ -1,137 +1,123 @@
-# 05 — 本地一键自动化指引（Trunk + Local First）
+# 05 — 自托管 Runner 使用手册（Docker Compose 管控）
 
-版本: v1.4  
-最后更新: 2025-11-16  
-适用范围: 本地 VS Code 任务、Git hooks、一键门禁（CQRS/端口/禁用端点）  
-唯一事实来源: 本地脚本与任务文件（见“权威索引”）；本指南仅为“本地运行”的执行指引
-
----
-
-> 重要更新（Plan 222 经验沉淀）
-> - 文档/工作流类 PR 启用“docs/ci‑only 短路”：CI 不再用重门禁阻塞（E2E/质量/契约重任务会跳过或快速通过），代码改动 PR 仍保留严格门禁（受保护分支 Required checks）。
-> - 新增 PR 轮询与自动合并工具：scripts/ci/pr-watch.sh（支持 30/60s 轮询、自动或手动合并），解决 GitHub “combined= pending / check-runs 已成功”时的卡顿。
-> - 推送/回主干安全流程：新增“安全回到主分支 Playbook”和“推送/合并最佳实践（docs-only / code PR）”。
-
-## 目标
-- 在“仅保留 master（主干开发）”的前提下，以本地兜底为主，一键跑通门禁与自检
-- 用 VS Code 任务 + Git hooks 保证本地与团队口径一致
-- 统一证据输出路径，便于登记（215）与复核
-
-## 分支与门禁原则
-- 单人开发：强制主干开发（Trunk-Based），仅保留 master；提交前在本地通过快速门禁与编译（Local First）。
-- CI 如开启受保护分支 Required checks，以工作流为唯一事实来源；本指南不依赖 CI，可离线执行。
-- 证据必须本地落盘（reports/ 与 logs/），登记到 215。
-
-## 权威索引（仅索引，不复制）
-- 本地门禁脚本
-  - `scripts/quality/architecture-validator.js`（CQRS/端口/禁用端点自检）
-  - `eslint.config.architecture.mjs`（ESLint 架构守卫）
-  - `.golangci.yml`（depguard/tagliatelle 配置）
-  - `scripts/quality/golangci-fast.yml`（本地软门禁：仅 depguard + tagliatelle，避免 typecheck 噪音）
-- 快速检查（Plan 250/253，本地可选）
-  - `scripts/quality/gates-250-*.sh`（无 Docker）
-  - `scripts/quality/gates-253-*.sh`（需要 Docker）
-- VS Code（本地）
-  - `.vscode/tasks.json`（本地任务，仓库忽略，不提交）
-- 证据输出
-  - `reports/architecture/architecture-validation.json`
-  - `logs/plan<ID>/*`（建议：plan255）
-  - 守卫脚本：`scripts/quality/root-whitelist-guard.sh`（根目录白名单）
-
-## 本地一键门禁（255，推荐）
-前置：确保根目录已安装依赖（仅一次）  
-`npm ci`（根目录，用于 ESLint）；`golangci-lint` 可本地安装，或用容器/VS Code 扩展。
-
-- 直接跑命令（本地兜底：前端 + 后端）
-  - `node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden`
-  - `npx eslint --no-warn-ignored -c eslint.config.architecture.mjs "frontend/src/**/*.{ts,tsx}"`
-  - `go build ./...`
-  - （可选采集）`golangci-lint run -c scripts/quality/golangci-fast.yml || true`
-
-## 本地快速检查（可选：250/253）
-- Plan 250（无 Docker）
-  - `bash scripts/quality/gates-250-no-legacy-env.sh`
-  - `bash scripts/quality/gates-250-single-binary.sh`
-  - `bash scripts/quality/gates-250-no-8090-in-command.sh`
-- Plan 253（需要 Docker）
-  - `bash scripts/quality/gates-253-compose-ports-and-images.sh`
-
-## 证据与报告（本地）
-- 架构报告（自动生成）：`reports/architecture/architecture-validation.json`
-- 建议将终端输出 tee 到本地日志（示例）：
-  - `ts=$(date +%Y%m%d_%H%M%S); mkdir -p logs/plan255; node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden 2>&1 | tee logs/plan255/architecture-validator-$ts.log`
-  - `npx eslint --no-warn-ignored -c eslint.config.architecture.mjs "frontend/src/**/*.{ts,tsx}" 2>&1 | tee logs/plan255/eslint-arch-$ts.log || true`
-  - `go build ./... 2>&1 | tee logs/plan255/gobuild-$ts.log || true`
-  - `golangci-lint run -c scripts/quality/golangci-fast.yml 2>&1 | tee logs/plan255/golangci-$ts.log || true`
-
-## 推送/合并最佳实践（Plan 222 经验）
-- 文档/工作流类 PR（docs/ci‑only）
-  - CI 已启用“docs/ci‑only 短路”，重门禁（E2E/ops/质量/契约重任务）会跳过或快速通过；代码改动 PR 不受影响。
-  - 推荐流程：基于 origin/master 起分支 → 仅改 docs/** 或工作流 → 提 PR → checks 绿即合并（squash）。
-- 代码改动 PR
-  - 提前在本地通过“本地一键门禁（255）”；必要时补充契约/前端/后端任务。
-  - CI 以受保护分支 Required checks 为准，需全绿后合并。
-- 合并触发不重跑或卡 pending 的处理
-  - 若合并基线后 PR checks 未自动重排：推送一个无副作用的 touch（示例：在 .github/ 下写一个 .ci-touch），或用“PR 轮询器”（见下）强制识别绿灯并合并。
-
-## PR 轮询与自动合并工具（scripts/ci/pr-watch.sh）
-- 功能：每 30/60s 轮询 PR checks，检测“全部成功”或“docs/ci‑only 短路的有效绿灯”，可自动发起 squash‑merge。
-- 用法（示例）：
-  - 前台观察（60s 轮询 + 自动合并）  
-    `bash scripts/ci/pr-watch.sh --prs 6 --interval 60 --merge-if-green`
-  - 后台运行  
-    `nohup bash scripts/ci/pr-watch.sh --prs 6 --interval 60 --merge-if-green > logs/pr-watch.out 2>&1 & echo $! > .ci/pr-watch.pid`
-  - 停止  
-    `touch .ci/pr-watch.stop`
-- 令牌加载：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量（`GITHUB_TOKEN`/`GH_TOKEN`）
-- 判定规则（关键）：
-  - checks 全部 success 即绿灯；
-  - 或 check-runs/statuses 均无失败且无 in_progress/queued，且 PR mergeable=clean（docs/ci‑only 场景）也视为有效绿灯。
-
-## 安全回到主分支（Playbook）
-- 有本地改动：`git stash push -u -m "safe-switch-$(date +%s)"` → `git checkout master` → `git fetch origin` →  
-  - 若可快进：`git merge --ff-only origin/master`  
-  - 若不可快进（diverge）：`git reset --hard origin/master`
-- 恢复临时改动（如需）：`git checkout -b feature/foo && git stash apply`
-
-## Git Hooks（推荐）
-- 预推送（.git/hooks/pre-push）：建议运行“255 本地门禁 + go build”，golangci-lint 使用 `scripts/quality/golangci-fast.yml` 采集不阻塞；保持主干稳定、离线可用。
-
-## 故障排除 / Playbook（本地优先）
-- npm ci 失败（lock 与依赖不一致）
-  - 现象：Install Node deps 步骤失败，或本地 `npm ci` 报 lock 不一致
-  - 处理（Node 18）：`nvm use 18 && npm install --package-lock-only && git commit -m "chore(ci): refresh lock"`，随后 `npm ci`
-- ESLint（文件被忽略/版本不兼容）
-  - 使用 flat 配置：`eslint -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}' --no-warn-ignored`
-  - 避免混用 frontend/.eslintrc.*；架构守卫统一走根的 flat 配置
-- golangci-lint 类型噪音
-  - 本地：`golangci-lint run -c scripts/quality/golangci-fast.yml` 或 `--disable-all -E depguard -E tagliatelle`
-  - 预推送钩子仅采集不阻塞；阻断由 `go build ./...` 执行
-- Plan 250 快修
-  - 单二进制门禁：若 `cmd` 下存在第 2 个 main，加 `//go:build legacy`（示例：`cmd/hrms-server/query/tools/dump-schema/main.go`）
-  - 8090 硬编码：去除 `":8090"`/`"8090"` 字面量，改读取 `PORT`；保留数值禁用逻辑（解析端口后比较 `== 8090`）
-- 文档/合规脚本
-  - 根目录白名单失败：本地运行 `bash scripts/quality/root-whitelist-guard.sh` 查看不被允许的根文件；将文件移至合适目录或按需维护白名单
-  - 契约校验脚本缺失文件：`scripts/quality/lint-validation.js` 会跳过缺失文件；在存在的路径上保持严格
-
-## 从 CI 收集“Required checks”反馈（本地）
-- 令牌加载顺序：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量（`GITHUB_TOKEN`/`GH_TOKEN`）
-- 一键拉取 SUMMARY（需 unzip 或 bsdtar）
-  - `bash scripts/ci/fetch-gh-summary.sh <owner/repo> <run_id> > logs/plan255/ci-summary-<run_id>.txt`
-- 直接读取运行与检查（无需解压）
-  - 运行概览：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id> | jq '{workflow:.name,event,status,conclusion,branch:.head_branch,sha:.head_sha,html_url}'`
-  - 运行 Jobs：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id>/jobs?per_page=100 | jq -r '.jobs[] | [.name,.status,.conclusion] | @tsv'`
-  - 提交检查：`curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<owner>/<repo>/commits/$SHA/check-runs?per_page=100 | jq -r '.check_runs[] | [.name,.status,.conclusion] | @tsv'`
-- 一键监控整轮（推荐，本地令牌自动加载）
-  - `bash scripts/ci/monitor-ci.sh`（默认监控 HEAD；摘要落盘到 `logs/plan255/ci-summary-<run_id>.txt`）
-
-## 最佳实践
-- 唯一门禁：不要叠加多个扫描器；统一依赖 architecture-validator，减少维护与分叉
-- 证据规范：按计划号将报告/trace 统一落在 `logs/plan<ID>/*`，避免“复制脚本”膨胀
-- 一致性：本地门禁与团队口径一致；如需 CI，请参考工作流注释，但本文件以“本地兜底”为准
-- 可见性：建议始终生成 `logs/plan<ID>/*` 与 `reports/architecture/architecture-validation.json` 以便登记与复核
+版本: v2.0  
+最后更新: 2025-11-17  
+适用范围: GitHub Actions 自托管 Runner 的部署/运维/故障排除  
+唯一事实来源: Plan 262（docs/development-plans/262-self-hosted-runner.md）、`docker-compose.runner*.yml`、`scripts/ci/runner/*`
 
 ---
 
-维护：架构与前端协作组（本地门禁/前端）  
-冲突与疑问：以脚本与工作流为唯一事实来源；本指南偏差时以脚本/工作流为准
+> 约束提醒（AGENTS.md）
+> - 所有 Runner 也属于“服务/中间件”，必须由 Docker Compose 管理，禁止在宿主直接安装或裸 `docker run`；如端口冲突必须卸载宿主服务，不能改 compose 端口。
+> - 密钥统一存放 `secrets/`（.gitignore 已忽略），严禁写入版本库；临时方案需 `// TODO-TEMPORARY(YYYY-MM-DD)` 并在 215 登记。
+
+## 1. 目标
+- 让任何开发者按本手册即可部署/维护自托管 Runner，确保运行方式与 Plan 262 定义一致；
+- 收敛 Runner 生命周期（启动/验证/回滚）到 Docker Compose；
+- 记录诊断与常见问题，支撑 CI 迁移与平滑回滚。
+
+## 2. 权威索引
+- 方案与状态：`docs/development-plans/262-self-hosted-runner.md`
+- Compose 描述：
+  - `docker-compose.runner.yml`（Ephemeral）
+  - `docker-compose.runner.persist.yml`（持久化，需按 Plan 262 修正 command）
+- 脚本工具：`scripts/ci/runner/README.md`、`scripts/ci/runner/start-ghcr-runner-persistent.sh`、`scripts/ci/runner/watchdog.sh`
+- 工作流：`.github/workflows/ci-selfhosted-diagnose.yml`、`.github/workflows/ci-selfhosted-smoke.yml`
+- 日志目录：`logs/ci-monitor/`（watchdog、工作流 run 摘要）
+
+## 3. 准备条件
+1. **宿主要求**：Docker ≥24、Docker Compose v2（`docker compose version`），端口 9090/8080/5432/6379 无宿主冲突。
+2. **凭证**（二选一）：
+   - Registration Token：仓库 → Settings → Actions → Runners → New self-hosted runner → Linux；写入 `secrets/.env.local`：
+     ```bash
+     GH_RUNNER_REG_TOKEN=<token>
+     ```
+   - PAT：scope 至少 `repo`,`workflow`；写入：
+     ```bash
+     GH_RUNNER_PAT=<pat>
+     ```
+3. **目录**：在仓库根执行，确保 `secrets/` 可读写（该目录已被忽略）；日志写入 `logs/ci-monitor/`。
+
+## 4. 启动流程
+### 4.1 Ephemeral（推荐默认）
+> 每个 Job 结束自动注销，适合高安全场景。
+
+```bash
+# 读取令牌（env 或 secrets/.env.local）
+source secrets/.env.local
+
+# 启动一次性 Runner
+docker compose -f docker-compose.runner.yml up -d
+
+# 查看日志
+docker compose -f docker-compose.runner.yml logs -f
+```
+
+Job 结束后容器自动退出，可 `docker compose ... down -v` 清理。若需重新注册，重复执行上方命令即可。
+
+### 4.2 持久化（Plan 262 当前运行方式）
+> 适合需要常驻 Runner、缓存依赖/镜像层的场景；必须结合看门狗。
+
+```bash
+# 建议使用脚本封装注册逻辑
+bash scripts/ci/runner/start-ghcr-runner-persistent.sh
+
+# 启动看门狗（默认 60s 轮询）
+nohup bash scripts/ci/runner/watchdog.sh 60 > logs/ci-monitor/watchdog.out 2>&1 &
+```
+
+> ⚠️ 若改为 Compose 承载持久化 Runner，请同时修正 `docker-compose.runner.persist.yml` 的 command：首次启动执行 `./config.sh ... && ./run.sh`，后续复用已有 `.runner` 目录只执行 `./run.sh`，避免 “already configured” 无限重启（Plan 262 当前风险）。
+
+### 4.3 停止与回滚
+```bash
+# Ephemeral
+docker compose -f docker-compose.runner.yml down -v
+
+# 持久化
+docker compose -f docker-compose.runner.persist.yml down -v   # 或 docker rm -f cubecastle-gh-runner
+touch .ci/runner-watchdog.stop                               # 让看门狗退出
+```
+
+同时到 GitHub → Settings → Actions → Runners 删除离线实例，防止残留。
+
+## 5. 验收与诊断
+1. **Runner 在线**：Settings → Actions → Runners 列表中应显示标签 `self-hosted,cubecastle,linux,x64,docker`。
+2. **诊断工作流**：手动触发 `.github/workflows/ci-selfhosted-diagnose.yml`，需在自托管 Runner 上成功运行，日志应包含 `docker version`、`docker compose -f docker-compose.dev.yml config -q` 等输出（Plan 262 要求）。
+3. **Compose 工作负载验证**：触发 `.github/workflows/ci-selfhosted-smoke.yml`，确认 Runner 能拉起 Compose 服务并通过健康检查；将 run 链接登记到 `docs/development-plans/215-phase2-execution-log.md`。
+4. **监控日志**：`logs/ci-monitor/runner-watchdog-*.log`、`logs/ci-monitor/run-*.txt` 用于回溯。
+
+## 6. 常见问题排查
+| 现象 | 原因 | 处理 |
+| --- | --- | --- |
+| 容器反复 Restarting，日志显示 `Cannot configure the runner because it is already configured` | `docker-compose.runner.persist.yml` 每次都执行 `./config.sh --replace`，已有 `.runner` 导致冲突 | 启动前 `./config.sh remove`，或按 Plan 262 建议在 entrypoint 里检测 `.runner` 后只执行 `./run.sh` |
+| 工作流仍跑在 `ubuntu-latest` | 工作流 `runs-on` 未包含 `self-hosted,cubecastle,docker` 标签 | 修改目标工作流，或在 PR 中添加 matrix `os: [ubuntu-latest, self-hosted]` |
+| 诊断 job 卡在 `docker compose ... config -q` | 工作流未 checkout 仓库导致 compose 文件不存在 | 在 job 中补 `actions/checkout@v4`，或确保命令运行目录包含 compose 文件（Plan 262 已记录该问题） |
+| 令牌过期 | Registration Token 仅 1 小时有效 | 重新申请 token 并更新 `secrets/.env.local`；若使用 PAT，确认未过期且 scope 正确 |
+| 看门狗无法停止 | 未创建 stop 文件 | `touch .ci/runner-watchdog.stop`；确认 watchdog 脚本读取该文件后退出 |
+
+## 7. 运行与维护建议
+- **日志与证据**：所有启动/停止/诊断命令输出应落盘 `logs/ci-monitor/`，便于 215 执行日志引用。
+- **镜像升级**：Runner 镜像固定在 `ghcr.io/actions/actions-runner:<version>`；升级时应在 staging 验证，随后更新 compose 与脚本。
+- **工作流迁移**：Plan 262 建议为重型工作流增加矩阵验证。更新流程：
+  1. 在目标 workflow 中添加 `runs-on: [self-hosted, cubecastle, docker]` 或 matrix；
+  2. 首轮手动触发并记录 run 链接；
+  3. 绿灯后更新 215 与相关计划文档。
+- **安全**：Runner 容器挂载 `/var/run/docker.sock`，等价于宿主 root；仅在受信主机部署，必要时隔离网络或启用 Ephemeral。
+
+## 8. 回滚策略
+- 发现 Runner 异常或违反 AGENTS 约束时，立即执行：
+  1. `docker compose -f docker-compose.runner*.yml down -v` 清理容器；
+  2. `touch .ci/runner-watchdog.stop` 停止看门狗；
+  3. 删除 GitHub Runner 条目；
+  4. 在 215 登记事件与处理过程；
+  5. 恢复使用 GitHub 托管 Runner（无需额外操作）。
+
+## 9. 未来工作（按 Plan 262）
+- 将持久化 Runner 完全迁移到 Compose 管控，并修正 command 引发的重复配置；
+- 为重型工作流添加 `matrix.os=[ubuntu-latest,self-hosted]`，逐步把 Compose/E2E 工作流切换到自托管节点；
+- 完成 smoke/diagnose run 的登记与 Required check 配置，确保 Runner 状态可观测。
+
+---
+
+维护：基础设施与架构组（与 Plan 262 保持同步）  
+偏差处理：若本手册与 Plan 262、scripts/ci/runner/* 不一致，以后者为准并及时回修。

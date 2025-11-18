@@ -2,7 +2,7 @@ name: 📝 文档自动同步验证
 
 on:
   push:
-    branches: [ main, master, develop, "feature/*" ]
+    branches: [ main, master, develop, "feature/*", feat/shared-dev ]
     paths:
       - 'docs/**'
       - 'README.md'
@@ -12,7 +12,7 @@ on:
       - 'frontend/vite.config.ts'
       - 'frontend/playwright.config.ts'
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
     paths:
       - 'docs/**'
       - 'README.md'

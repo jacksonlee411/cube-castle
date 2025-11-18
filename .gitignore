@@ -117,3 +117,8 @@ cmd/*/organization-query-service*
 /command
 /query
 /generate-dev-jwt
+
+# Plan222 coverage artifacts
+logs/plan222/coverage-org-*.txt
+logs/plan222/coverage-org-*.html
+logs/plan222/coverage-gap-*.md

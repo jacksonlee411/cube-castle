@@ -18,6 +18,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import type { OrganizationStatus } from '@/shared/types';
 import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import { getOrganizationByCode, getOrganizationSubtree, listRootOrganizations } from '@/shared/api/facade/organization';
+import temporalEntitySelectors from '@/shared/testids/temporalEntity';
 import { OrganizationBreadcrumb } from '../../../shared/components/OrganizationBreadcrumb';
 import { useNavigate } from 'react-router-dom';
 // SecondaryButton 已在上方导入

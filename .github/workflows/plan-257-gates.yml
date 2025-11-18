@@ -2,7 +2,7 @@ name: 🛡️ Plan 257 - Facade Coverage Gate
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
     paths:
       - 'frontend/**'
       - 'scripts/facade/**'

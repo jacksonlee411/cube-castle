@@ -242,9 +242,10 @@
   - 文档：`docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`（状态：已完成）
 
 - 256 · 契约 SSoT 生成流水线（阶段2）  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
-  - 准入条件：脚本链路可运行（Node/Go 工具链基线满足 AGENTS）  
+  - 状态：⚙️ 门禁接入中（2025-11-17）  
+  - 调整：`.github/workflows/contract-testing.yml` 已扩展到 `feat/shared-dev`，且 `docs/api/**` 变更不再进入 docs-only 短路；后续需在受保护分支启用 “Contract Compliance Gate” 为 Required check  
+  - ✅ 2025-11-17 22:36Z 在 `feat/shared-dev` 推送触发首轮 run（Run ID: [19446915592](https://github.com/jacksonlee411/cube-castle/actions/runs/19446915592)），`契约快照校验/契约测试验证/契约合规性门禁` 全部成功并上传 `plan256-drift-report` 工件（保留 30 天）。  
+  - 下一步：补充本地 `make generate-contracts && make verify-contracts` 兜底脚本使用说明  
   - 产物/证据：`logs/plan256/*`、`make generate-contracts` 幂等日志、CI contract-sync（生成→快照→工作树 clean）结果、drift-report（报告模式，阻断由 258 承担）  
   - 文档：`docs/development-plans/256-contract-ssot-generation-pipeline.md`
 

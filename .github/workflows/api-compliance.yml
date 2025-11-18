@@ -1,7 +1,9 @@
 name: API合规性检查
-on: 
+on:
+  push:
+    branches: [master, main, develop, feat/shared-dev]
   pull_request:
-    branches: [master, main, develop]
+    branches: [master, main, develop, feat/shared-dev]
 
 jobs:
   api-compliance-check:
