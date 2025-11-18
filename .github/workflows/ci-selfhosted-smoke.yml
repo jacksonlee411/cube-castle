@@ -9,6 +9,8 @@ jobs:
   smoke:
     runs-on: [self-hosted, cubecastle, docker]
     timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: cc-selfhosted-smoke
     steps:
       - name: Checkout 仓库
         uses: actions/checkout@v4
@@ -60,20 +62,20 @@ jobs:
       - name: 启动 Compose 工作负载
         run: |
           set -xe
-          docker compose -f smoke-compose.yml up -d
-          docker compose -f smoke-compose.yml ps
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml up -d --wait
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps
 
       - name: 等待健康检查
         run: |
           set -xe
-          docker compose -f smoke-compose.yml wait
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml wait
 
       - name: 健康检查自检
         run: |
           set -euo pipefail
-          docker compose -f smoke-compose.yml ps --format json | jq -r '.[] | "\(.Name) \(.State.Health.Status)"'
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps --format json | jq -r '.[] | "\(.Name) \(.State.Health.Status)"'
 
       - name: 清理
         if: always()
         run: |
-          docker compose -f smoke-compose.yml down -v
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml down -v
