@@ -1,4 +1,4 @@
-name: Guardian: IIG护卫系统 (Implementation Inventory Guardian)
+name: guardian-iig     (Implementation Inventory Guardian)
 
 on:
   push:
@@ -8,28 +8,28 @@ on:
   workflow_dispatch:
     inputs:
       feature_description:
-        description: '新功能描述 (用于重复检测)'
+        description: '      (      )'
         required: false
         default: 'new-feature-development'
         type: string
       guardian_mode:
-        description: 'IIG护卫模式'
+        description: 'IIG    '
         required: false
         default: 'guard'
         type: choice
         options:
-        - guard    # 完整护卫检查
-        - check    # 仅清单检查
-        - analysis # 深度分析模式
+        - guard    #       
+        - check    #      
+        - analysis #       
       risk_tolerance:
-        description: '风险容忍度'
+        description: '     '
         required: false
         default: 'medium'
         type: choice
         options:
-        - low      # 低容忍度 (严格)
-        - medium   # 中等容忍度 (平衡)
-        - high     # 高容忍度 (宽松)
+        - low      #      (  )
+        - medium   #       (  )
+        - high     #      (  )
 
 env:
   FEATURE_DESCRIPTION: ${{ github.event.inputs.feature_description || 'auto-detected-changes' }}
@@ -40,7 +40,7 @@ env:
 
 jobs:
   iig-guardian-check:
-    name: Guardian: IIG护卫检查
+    name: guardian-iig    
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -77,13 +77,13 @@ jobs:
           echo "Docs-only changes detected. Skipping IIG guardian heavy checks."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: 📥 检出代码库
+      - name:        
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史用于变更分析
+          fetch-depth: 0  #             
 
-      - name: 📦 设置Node.js环境
+      - name:     Node.js  
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
@@ -91,18 +91,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: '**/package-lock.json'
 
-    - name: 🛠️ 安装依赖
+    - name:        
       if: steps.changes.outputs.docs_only != 'true'
       run: |
-        # 安装jscpd用于P3.1重复代码检测集成
+        #   jscpd  P3.1        
         npm install -g jscpd@latest
-        echo "📦 jscpd版本: $(jscpd --version)"
+        echo "  jscpd  : $(jscpd --version)"
         
-        # 确保所有脚本可执行
+        #          
         chmod +x scripts/quality/*.sh
         chmod +x scripts/quality/*.js
 
-    - name: 📁 创建报告目录
+    - name:         
       if: steps.changes.outputs.docs_only != 'true'
       run: |
         mkdir -p reports/iig-guardian
@@ -110,7 +110,7 @@ jobs:
         mkdir -p reports/architecture
         mkdir -p reports/document-sync
 
-    - name: 📏 代码规模与弱类型巡检
+    - name:             
       run: |
         chmod +x scripts/code-smell-check-quick.sh
         scripts/code-smell-check-quick.sh \
@@ -118,20 +118,20 @@ jobs:
           --type-threshold "${{ env.TYPE_SAFETY_THRESHOLD }}" \
           --ci-output "reports/iig-guardian/code-smell-ci-${{ github.run_id }}.md"
 
-    - name: 🔍 自动检测变更内容 (用于功能描述)
+    - name:            (      )
       if: env.FEATURE_DESCRIPTION == 'auto-detected-changes'
       run: |
-        # 分析当前变更，生成功能描述
+        #              
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
         else
           CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
         fi
         
-        echo "🔍 变更文件:"
+        echo "      :"
         echo "$CHANGED_FILES"
         
-        # 分析变更类型
+        #       
         FEATURE_TYPE="unknown"
         if echo "$CHANGED_FILES" | grep -q "api/"; then
           FEATURE_TYPE="api-endpoint"
@@ -146,103 +146,103 @@ jobs:
         fi
         
         echo "DETECTED_FEATURE_TYPE=$FEATURE_TYPE" >> $GITHUB_ENV
-        echo "🤖 检测到功能类型: $FEATURE_TYPE"
+        echo "         : $FEATURE_TYPE"
 
-    - name: Guardian: 执行IIG护卫完整检查
+    - name: Guardian:   IIG      
       if: env.GUARDIAN_MODE == 'guard'
       run: |
-        echo "Guardian: 启动IIG护卫系统 - 完整护卫模式"
-        echo "🎯 功能描述: $FEATURE_DESCRIPTION"
-        echo "🔧 风险容忍度: $RISK_TOLERANCE"
+        echo "Guardian:   IIG     -       "
+        echo "      : $FEATURE_DESCRIPTION"
+        echo "       : $RISK_TOLERANCE"
         
-        # 执行IIG护卫检查
+        #   IIG    
         node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard || exit_code=$?
         
         echo "IIG_GUARDIAN_EXIT_CODE=${exit_code:-0}" >> $GITHUB_ENV
         
-        # 根据风险容忍度调整退出策略
+        #              
         if [ "${exit_code:-0}" -ne 0 ]; then
           if [ "$RISK_TOLERANCE" = "low" ]; then
-            echo "❌ 低风险容忍度: IIG护卫检查失败，阻塞流水线"
+            echo "        : IIG            "
             exit 1
           elif [ "$RISK_TOLERANCE" = "medium" ]; then
-            echo "⚠️ 中等风险容忍度: IIG护卫发现问题，记录但继续"
+            echo "          : IIG            "
             echo "IIG_GUARDIAN_WARNING=true" >> $GITHUB_ENV
           else
-            echo "ℹ️ 高风险容忍度: IIG护卫发现问题，仅记录"
+            echo "         : IIG          "
             echo "IIG_GUARDIAN_INFO=true" >> $GITHUB_ENV
           fi
         else
-          echo "✅ IIG护卫检查通过"
+          echo "  IIG      "
         fi
 
-    - name: 📊 执行IIG清单检查模式
+    - name:     IIG      
       if: env.GUARDIAN_MODE == 'check'
       run: |
-        echo "📊 启动IIG护卫系统 - 清单检查模式"
+        echo "    IIG     -       "
         node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --check
 
-    - name: 🔍 执行IIG深度分析模式
+    - name:     IIG      
       if: env.GUARDIAN_MODE == 'analysis'
       run: |
-        echo "🔍 启动IIG护卫系统 - 深度分析模式"
+        echo "    IIG     -       "
         
-        # 运行所有P3系统进行综合分析
-        echo "🔄 运行P3.1重复代码检测..."
+        #     P3        
+        echo "    P3.1      ..."
         bash scripts/quality/duplicate-detection.sh --verbose || true
         
-        echo "🔄 运行P3.2架构验证..."
+        echo "    P3.2    ..."
         node scripts/quality/architecture-validator.js --verbose || true
         
-        echo "🔄 运行P3.3文档同步..."
+        echo "    P3.3    ..."
         node scripts/quality/document-sync.js --verbose || true
         
-        echo "🔄 运行IIG护卫分析..."
+        echo "    IIG    ..."
         node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard
 
-    - name: 📊 生成综合质量报告
+    - name:           
       if: always()
       run: |
-        echo "📊 生成IIG护卫综合报告..."
+        echo "    IIG      ..."
         
-        # 收集各系统报告
-        REPORTS_SUMMARY="reports/iig-guardian/综合质量报告.md"
+        #        
+        REPORTS_SUMMARY="reports/iig-guardian/      .md"
         
         cat > "$REPORTS_SUMMARY" << 'EOF'
-        # Guardian: IIG护卫系统综合质量报告
+        # Guardian: IIG          
         
-        ## 📋 检查概要
-        - **功能描述**: ${{ env.FEATURE_DESCRIPTION }}
-        - **护卫模式**: ${{ env.GUARDIAN_MODE }}  
-        - **风险容忍度**: ${{ env.RISK_TOLERANCE }}
-        - **检查时间**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        - **触发事件**: ${{ github.event_name }}
+        ##       
+        - **    **: ${{ env.FEATURE_DESCRIPTION }}
+        - **    **: ${{ env.GUARDIAN_MODE }}  
+        - **     **: ${{ env.RISK_TOLERANCE }}
+        - **    **: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        - **    **: ${{ github.event_name }}
         
-        ## 🎯 IIG护卫结果
+        ##   IIG    
         EOF
         
         if [ -f "reports/iig-guardian/iig-guardian-report.json" ]; then
-          echo "✅ IIG护卫报告已生成" >> "$REPORTS_SUMMARY"
+          echo "  IIG       " >> "$REPORTS_SUMMARY"
           
-          # 提取关键指标
+          #       
           if command -v jq >/dev/null 2>&1; then
             TOTAL_IMPLEMENTATIONS=$(jq -r '.statistics.analysedImplementations // 0' reports/iig-guardian/iig-guardian-report.json)
             DETECTED_DUPLICATES=$(jq -r '.statistics.detectedDuplicates // 0' reports/iig-guardian/iig-guardian-report.json)
             RISK_LEVEL=$(jq -r '.checkResults.assessment.overallRisk // "UNKNOWN"' reports/iig-guardian/iig-guardian-report.json)
             
             cat >> "$REPORTS_SUMMARY" << EOF
-        - **分析实现数**: $TOTAL_IMPLEMENTATIONS 个
-        - **检测重复数**: $DETECTED_DUPLICATES 个  
-        - **风险等级**: $RISK_LEVEL
+        - **     **: $TOTAL_IMPLEMENTATIONS  
+        - **     **: $DETECTED_DUPLICATES    
+        - **    **: $RISK_LEVEL
         EOF
           fi
         else
-          echo "⚠️ IIG护卫报告未生成" >> "$REPORTS_SUMMARY"
+          echo "   IIG       " >> "$REPORTS_SUMMARY"
         fi
         
-        echo "📊 综合报告已生成: $REPORTS_SUMMARY"
+        echo "         : $REPORTS_SUMMARY"
 
-    - name: 📤 上传IIG护卫报告
+    - name:     IIG    
       if: always()
       uses: actions/upload-artifact@v4
       with:
@@ -255,7 +255,7 @@ jobs:
           !reports/**/*.tmp
         retention-days: 30
 
-    - name: 💬 PR评论 - IIG护卫报告
+    - name:   PR   - IIG    
       if: github.event_name == 'pull_request' && always()
       uses: actions/github-script@v7
       with:
@@ -263,71 +263,71 @@ jobs:
           const fs = require('fs');
           const path = './reports/iig-guardian/iig-guardian-report.json';
           
-          let comment = `## Guardian: IIG护卫系统检查报告\n\n`;
-          comment += `**功能描述**: ${process.env.FEATURE_DESCRIPTION}\n`;
-          comment += `**护卫模式**: ${process.env.GUARDIAN_MODE}\n`;
-          comment += `**风险容忍度**: ${process.env.RISK_TOLERANCE}\n\n`;
+          let comment = `## Guardian: IIG        \n\n`;
+          comment += `**    **: ${process.env.FEATURE_DESCRIPTION}\n`;
+          comment += `**    **: ${process.env.GUARDIAN_MODE}\n`;
+          comment += `**     **: ${process.env.RISK_TOLERANCE}\n\n`;
           
           if (fs.existsSync(path)) {
             const report = JSON.parse(fs.readFileSync(path, 'utf8'));
             const stats = report.statistics || {};
             const assessment = report.checkResults?.assessment || {};
             
-            comment += `### 📊 检查统计\n\n`;
-            comment += `| 指标 | 数值 |\n`;
+            comment += `###       \n\n`;
+            comment += `|    |    |\n`;
             comment += `|------|------|\n`;
-            comment += `| 🔍 分析实现 | ${stats.analysedImplementations || 0} 个 |\n`;
-            comment += `| ⚠️ 检测重复 | ${stats.detectedDuplicates || 0} 个 |\n`;
-            comment += `| 🎯 风险等级 | **${assessment.overallRisk || 'UNKNOWN'}** |\n`;
-            comment += `| 📊 代码重复率 | ${stats.p3Integration?.duplicateCodeRate || 0}% |\n`;
-            comment += `| 🏗️ 架构违规 | ${stats.p3Integration?.architectureViolations || 0} 个 |\n`;
-            comment += `| 📚 文档同步率 | ${stats.p3Integration?.documentSyncRate || 0}% |\n\n`;
+            comment += `|        | ${stats.analysedImplementations || 0}   |\n`;
+            comment += `|         | ${stats.detectedDuplicates || 0}   |\n`;
+            comment += `|        | **${assessment.overallRisk || 'UNKNOWN'}** |\n`;
+            comment += `|         | ${stats.p3Integration?.duplicateCodeRate || 0}% |\n`;
+            comment += `|         | ${stats.p3Integration?.architectureViolations || 0}   |\n`;
+            comment += `|         | ${stats.p3Integration?.documentSyncRate || 0}% |\n\n`;
             
-            // 风险评估
+            //     
             const riskEmoji = {
-              'HIGH': '🔴',
-              'MEDIUM': '🟡', 
-              'LOW': '🟢'
-            }[assessment.overallRisk] || '⚫';
+              'HIGH': ' ',
+              'MEDIUM': ' ', 
+              'LOW': ' '
+            }[assessment.overallRisk] || ' ';
             
-            comment += `### ${riskEmoji} 风险评估: ${assessment.overallRisk || 'UNKNOWN'}\n\n`;
+            comment += `### ${riskEmoji}     : ${assessment.overallRisk || 'UNKNOWN'}\n\n`;
             
             if (stats.detectedDuplicates > 0) {
-              comment += `⚠️ **发现潜在重复实现**: 建议优先复用现有组件\n\n`;
+              comment += `   **        **:           \n\n`;
             }
             
-            // 建议
+            //   
             const recommendations = report.checkResults?.recommendations || [];
             if (recommendations.length > 0) {
-              comment += `### 💡 IIG护卫建议\n\n`;
+              comment += `###   IIG    \n\n`;
               recommendations.forEach((rec, index) => {
                 const priorityEmoji = {
-                  'HIGH': '🔴',
-                  'MEDIUM': '🟡',
-                  'LOW': '🟢'
-                }[rec.priority] || '⚫';
+                  'HIGH': ' ',
+                  'MEDIUM': ' ',
+                  'LOW': ' '
+                }[rec.priority] || ' ';
                 comment += `${index + 1}. ${priorityEmoji} **[${rec.priority}]** ${rec.message}\n`;
               });
               comment += `\n`;
             }
             
           } else {
-            comment += `⚠️ IIG护卫报告未找到，可能检查过程中出现问题。\n\n`;
+            comment += `   IIG                    \n\n`;
           }
           
-          // 最终决策
+          //     
           const exitCode = process.env.IIG_GUARDIAN_EXIT_CODE || '0';
           if (exitCode !== '0') {
             if (process.env.RISK_TOLERANCE === 'low') {
-              comment += `🛑 **IIG护卫决策**: 检查失败，建议修复问题后重新提交\n`;
+              comment += `  **IIG    **:                 \n`;
             } else {
-              comment += `⚠️ **IIG护卫决策**: 发现问题但已放行，建议关注相关建议\n`;
+              comment += `   **IIG    **:                  \n`;
             }
           } else {
-            comment += `✅ **IIG护卫决策**: 检查通过，可以安全合并\n`;
+            comment += `  **IIG    **:            \n`;
           }
           
-          comment += `\n📊 [查看详细报告](../actions/runs/${{ github.run_id }})`;
+          comment += `\n  [      ](../actions/runs/${{ github.run_id }})`;
           
           await github.rest.issues.createComment({
             issue_number: context.issue.number,
@@ -336,58 +336,58 @@ jobs:
             body: comment
           });
 
-    - name: 🚨 质量门禁判定
+    - name:         
       if: always()
       run: |
-        echo "🚨 执行IIG护卫质量门禁判定..."
+        echo "    IIG        ..."
         
         EXIT_CODE="${IIG_GUARDIAN_EXIT_CODE:-0}"
         RISK_TOLERANCE="${RISK_TOLERANCE:-medium}"
         
-        echo "📊 IIG护卫退出码: $EXIT_CODE"
-        echo "🎯 风险容忍度: $RISK_TOLERANCE"
+        echo "  IIG     : $EXIT_CODE"
+        echo "       : $RISK_TOLERANCE"
         
         if [ "$EXIT_CODE" != "0" ]; then
           case "$RISK_TOLERANCE" in
             "low")
-              echo "🔴 低风险容忍度: 质量门禁失败"
-              echo "🛑 IIG护卫发现问题，必须修复后才能继续"
+              echo "        :       "
+              echo "  IIG                "
               exit 1
               ;;
             "medium")
-              echo "🟡 中等风险容忍度: 质量门禁警告"
-              echo "⚠️ IIG护卫发现问题，建议优先修复但允许继续"
+              echo "         :       "
+              echo "   IIG                  "
               ;;
             "high")
-              echo "🟢 高风险容忍度: 质量门禁通过"
-              echo "ℹ️ IIG护卫发现问题，仅记录不阻塞"
+              echo "        :       "
+              echo "   IIG             "
               ;;
           esac
         else
-          echo "✅ IIG护卫质量门禁通过"
+          echo "  IIG        "
         fi
         
-        echo "Guardian: IIG护卫系统检查完成"
+        echo "Guardian: IIG        "
 
   post-guardian-analysis:
-    name: 📊 IIG护卫后续分析
+    name:   IIG      
     runs-on: ubuntu-latest
     needs: iig-guardian-check
     if: always() && (github.event_name == 'push' && github.ref == 'refs/heads/main')
     
     steps:
-    - name: 📥 检出代码库
+    - name:        
       uses: actions/checkout@v4
 
-    - name: 📊 主分支质量趋势分析
+    - name:            
       run: |
-        echo "📊 执行主分支IIG护卫质量趋势分析..."
+        echo "       IIG        ..."
         
-        # 下载之前的报告进行趋势分析
-        # 这里可以集成更复杂的趋势分析逻辑
+        #              
+        #                 
         
-        echo "🔍 分析实现清单变化趋势..."
-        echo "📈 分析重复率变化趋势..."
-        echo "🏗️ 分析架构质量变化趋势..."
+        echo "            ..."
+        echo "           ..."
+        echo "             ..."
         
-        echo "✅ 主分支质量趋势分析完成"
+        echo "             "
