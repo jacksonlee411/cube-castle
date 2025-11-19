@@ -69,7 +69,8 @@
    - 至少执行一次 `document-sync (selfhosted)`、`api-compliance (selfhosted)`、`consistency-guard (selfhosted)`、`ci-selfhosted-smoke` 在 `runs-on: [self-hosted, cubecastle, wsl]` 标签下的成功 run，并把 Run ID + `logs/wsl-runner/*.log`/`~/actions-runner/_diag/` 截图记录到 Plan 265/266/269。  
    - `scripts/ci/runner/wsl-verify.sh` 的输出需附在 `logs/wsl-runner/verify-*.log`，同时在本计划文档登记最近一次执行时间。  
    - 若 WSL Runner 故障、需回退至 Docker Runner，应在 30 分钟内完成 `wsl-uninstall.sh` → Docker Runner 切换，并在 Plan 265/266 中记录回滚原因/时间。  
-   - 2025-11-20 07:11Z：`bash scripts/ci/runner/wsl-install.sh` 已在 WSL 环境重新拉起 `cc-runner`（日志 `logs/wsl-runner/install-20251120T071110.log` / `run-20251120T071113.log`，`wsl-verify` 日志 `logs/wsl-runner/verify-20251120T071156.log`），但 07:16Z `workflow_dispatch` 触发的 `document-sync` run `19519517913` 仍只生成 docker/ubuntu matrix——远端 `.github/workflows/document-sync.yml` 未合入 `selfhosted-wsl`。需先推送 workflow 变更再重新触发，才能满足本节验收。
+   - 2025-11-20 07:11Z：`bash scripts/ci/runner/wsl-install.sh` 已在 WSL 环境重新拉起 `cc-runner`（日志 `logs/wsl-runner/install-20251120T071110.log` / `run-20251120T071113.log`，`wsl-verify` 日志 `logs/wsl-runner/verify-20251120T071156.log`），但 07:16Z `workflow_dispatch` 触发的 `document-sync` run `19519517913` 仍只生成 docker/ubuntu matrix——远端 `.github/workflows/document-sync.yml` 未合入 `selfhosted-wsl`。需先推送 workflow 变更再重新触发，才能满足本节验收。  
+   - 2025-11-20 07:42Z：`ci-selfhosted-smoke` 通过 `workflow_dispatch` 运行 `19520064684`，`Smoke (wsl)` job 成功完成并将日志导出到 `logs/wsl-runner/ci-selfhosted-smoke-wsl-19520064684.log`（docker job 仍失败，结论=failed，但 WSL job 可视作首个成功记录）。
 
 5. **Branch Protection 更新**  
    - 根据 run 稳定性，将自托管 job 的 status 名字加入 Required checks：`Frontend Quality Gate (self-hosted)`、`Frontend E2E (self-hosted)`、`Document Sync (self-hosted)` 等；  
