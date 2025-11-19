@@ -117,6 +117,41 @@
 - 远程抓取需要 `GITHUB_TOKEN`（加载顺序：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量）
 - 若仅本地门禁可执行（architecture-validator + golangci-lint）但无法 E2E，请以 CI 产出的 E2E 证据作为验收对等物（登记时标注“E2E=CI 取证”）
 
+### Plan 267-D：WSL 静态 hosts 覆盖（GitHub 应急）
+
+> 适用范围：受限网络下 `github.com` 被劫持到 11.x.x.x，导致 `git ls-remote` / `curl` 在 WSL/Docker 中失败。Plan 267-D 已验证“WSL 停止自动生成 hosts + 静态写入官方 IP”能恢复访问。
+
+1. **预检**：确保 `/etc/wsl.conf` 已包含：
+   ```ini
+   [network]
+   generateHosts=false
+   ```
+   修改后执行 `wsl.exe --shutdown`（Windows PowerShell）重启 WSL，防止 `/etc/hosts` 被自动覆盖。
+2. **写入官方 IP**：在 WSL 内运行：
+   ```bash
+   sudo bash scripts/network/configure-github-hosts.sh
+   ```
+   脚本会先备份 `HOSTS_FILE`（示例 `/etc/hosts.plan267.<timestamp>.bak`），然后写入 `# Plan 267-D GitHub override` 块，包含 `github.com`、`codeload.github.com`、`api.github.com`、`raw.githubusercontent.com`、`github-releases.githubusercontent.com`、`objects.githubusercontent.com`、`objects-origin.githubusercontent.com`、`release-assets.githubusercontent.com` 等关键域名的最新官方 IP（2025-11-19 取自 `getent ahostsv4`）。
+3. **同步 Runner**：执行
+   ```bash
+   bash scripts/network/apply-github-hosts-to-runner.sh
+   ```
+   该脚本会先更新宿主 `/etc/hosts`，再将 `configure-github-hosts.sh` 拷贝到 `cubecastle-gh-runner` 容器并用 `sudo bash` 应用，确保自托管 Runner 与宿主保持一致。
+4. **验证命令**（所有命令需返回 200 并解析到脚本写入的 IP）：
+   ```bash
+   getent hosts github.com
+   curl -I https://github.com
+   git ls-remote https://github.com/jacksonlee411/cube-castle
+   docker compose -f docker-compose.runner.persist.yml exec gh-runner curl -I https://github.com
+   ```
+   建议将 `git ls-remote` 结果接入 Watchdog/诊断脚本，发现异常时自动重新执行本脚本。
+5. **回退/更新 IP**：若网络团队放通或 GitHub IP 变更，记录最近一次备份文件并执行：
+   ```bash
+   sudo cp /etc/hosts.plan267.<timestamp>.bak /etc/hosts
+   wsl.exe --shutdown
+   ```
+   然后依据新的官方 IP（必要时重新采集）再运行 `bash scripts/network/apply-github-hosts-to-runner.sh`。
+
 ## SUMMARY 打印与远程抓取
 - 本地/CI 打印：`node scripts/ci/print-e2e-summary.js <planId>` 会扫描 `logs/plan<ID>/results-*.json` 并输出机器可读汇总
 - 远程抓取：`scripts/ci/fetch-gh-summary.sh <owner/repo> <run_id>` 从 Actions run 的日志压缩包中提取包含 `SUMMARY` 的行

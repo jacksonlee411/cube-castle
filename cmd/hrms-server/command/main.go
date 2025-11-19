@@ -292,7 +292,7 @@ func main() {
 
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   loadAllowedOrigins(),
+		AllowedOrigins:   config.ResolveAllowedOrigins("COMMAND_ALLOWED_ORIGINS", "", nil),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Tenant-ID"},
 		ExposedHeaders:   []string{"Link"},
@@ -357,7 +357,7 @@ func main() {
 	}
 
 	// 📎 BFF 认证路由（生产态登录/会话管理） - 不要求已有Authorization
-	bffHandler := authbff.NewBFFHandler(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, commandLogger, devMode, auditLogger)
+	bffHandler := authbff.NewBFFHandler(commandLogger, devMode, auditLogger, jwtConfig)
 	bffHandler.SetupRoutes(r)
 
 	// GraphQL 查询路由（单体合流挂载）
@@ -530,24 +530,6 @@ func openRedis(logger pkglogger.Logger) *redis.Client {
 		"address":   addr,
 	}).Info("✅ Redis连接成功")
 	return client
-}
-
-func loadAllowedOrigins() []string {
-	raw := strings.TrimSpace(os.Getenv("COMMAND_ALLOWED_ORIGINS"))
-	if raw == "" {
-		return []string{"*"}
-	}
-	parts := strings.Split(raw, ",")
-	var origins []string
-	for _, part := range parts {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			origins = append(origins, trimmed)
-		}
-	}
-	if len(origins) == 0 {
-		return []string{"*"}
-	}
-	return origins
 }
 
 func externalCommandBaseURL(port string) string {

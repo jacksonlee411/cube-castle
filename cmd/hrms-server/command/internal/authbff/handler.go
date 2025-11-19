@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/config"
 	"cube-castle/internal/organization/audit"
 	reqmw "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/utils"
@@ -65,9 +66,12 @@ func (h *BFFHandler) requestLogger(r *http.Request, action string, extra pkglogg
 	return h.logger.WithFields(fields)
 }
 
-func NewBFFHandler(jwtSecret, issuer, audience string, baseLogger pkglogger.Logger, devMode bool, auditor *audit.AuditLogger) *BFFHandler {
+func NewBFFHandler(baseLogger pkglogger.Logger, devMode bool, auditor *audit.AuditLogger, jwtConfig *config.JWTConfig) *BFFHandler {
 	if baseLogger == nil {
 		baseLogger = pkglogger.NewNoopLogger()
+	}
+	if jwtConfig == nil {
+		panic("jwt config is required")
 	}
 	secure := os.Getenv("SECURE_COOKIES") == "true"
 	domain := os.Getenv("COOKIE_DOMAIN")
@@ -86,9 +90,9 @@ func NewBFFHandler(jwtSecret, issuer, audience string, baseLogger pkglogger.Logg
 	}
 	componentLogger := scopedLogger(baseLogger, "authBFF", pkglogger.Fields{"module": "authbff"})
 
-	jwMintAlg := strings.ToUpper(strings.TrimSpace(os.Getenv("JWT_MINT_ALG")))
+	jwMintAlg := strings.ToUpper(strings.TrimSpace(jwtConfig.MintAlgorithm))
 	if jwMintAlg == "" {
-		jwMintAlg = strings.ToUpper(strings.TrimSpace(os.Getenv("JWT_ALG")))
+		jwMintAlg = strings.ToUpper(strings.TrimSpace(jwtConfig.Algorithm))
 	}
 	if jwMintAlg == "" {
 		jwMintAlg = "RS256"
@@ -101,7 +105,7 @@ func NewBFFHandler(jwtSecret, issuer, audience string, baseLogger pkglogger.Logg
 	h := &BFFHandler{
 		store:        NewInMemoryStore(),
 		logger:       componentLogger,
-		jwtCfg:       JWTMintConfig{Secret: jwtSecret, Issuer: issuer, Audience: audience, Alg: jwMintAlg},
+		jwtCfg:       JWTMintConfig{Secret: jwtConfig.Secret, Issuer: jwtConfig.Issuer, Audience: jwtConfig.Audience, Alg: jwMintAlg},
 		devMode:      devMode,
 		secureCookie: secure,
 		cookieDomain: domain,
@@ -113,7 +117,7 @@ func NewBFFHandler(jwtSecret, issuer, audience string, baseLogger pkglogger.Logg
 	}
 	// 可选：加载RS256私钥用于对外签名（BFF自签短期token）
 	if h.jwtCfg.Alg == "RS256" {
-		if rawPath := os.Getenv("JWT_PRIVATE_KEY_PATH"); rawPath != "" {
+		if rawPath := jwtConfig.PrivateKeyPath; rawPath != "" {
 			safePath, err := sanitizeAbsolutePath(rawPath)
 			if err != nil {
 				h.logger.WithFields(pkglogger.Fields{"path": rawPath, "error": err}).Error("RS256 private key path invalid")
@@ -137,7 +141,7 @@ func NewBFFHandler(jwtSecret, issuer, audience string, baseLogger pkglogger.Logg
 			h.logger.Error("RS256 enabled but JWT_PRIVATE_KEY_PATH not configured")
 			panic("RS256 enabled but missing private key")
 		}
-		h.jwtCfg.KeyID = os.Getenv("JWT_KEY_ID")
+		h.jwtCfg.KeyID = jwtConfig.KeyID
 		if h.jwtCfg.KeyID == "" {
 			h.jwtCfg.KeyID = "bff-key-1"
 		}

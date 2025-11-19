@@ -12,6 +12,7 @@ type JWTConfig struct {
 	Issuer           string
 	Audience         string
 	Algorithm        string
+	MintAlgorithm    string
 	PublicKeyPath    string
 	PrivateKeyPath   string
 	JWKSUrl          string
@@ -49,6 +50,10 @@ func GetJWTConfig() *JWTConfig {
 	}
 	if config.Algorithm != "RS256" {
 		panic("JWT_ALG 只能配置为 RS256，已禁止 HS256 混用。请更新环境配置。")
+	}
+	config.MintAlgorithm = strings.ToUpper(strings.TrimSpace(os.Getenv("JWT_MINT_ALG")))
+	if config.MintAlgorithm == "" {
+		config.MintAlgorithm = config.Algorithm
 	}
 
 	// RS256公钥路径配置
