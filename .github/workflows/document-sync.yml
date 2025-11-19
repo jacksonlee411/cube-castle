@@ -49,7 +49,16 @@ env:
 jobs:
   document-sync-validation:
     name: 📄 文档同步一致性验证
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - name: ubuntu
+            runs_on: "[\"ubuntu-latest\"]"
+            prepare: false
+          - name: selfhosted
+            runs_on: "[\"self-hosted\",\"cubecastle\",\"docker\"]"
+            prepare: true
+    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
     permissions:
       contents: write
       pull-requests: write
@@ -79,10 +88,14 @@ jobs:
             - '!database/**'
             - '!tests/**'
     - name: Docs/CI-only fast pass (Plan 261 临时短路)
-      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+      if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
       run: |
         echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
         exit 0
+    - name: 自托管环境准备
+      if: matrix.runner.prepare == true && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
     - name: 📥 检出代码
       if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
       uses: actions/checkout@v4
@@ -240,6 +253,11 @@ jobs:
         path: |
           reports/document-sync/
           !reports/document-sync/**/*.tmp
+
+    - name: 自托管环境清理
+      if: matrix.runner.prepare == true && always()
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync --teardown
         retention-days: 30
 
     - name: 💬 PR评论目录边界检查结果

@@ -4,6 +4,7 @@ on:
     branches: [master, main, develop, feat/shared-dev]
   pull_request:
     branches: [master, main, develop, feat/shared-dev]
+  workflow_dispatch: {}
 
 jobs:
   api-compliance-check:
@@ -51,11 +52,15 @@ jobs:
               - '!database/**'
               - '!tests/**'
       - name: Docs/CI-only fast pass
-        if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+        if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
         run: |
           echo "Docs/CI-only changes detected. Skipping api-compliance heavy steps."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
+      - name: 自托管环境准备
+        if: matrix.label == 'selfhosted' && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance
       - name: Checkout代码
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/checkout@v3
@@ -225,3 +230,8 @@ jobs:
           name: api-compliance-report
           path: api-compliance-report.md
           retention-days: 30
+
+      - name: 自托管环境清理
+        if: matrix.label == 'selfhosted' && always()
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance --teardown

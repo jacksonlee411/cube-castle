@@ -12,7 +12,14 @@ on:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - name: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - name: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
     env:
       ENFORCE: "0"  # TODO-TEMPORARY(2025-11-25): 仅报告 org:write 等老 scope，权限收敛后恢复 ENFORCE=1
     steps:
@@ -55,19 +62,27 @@ jobs:
 
   audit:
     name: Audit DB Consistency (021→022 + Assertions)
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - name: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - name: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: cubecastle
-        options: --health-cmd="pg_isready -U user -d cubecastle" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+      ENFORCE: "1"
+      APPLY_FIXES: "0"
+      CI_PREPARE_RUN_MIGRATIONS: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: 准备 Compose 环境（postgres/redis）
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh consistency-guard-audit
 
       - name: Install tooling (psql, jq, goose)
         run: |
@@ -76,60 +91,47 @@ jobs:
           curl -sSL https://github.com/pressly/goose/releases/download/v3.26.0/goose_linux_x86_64.tar.gz \
             | sudo tar -xz -C /usr/local/bin goose
 
-      - name: Wait for Postgres
-        run: |
-          for i in {1..30}; do
-            pg_isready -h localhost -p 5432 -U user -d cubecastle && exit 0 || sleep 2;
-          done
-          echo "Postgres not ready" >&2
-          exit 1
-
       - name: Apply Goose migrations
-        env:
-          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir database/migrations up
 
       - name: Enforce audit consistency
-        env:
-          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
-          ENFORCE: "1"
-          APPLY_FIXES: "0"
         run: |
           bash scripts/apply-audit-fixes.sh
 
+      - name: 清理 Compose 环境
+        if: always()
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh consistency-guard-audit --teardown
+
   temporal-consistency:
     name: Temporal Consistency (read-only checks)
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - name: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - name: selfhosted
+            runs_on: '["self-hosted","cubecastle","docker"]'
+    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
     timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: cubecastle
-        options: --health-cmd="pg_isready -U user -d cubecastle" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+      CI_PREPARE_RUN_MIGRATIONS: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: 准备 Compose 环境（postgres/redis）
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh consistency-guard-temporal
 
       - name: Install psql client
         run: |
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client
 
-      - name: Wait for Postgres
-        run: |
-          for i in {1..30}; do
-            pg_isready -h localhost -p 5432 -U user -d cubecastle && exit 0 || sleep 2;
-          done
-          echo "Postgres not ready" >&2
-          exit 1
-
       - name: Load schema needed for checks (minimal)
-        env:
-          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           set -euo pipefail
           if [ -f database/schema.sql ]; then
@@ -139,7 +141,10 @@ jobs:
           fi
 
       - name: Run temporal consistency inspection (read-only)
-        env:
-          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f sql/inspection/check_temporal_consistency.sql || true
+
+      - name: 清理 Compose 环境
+        if: always()
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh consistency-guard-temporal --teardown

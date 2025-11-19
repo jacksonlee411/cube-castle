@@ -41,7 +41,16 @@ env:
 jobs:
   iig-guardian-check:
     name: guardian-iig    
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - name: ubuntu
+            runs_on: "[\"ubuntu-latest\"]"
+            prepare: false
+          - name: selfhosted
+            runs_on: "[\"self-hosted\",\"cubecastle\",\"docker\"]"
+            prepare: true
+    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
     permissions:
       contents: read
       pull-requests: write
@@ -72,11 +81,15 @@ jobs:
               - '!package*.json'
               - '!.github/workflows/**'
       - name: Docs-only fast pass
-        if: steps.changes.outputs.docs_only == 'true'
+        if: steps.changes.outputs.docs_only == 'true' && github.event_name != 'workflow_dispatch'
         run: |
           echo "Docs-only changes detected. Skipping IIG guardian heavy checks."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
+      - name: 自托管环境准备
+        if: matrix.runner.prepare == true && steps.changes.outputs.docs_only != 'true'
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian
       - name: Checkout repository
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/checkout@v4
@@ -197,6 +210,11 @@ jobs:
           
           echo "    IIG    ..."
           node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard
+
+      - name: 自托管环境清理
+        if: matrix.runner.prepare == true && always()
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian --teardown
 
       - name: "          "
         if: always()
