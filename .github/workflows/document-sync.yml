@@ -54,7 +54,8 @@ jobs:
         runner: [ubuntu, selfhosted]
         include:
           - runner: ubuntu
-            labels: ubuntu-latest
+            labels:
+              - ubuntu-latest
             prepare: false
           - runner: selfhosted
             labels:
