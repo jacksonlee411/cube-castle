@@ -38,8 +38,9 @@
      - 执行 `docker compose -f docker-compose.dev.yml up -d postgres redis`，之后使用 `scripts/ci/docker/check-health.sh postgres 120` + `docker inspect -f '{{.State.Health.Status}}'` 轮询健康；  
      - 若设定 `CI_PREPARE_RUN_MIGRATIONS=1`，会在服务健康后执行 `make db-migrate-all`；  
      - 生成 `logs/ci-monitor/<workflow-id>-prepare.log`，供 Actions artifact 上传；  
-     - `--teardown` 模式负责 `docker compose -f docker-compose.dev.yml down --remove-orphans` 与受控 `docker volume prune --filter label=cubecastle-ci --force`；  
-     - 仅负责环境预热/清理，**不得**调用 `start-ghcr-runner-persistent.sh` 或 `config.sh` 以防 Runner 错误重配。
+      - `--teardown` 模式负责 `docker compose -f docker-compose.dev.yml down --remove-orphans` 与受控 `docker volume prune --filter label=cubecastle-ci --force`；  
+      - 仅负责环境预热/清理，**不得**调用 `start-ghcr-runner-persistent.sh` 或 `config.sh` 以防 Runner 错误重配。
+   - **WSL Runner 例外（Plan 269）**：在 Docker Runner 之外部署经批准的 WSL Runner，安装/校验/卸载统一由 `scripts/ci/runner/wsl-install.sh`、`wsl-verify.sh`、`wsl-uninstall.sh` 负责，并在 Plan 265/266/269 中登记 Run ID、日志与回滚时间；所有 workflow 的自托管矩阵需同时支持 `[self-hosted, cubecastle, docker]` 与 `[self-hosted, cubecastle, wsl]`。
 
 2. **Plan 263 任务**  
    - 按 Plan 263 TS 清单逐个修复（PositionDetailView、Temporal hooks、StatusBadge 等）；本地 + 自托管 runner 内执行 `npm run build:verify`，确认 0 error。  
@@ -58,17 +59,23 @@
      | `.github/workflows/api-compliance.yml` | `api-compliance` | REST 契约守卫 | 是 |  
      | `.github/workflows/iig-guardian.yml` | `iig-guardian` | Implementation Inventory 守卫 | 先观测，后 Required |  
    - 修改各 workflow：  
-     - 加入 `runs-on: [self-hosted, cubecastle, docker]` 或 matrix；  
+     - 加入 `runs-on: [self-hosted, cubecastle, docker]` 或 matrix，并同步新增 `wsl` 标签（`[self-hosted, cubecastle, wsl]`）；  
      - 引入统一的 `prepare-selfhosted.sh <job>` step（例如 `bash scripts/ci/workflows/prepare-selfhosted.sh frontend-quality-gate`）；  
      - 对 Playwright/E2E job，复用 `docker inspect` 健康轮询 + `make run-dev` / `frontend/scripts/devserver-wait.sh`；  
      - 对 Go/SQL 守卫 job，设置 `CI_PREPARE_RUN_MIGRATIONS=1` 调用脚本以执行 `make db-migrate-all`，确保数据库来自 Compose（禁止 host 安装）。  
    - 每条 workflow 至少运行 2 次成功 run：一次来自 self-hosted，另一次来自 GitHub 托管（如仍保留）。在 `docs/development-plans/264` 更新 run ID，确保唯一事实来源指向自托管方案。
 
-4. **Branch Protection 更新**  
+4. **WSL Runner 运行记录（Plan 269）**  
+   - 至少执行一次 `document-sync (selfhosted)`、`api-compliance (selfhosted)`、`consistency-guard (selfhosted)`、`ci-selfhosted-smoke` 在 `runs-on: [self-hosted, cubecastle, wsl]` 标签下的成功 run，并把 Run ID + `logs/wsl-runner/*.log`/`~/actions-runner/_diag/` 截图记录到 Plan 265/266/269。  
+   - `scripts/ci/runner/wsl-verify.sh` 的输出需附在 `logs/wsl-runner/verify-*.log`，同时在本计划文档登记最近一次执行时间。  
+   - 若 WSL Runner 故障、需回退至 Docker Runner，应在 30 分钟内完成 `wsl-uninstall.sh` → Docker Runner 切换，并在 Plan 265/266 中记录回滚原因/时间。  
+   - 2025-11-20 07:11Z：`bash scripts/ci/runner/wsl-install.sh` 已在 WSL 环境重新拉起 `cc-runner`（日志 `logs/wsl-runner/install-20251120T071110.log` / `run-20251120T071113.log`，`wsl-verify` 日志 `logs/wsl-runner/verify-20251120T071156.log`），但 07:16Z `workflow_dispatch` 触发的 `document-sync` run `19519517913` 仍只生成 docker/ubuntu matrix——远端 `.github/workflows/document-sync.yml` 未合入 `selfhosted-wsl`。需先推送 workflow 变更再重新触发，才能满足本节验收。
+
+5. **Branch Protection 更新**  
    - 根据 run 稳定性，将自托管 job 的 status 名字加入 Required checks：`Frontend Quality Gate (self-hosted)`、`Frontend E2E (self-hosted)`、`Document Sync (self-hosted)` 等；  
    - 若暂不想完全替换，可采用“ubuntu + self-hosted 双 Required”，待观察稳定性后再移除 ubuntu 分支。
 
-5. **回滚路径**  
+6. **回滚路径**  
    - 每个 workflow 在 YAML 内保留注释说明如何回退到 `runs-on: ubuntu-latest`；  
    - 若自托管 runner 故障，可通过 `workflow_dispatch` 触发 ubuntu-only job 并在 Branch Protection 暂时移除 self-hosted 项；Plan 265 文档需记录回滚时间/原因。
 
@@ -78,6 +85,7 @@
 - [ ] `frontend-quality-gate.yml`、`frontend-e2e.yml`、`document-sync.yml`、`consistency-guard.yml`、`plan-254-gates.yml`、`api-compliance.yml`、`iig-guardian.yml` 均已启用，且最新 push 在 self-hosted runner 上成功运行（含 run ID 记录）。  
 - [ ] `scripts/ci/workflows/prepare-selfhosted.sh`（或等效）落库并被上述 workflow 调用，Compose/Docker 健康检查日志清晰。  
 - [ ] Branch Protection 页面可见新增的 self-hosted status checks；Plan 263/264 文档同步更新。  
+- [ ] 至少一次 `document-sync (selfhosted)` / `api-compliance (selfhosted)` / `consistency-guard (selfhosted)` / `ci-selfhosted-smoke` 使用 `self-hosted,cubecastle,wsl` 标签运行成功，Run ID 与日志写入 Plan 265/266/269。  
 - [ ] 出现故障时的回滚步骤已记录，能够在 30 分钟内切回托管 runner。
 
 ## 5. 风险与缓解
@@ -88,6 +96,7 @@
 | Docker Compose 服务残留 | 多个 workflow 同时 `up -d` 可能导致脏数据 | `prepare-selfhosted.sh` 中增加 `docker compose down --remove-orphans`、`docker volume prune --filter label=cubecastle-ci` 清理逻辑 |
 | Branch Protection 切换风险 | 新增的 self-hosted status 失败会阻塞所有 PR | 先在非 Required 状态下运行 3+ 次，确认稳定后再切换；同时记录回滚命令 |
 | Playwright 依赖更新 | Runner 持久化节点需要维护浏览器版本 | 每周由 Watchdog 触发一次 `npx playwright install --with-deps`，并在 Plan 265 中记录维护窗口 |
+| WSL Runner 漂移 | WSL 内的工具链/代理与 Docker 版本不一致，导致 CI 结果不可复现 | 每次安装前运行 `wsl-verify.sh`，Go/Node/Docker 版本不符立即阻断；Plan 265/266 登记所有更改并保留 Docker Runner 备份 |
 
 ## 6. 时间表（建议）
 
@@ -113,3 +122,4 @@
 ## 8. 更新记录
 
 - 2025-11-19：v0.1 草拟，定义范围、步骤与验收标准。 (BY: Codex)
+- 2025-11-20：补充 Plan 269 批准的 WSL Runner 例外、运行记录与风险条目；统一 `runs-on` 标签为 `[self-hosted,cubecastle,wsl]` 并扩展验收要求。

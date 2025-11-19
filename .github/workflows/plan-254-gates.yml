@@ -31,13 +31,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [ubuntu, selfhosted]
+        label: [ubuntu, selfhosted-docker, selfhosted-wsl]
         include:
           - label: ubuntu
             runs_on: '["ubuntu-latest"]'
-          - label: selfhosted
+          - label: selfhosted-docker
             runs_on: '["self-hosted","cubecastle","docker"]'
+          - label: selfhosted-wsl
+            runs_on: '["self-hosted","cubecastle","wsl"]'
+            wsl_only: true
     runs-on: ${{ fromJson(matrix.runs_on) }}
+    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 60
 
     steps:

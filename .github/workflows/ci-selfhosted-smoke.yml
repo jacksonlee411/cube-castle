@@ -7,7 +7,23 @@ on:
 
 jobs:
   smoke:
-    runs-on: [self-hosted, cubecastle, docker]
+    name: Smoke (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [docker, wsl]
+        include:
+          - runner: docker
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
+          - runner: wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+    runs-on: ${{ matrix.labels }}
     timeout-minutes: 30
     env:
       COMPOSE_PROJECT_NAME: cc-selfhosted-smoke

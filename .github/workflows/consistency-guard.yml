@@ -14,16 +14,23 @@ jobs:
   scan:
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted]
+        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
-          - runner: selfhosted
+          - runner: selfhosted-docker
             labels:
               - self-hosted
               - cubecastle
               - docker
+          - runner: selfhosted-wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            wsl_only: true
     runs-on: ${{ matrix.labels }}
+    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
     env:
       ENFORCE: "0"  # TODO-TEMPORARY(2025-11-25): 仅报告 org:write 等老 scope，权限收敛后恢复 ENFORCE=1
     steps:
@@ -68,16 +75,23 @@ jobs:
     name: Audit DB Consistency (021→022 + Assertions)
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted]
+        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
-          - runner: selfhosted
+          - runner: selfhosted-docker
             labels:
               - self-hosted
               - cubecastle
               - docker
+          - runner: selfhosted-wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            wsl_only: true
     runs-on: ${{ matrix.labels }}
+    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -117,16 +131,23 @@ jobs:
     name: Temporal Consistency (read-only checks)
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted]
+        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
-          - runner: selfhosted
+          - runner: selfhosted-docker
             labels:
               - self-hosted
               - cubecastle
               - docker
+          - runner: selfhosted-wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            wsl_only: true
     runs-on: ${{ matrix.labels }}
+    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
     timeout-minutes: 15
     env:
       DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable

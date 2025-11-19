@@ -51,19 +51,28 @@ jobs:
     name: 📄 文档同步一致性验证
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted]
+        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels:
               - ubuntu-latest
             prepare: false
-          - runner: selfhosted
+          - runner: selfhosted-docker
             labels:
               - self-hosted
               - cubecastle
               - docker
             prepare: false
+          - runner: selfhosted-wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            prepare: false
+            wsl_only: true
     runs-on: ${{ matrix.labels }}
+    # WSL Runner 仅在 workflow_dispatch/schedule 场景运行，避免每次 push 双倍执行
+    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
     permissions:
       contents: write
       pull-requests: write

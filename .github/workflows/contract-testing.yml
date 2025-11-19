@@ -302,18 +302,26 @@ jobs:
     if: github.event_name == 'pull_request'
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted]
+        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
             prepare: false
-          - runner: selfhosted
+          - runner: selfhosted-docker
             labels:
               - self-hosted
               - cubecastle
               - docker
             prepare: true
+          - runner: selfhosted-wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            prepare: true
+            wsl_only: true
     runs-on: ${{ matrix.labels }}
+    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (matrix.wsl_only != true || github.event_name == 'workflow_dispatch') }}
     
     steps:
     - name: Checkout代码

@@ -5,7 +5,23 @@ on:
 
 jobs:
   diagnose:
-    runs-on: [self-hosted, cubecastle, docker]
+    name: Diagnose (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [docker, wsl]
+        include:
+          - runner: docker
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
+          - runner: wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+    runs-on: ${{ matrix.labels }}
     steps:
       - name: Checkout 仓库
         uses: actions/checkout@v4

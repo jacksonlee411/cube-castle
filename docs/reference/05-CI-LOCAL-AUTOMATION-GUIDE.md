@@ -1,7 +1,7 @@
 # 05 — CI/本地一键自动化指引（本地兜底 = PR 等效）
 
-版本: v1.3  
-最后更新: 2025-11-16  
+版本: v1.4  
+最后更新: 2025-11-20  
 适用范围: 前端 E2E 与统一门禁（CQRS/端口/禁用端点）+ 后端 golangci-lint  
 唯一事实来源: 工作流与脚本文件（见“权威索引”），本指南仅作执行指引与经验沉淀（若有偏差，以工作流与脚本为准）
 
@@ -46,6 +46,21 @@
 - ESLint 架构守卫：记录日志，不阻断
 - E2E（统一推荐）：`frontend-e2e-devserver.yml` 仅 compose 后端（postgres/redis/rest/graphql），前端由 Playwright dev server 启动（`PW_SKIP_SERVER=0`）
 - 历史 E2E：`frontend-e2e.yml` / `e2e-tests.yml` 使用包含前端容器的完整栈（逐步迁移中）
+
+## 自托管 Runner 选型（Plan 265 + Plan 269）
+- **默认：Docker Runner**
+  - 通过 `docker-compose.runner.yml`（一次性）或 `docker-compose.runner.persist.yml`（常驻）启动，标签 `[self-hosted,cubecastle,docker]`。
+  - 负责 Required Checks 的主通道，所有 workflow 仍需保留该路径以便回退。
+- **获批备选：WSL Runner**
+  - 2025-11-20（Plan 269）获准将 Runner 裸部署在 WSL（Ubuntu 20.04+/22.04），标签 `[self-hosted,cubecastle,wsl]`。
+  - 通过 `scripts/ci/runner/wsl-install.sh`/`wsl-uninstall.sh`/`wsl-verify.sh` 管理；安装/回滚流程详见 `docs/reference/wsl-runner-setup.md`。
+  - 启用条件：Docker Runner 因网络/依赖持续不可用或需要原生 WSL 工具链；必须保留 Docker Runner 作为热备。
+- **CI 工作流调整**
+  - 所有引用自托管 Runner 的 workflow（`document-sync`, `api-compliance`, `consistency-guard`, `ci-selfhosted-*`, `iig-guardian`, `contract-testing`, `plan-254-gates`, `e2e-smoke` 等）均已增加 `wsl` 标签。
+  - Workflow matrix 需包含 `[self-hosted, cubecastle, wsl]` 并在 job 注释中声明：Runner 必须具备 Docker CLI/Compose，业务服务依旧在容器中运行。
+- **记录与监控**
+  - 每次切换或新增 Runner 节点，必须在 Plan 265/266 中记录 Run ID、脚本日志与回滚方案。
+  - `scripts/network/verify-github-connectivity.sh` 与 `docs/reference/docker-network-playbook.md` 提供网络守护；`scripts/ci/runner/watchdog.sh` 可扩展自动校验。
 
 ## 本地一键（VS Code/命令行）
 - VS Code 任务（Terminal → Run Task…）：

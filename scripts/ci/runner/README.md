@@ -58,3 +58,36 @@ touch .ci/runner-watchdog.stop
 docker compose -f docker-compose.runner.yml down -v
 ```
 删除 Runners 页面的记录；归档 smoke 工作流（如不再需要）。
+
+---
+
+## 六、WSL Runner（Plan 269 例外，CI 工具专用）
+
+> 2025-11-20 起，Plan 269 批准在满足“业务服务依旧运行在 Docker Compose 中”的前提下，允许在 WSL 发行版（Ubuntu 20.04+/22.04）中直接部署 GitHub Actions Runner，以缓解容器内网络/依赖问题。WSL Runner 标签固定为 `self-hosted,cubecastle,wsl`，Docker Runner 仍为默认与回退路径。
+
+1. **安装 / 升级**
+   ```bash
+   # 需要在 WSL 命令行中执行，确保已满足 Go>=1.24.9、Node>=18、Docker CLI 可访问宿主 Docker Daemon
+   bash scripts/ci/runner/wsl-install.sh \
+     --repo jacksonlee411/cube-castle \
+     --runner-dir "$HOME/actions-runner" \
+     --labels self-hosted,cubecastle,wsl
+   ```
+   - 脚本会自动加载 `secrets/.env.local` 中的 `GH_RUNNER_PAT`/`GH_RUNNER_REG_TOKEN`，并在 `logs/wsl-runner/install-*.log` 落盘日志。
+   - 若需重新注册，使用 `--force-reconfigure`（需 PAT）；若 WSL 已启用 systemd，可附加 `--use-systemd`，否则默认使用 `tmux cc-runner` 守护。
+2. **校验**
+   ```bash
+   bash scripts/ci/runner/wsl-verify.sh
+   ```
+   - 检查 Go/Node/Docker 版本、`docker context`、Runner 目录状态、tmux session，并调用 `scripts/network/verify-github-connectivity.sh --smoke`。
+   - 若 `GH_RUNNER_PAT` 可用，会额外查询 GitHub API，确认 `${RUNNER_NAME}` 的在线状态。
+3. **卸载 / 回滚**
+   ```bash
+   bash scripts/ci/runner/wsl-uninstall.sh --repo jacksonlee411/cube-castle
+   ```
+   - 自动停止 tmux/systemd、调用 `./config.sh remove --token ...` 并将目录备份到 `<dir>.bak-<timestamp>`。
+   - 任何 WSL 故障需在 30 分钟内切回 Docker Runner，并在 Plan 265/266/269 记录 run ID + 回滚日志。
+4. **文档与守护**
+   - 完整步骤详见 `docs/reference/wsl-runner-setup.md`、对比见 `docs/reference/wsl-runner-comparison.md`。
+   - 网络诊断与 hosts/代理指南：`docs/reference/docker-network-playbook.md`；watchdog 可调用 `scripts/ci/runner/wsl-verify.sh` + `scripts/network/verify-github-connectivity.sh`。
+   - 所有 workflow self-hosted job 均已支持 `runs-on: [self-hosted,cubecastle,wsl]`（通过 matrix `wsl_only` 控制运行时机），请将首个成功 run 的 Run ID 写入 Plan 265/266。

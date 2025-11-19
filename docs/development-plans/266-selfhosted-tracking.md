@@ -16,6 +16,9 @@
 6. 2025-11-20 晚间：根据 Plan 267-D 执行 `/etc/wsl.conf` `[network]\ngenerateHosts=false` + `sudo bash scripts/network/configure-github-hosts.sh`，宿主与 Runner 侧 `getent hosts github.com`、`curl -I https://github.com`、`git ls-remote https://github.com/jacksonlee411/cube-castle` 均返回 200 并解析到官方 IP（详见 `docs/development-plans/267-docker-network-stability.md:39-43`），`/etc/hosts.plan267.<timestamp>.bak` 记录回滚点。
 7. 2025-11-20 10:46Z：首版 `scripts/network/verify-github-connectivity.sh`（Plan 266/267 诊断脚本）在宿主与 `gh-runner` 容器内依次执行 `getent hosts github.com`、带浏览器 UA 的 `curl -sS -D - https://github.com`、`GIT_CURL_VERBOSE=1 git ls-remote https://github.com/jacksonlee411/cube-castle`、`openssl s_client -connect github.com:443`，日志落盘 `logs/ci-monitor/network-20251119T104614Z.log`，所有命令均返回 200/TLS OK，证明 hosts 覆盖后 Runner 同样可以建立 TLS。
 8. 2025-11-20 12:47Z / 12:57Z：依次触发自托管版 `document-sync`（run `19502442553`、`19502825153`）。节点缓存已在 Runner `_work/_tool/node/18.20.8/x64` 预热，Job 能走到 “文档同步一致性检查”。但上传工件时复用 `document-sync-report-${{ github.run_number }}` 导致 409 conflict（相同 run 上多次 attempt），GitHub 将自托管 job 标记为取消；workflow 已改为 `document-sync-report-${{ github.run_number }}-${{ github.run_attempt }}`，仍待推送后验证。Run 日志同时记录 checkout 阶段偶发 `GnuTLS recv error (-110)`，需继续跟踪网络稳定性。
+9. 2025-11-20 15:10Z：Plan 269 批准 WSL Runner 作为自托管备选，脚本 `scripts/ci/runner/wsl-install.sh`/`wsl-uninstall.sh`/`wsl-verify.sh` 与文档 `docs/reference/wsl-runner-setup.md`、`docs/reference/wsl-runner-comparison.md` 已落库；所有自托管 workflow 的 `runs-on` 标签同步新增 `wsl`，Plan 265/266 需记录首次 WSL run 的 Run ID 与日志。
+10. 2025-11-20 07:11Z：在 WSL 主机 `DESKTOP-S9U9E9K` 通过 `bash scripts/ci/runner/wsl-install.sh` 重新拉起 `cc-runner`（日志：`logs/wsl-runner/install-20251120T071110.log`、`run-20251120T071113.log`），`gh api repos/jacksonlee411/cube-castle/actions/runners` 已显示 `wsl-DESKTOP-S9U9E9K` 在线；`logs/wsl-runner/network-smoke-20251120T071157.log` 与 `network-smoke-20251120T071451.log` 记录宿主探测 OK 但 `docker-compose.runner` 内 `curl` 依旧 56/timeout，证明 WSL Runner 仍是当前可用通道。
+11. 2025-11-20 07:16Z：`workflow_dispatch` 触发 `document-sync`（run `19519517913`）尝试记录首个 `[self-hosted,cubecastle,wsl]` run，结果因远端 `.github/workflows/document-sync.yml` 尚未合入 `selfhosted-wsl` 矩阵，GitHub 仅调度 `cc-runner-docker-compose` 并在“质量门禁”阶段失败（日志见 `https://github.com/jacksonlee411/cube-castle/actions/runs/19519517913`）。需尽快推送 workflow 变更后再复测。
 
 ## 2. 遇到的问题 / 风险
 
@@ -25,6 +28,8 @@
 | `api-compliance` run 长时间排队 | workflow_dispatch `19491103285` 仍 queued，自托管修复尚未验收 | 暂无 run ID 可记录 | GitHub Actions 排队，需等待 |
 | `iig-guardian` run 未执行 | workflow_dispatch `19491533343` queued，同上 | 暂无 run ID 可记录 | GitHub Actions 排队，需等待 |
 | Artifact 命名冲突导致 selfhosted 失效 | 自托管 `document-sync` 运行多次尝试（run `19502442553`、`19502825153`）时，`actions/upload-artifact@v4` 使用固定名称 `document-sync-report-${{ github.run_number }}`，GitHub 不允许在同一 run 中重复创建同名工件，于是上传返回 409、Job 被标记为 “The operation was canceled”。 | 自托管 run 无法进入清理/后续步骤；Plan 265 仍缺少成功 run。workflow 已改为 `document-sync-report-${{ github.run_number }}-${{ github.run_attempt }}`，需推送并重跑验证 | 平台组（更新 workflow、确认 artifact 命名不会冲突） |
+| WSL Runner 运行记录 | Plan 269 虽已批准 WSL Runner 作为备选，但尚未记录任何 `self-hosted,cubecastle,wsl` 的成功 run；`scripts/ci/runner/wsl-verify.sh`、`logs/wsl-runner/*.log` 也未归档 | 没有 WSL 运行证据，Branch Protection 仍只能依赖 Docker Runner；若未来切换 WSL 无记录，会违反合规要求 | DevInfra + 平台组：在完成安装/验证后更新 Plan 265/266 Run ID 表，并确保回滚日志齐全 |
+| Workflow WSL 矩阵未落库 | `.github/workflows/document-sync.yml`、`ci-selfhosted-smoke.yml` 等在本地已添加 `selfhosted-wsl`，但远端 `feat/shared-dev` 尚未推送，`workflow_dispatch`（run `19519517913`）仍只调度 docker/ubuntu job。 | 无法获取“WSL run ID”，Plan 265/269 验收停滞；WSL Runner 目前无任务可执行。 | 将 workflow 变更整理成一次提交，推送至共享分支后重新触发 `document-sync`/`api-compliance`/`consistency-guard`/`ci-selfhosted-smoke`，记录 Run ID + `logs/wsl-runner/*`。 |
 
 ## 3. 下一步待办
 
@@ -45,11 +50,12 @@
 1. `api-compliance`、`iig-guardian`、`document-sync`：在 TLS 验证通过与配置清理完成后，依次通过 `workflow_dispatch` 触发 self-hosted job，记录 run ID、job ID、commit SHA 及准备/清理脚本日志路径。
 2. Plan 265 更新：将 run 结果（含成功/失败原因、回滚状态）写入 `docs/development-plans/265-selfhosted-required-checks.md` 的进展表，并链接到 `logs/ci-monitor/` 中的诊断文件。
 3. Branch Protection：在任一 workflow 的 self-hosted job 连续成功 ≥3 次后（记录 run ID 列表），向 DevInfra 提交变更申请，将 `api-compliance (selfhosted)`、`document-sync (selfhosted)`、`consistency-guard (selfhosted)` 添加到 GitHub 保护规则；若任一 job 再次失败，按 Plan 265 的回滚步骤临时移除 Required 状态并补充事故记录。
+4. **WSL Runner 记录**：完成 `scripts/ci/runner/wsl-install.sh` + `wsl-verify.sh` 后，利用 `workflow_dispatch` 触发 `document-sync`/`api-compliance`/`consistency-guard`/`ci-selfhosted-smoke` 的 `runs-on: [self-hosted,cubecastle,wsl]` job，Run ID + `logs/wsl-runner/*.log` + `_diag` 路径需同步至 Plan 265/269；若执行失败必须立即用 `wsl-uninstall.sh` 回滚，并在本计划中登记失败原因/回滚时间。
 
 ### 3.4 里程碑验收
 
 - **M1（2025-11-21）**：完成 TLS 证据采集 + 两项硬编码整改，`scripts/ci/check-hardcoded-configs.sh` 在本地为绿色。
-- **M2（2025-11-24）**：三大 workflow 在 self-hosted runner 上跑通一次，Plan 265 记录 run ID 与日志。
+- **M2（2025-11-24）**：三大 workflow 在 self-hosted runner 上跑通一次，并额外补齐 `self-hosted,cubecastle,wsl` 标签的首个成功 run；Plan 265/269 记录 Run ID 与日志。
 - **M3（2025-11-27）**：连续 3 次自托管绿灯并完成 Branch Protection 更新。
 
 ## 4. 附录：最新 run ID
@@ -60,3 +66,4 @@
 | api-compliance (selfhosted) | `19490959491` / job `55782892303` | ❌ (checkout TLS) | 已修复 checkout 顺序，等待 run 19491103285 |
 | iig-guardian (selfhosted) | `19491097147` / job 未执行 | ❌ (`paths-filter` 前无 checkout) | YAML 已修正，等待 run 19491533343 |
 | consistency-guard (ubuntu) | `19489929404` / job `55780026192` | ❌ (硬编码脚本) | 2025-11-20 本地脚本 issues=0，待自托管 run 验证 |
+| document-sync (selfhosted,cubecastle,wsl) | 待触发 | ⏳ | Plan 269 要求记录首个 WSL run，等待脚本/workflow 更新后通过 `workflow_dispatch` 触发 |
