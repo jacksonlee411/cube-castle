@@ -297,63 +297,63 @@ jobs:
             请在合并前确保所有检查项通过。`
           })
 
-performance-impact-analysis:
-  name: 性能影响分析
-  if: github.event_name == 'pull_request'
-  strategy:
-    matrix:
-      runner: [ubuntu, selfhosted]
-      include:
-        - runner: ubuntu
-          labels: ubuntu-latest
-          prepare: false
-        - runner: selfhosted
-          labels:
-            - self-hosted
-            - cubecastle
-            - docker
-          prepare: true
-  runs-on: ${{ matrix.labels }}
-  
-  steps:
-  - name: Checkout代码
-    uses: actions/checkout@v4
+  performance-impact-analysis:
+    name: 性能影响分析
+    if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        runner: [ubuntu, selfhosted]
+        include:
+          - runner: ubuntu
+            labels: ubuntu-latest
+            prepare: false
+          - runner: selfhosted
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
+            prepare: true
+    runs-on: ${{ matrix.labels }}
     
-  - name: 自托管环境准备
-    if: matrix.prepare == true
-    shell: bash
-    run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v4
+      
+    - name: 自托管环境准备
+      if: matrix.prepare == true
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis
 
-  - name: 设置Node.js环境
-    uses: actions/setup-node@v4
-    with:
-      node-version: '20'
-      cache: 'npm'
-      cache-dependency-path: frontend/package-lock.json
-      
-  - name: 安装依赖包
-    run: |
-      cd frontend
-      npm ci
-      
-  - name: 构建性能分析
-    run: |
-      cd frontend
-      npm run build
-      
-  - name: Bundle大小分析
-    run: |
-      cd frontend
-      echo "📊 Bundle大小分析：" 
-      du -sh dist/ || echo "构建输出不存在"
-      
-  - name: 契约测试性能基准
-    run: |
-      cd frontend
-      time npm run test:contract
-      echo "契约测试执行时间已记录"
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: 安装依赖包
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: 构建性能分析
+      run: |
+        cd frontend
+        npm run build
+        
+    - name: Bundle大小分析
+      run: |
+        cd frontend
+        echo "📊 Bundle大小分析：" 
+        du -sh dist/ || echo "构建输出不存在"
+        
+    - name: 契约测试性能基准
+      run: |
+        cd frontend
+        time npm run test:contract
+        echo "契约测试执行时间已记录"
 
-  - name: 自托管环境清理
-    if: matrix.prepare == true
-    shell: bash
-    run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis --teardown
+    - name: 自托管环境清理
+      if: matrix.prepare == true
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis --teardown

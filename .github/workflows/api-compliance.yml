@@ -66,13 +66,13 @@ jobs:
         run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance
       - name: Checkout代码
         if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 获取完整历史用于diff检查
 
       - name: 设置 Node.js 环境
         if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
