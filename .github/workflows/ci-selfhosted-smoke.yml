@@ -78,8 +78,8 @@ jobs:
           for svc in "${SERVICES[@]}"; do
             echo "⏳ waiting for $svc to become healthy..."
             ATTEMPTS=0
-            until COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps --format json \
-              | jq -e --arg svc "$COMPOSE_PROJECT_NAME-$svc-1" '.[] | select(.Name==$svc) | .State.Health.Status == "healthy"' >/dev/null; do
+            CONTAINER_NAME="${COMPOSE_PROJECT_NAME}-${svc}-1"
+            until STATUS=$(docker inspect "$CONTAINER_NAME" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' 2>/dev/null || echo "unknown"); [ "$STATUS" = "healthy" ]; do
               ATTEMPTS=$((ATTEMPTS+1))
               if [ "$ATTEMPTS" -gt 30 ]; then
                 echo "❌ $svc failed to become healthy" >&2
@@ -95,7 +95,11 @@ jobs:
       - name: 健康检查自检
         run: |
           set -euo pipefail
-          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps --format json | jq -r '.[] | "\(.Name) \(.State.Health.Status)"'
+          for svc in postgres redis; do
+            CONTAINER_NAME="${COMPOSE_PROJECT_NAME}-${svc}-1"
+            STATUS=$(docker inspect "$CONTAINER_NAME" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' 2>/dev/null || echo "unknown")
+            echo "$CONTAINER_NAME $STATUS"
+          done
 
       - name: 清理
         if: always()
