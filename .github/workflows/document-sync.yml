@@ -62,7 +62,7 @@ jobs:
               - self-hosted
               - cubecastle
               - docker
-            prepare: true
+            prepare: false
     runs-on: ${{ matrix.labels }}
     permissions:
       contents: write
