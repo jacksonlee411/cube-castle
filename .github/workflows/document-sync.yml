@@ -70,14 +70,14 @@ jobs:
 
     steps:
     - name: 📥 检出代码
-      uses: actions/checkout@v4
+      uses: ./.github/actions/checkout
       with:
         fetch-depth: 0  # 获取完整历史用于比较分析
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Detect docs-only/ci-only changes
       id: changes
-      uses: dorny/paths-filter@v3
+      uses: ./.github/actions/paths-filter
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         filters: |
@@ -108,7 +108,7 @@ jobs:
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
     - name: 📦 设置Node.js环境
       if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
-      uses: actions/setup-node@v4
+      uses: ./.github/actions/setup-node
       with:
         node-version: '18'
         cache: 'npm'
@@ -250,7 +250,7 @@ jobs:
 
     - name: 📤 上传同步报告
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
         name: document-sync-report-${{ matrix.runner }}-${{ github.run_number }}-${{ github.run_attempt }}
         path: |
@@ -265,7 +265,7 @@ jobs:
 
     - name: 💬 PR评论目录边界检查结果
       if: github.event_name == 'pull_request' && steps.boundary_check.outputs.boundary_ok == 'false'
-      uses: actions/github-script@v7
+      uses: ./.github/actions/github-script
       with:
         script: |
           const fs = require('fs');
@@ -336,7 +336,7 @@ jobs:
 
     - name: 💬 PR评论同步结果
       if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v7
+      uses: ./.github/actions/github-script
       with:
         script: |
           const fs = require('fs');
