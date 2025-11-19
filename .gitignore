@@ -27,6 +27,8 @@ nextjs-app/node_modules/
 # Build outputs and cache
 .next/
 dist/
+!.github/actions/**/dist/
+!.github/actions/**/dist/**
 build/
 target/
 
