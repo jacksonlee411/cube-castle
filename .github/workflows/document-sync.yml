@@ -53,12 +53,15 @@ jobs:
       matrix:
         runner:
           - name: ubuntu
-            runs_on: "[\"ubuntu-latest\"]"
+            labels: ubuntu-latest
             prepare: false
           - name: selfhosted
-            runs_on: "[\"self-hosted\",\"cubecastle\",\"docker\"]"
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
             prepare: true
-    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
+    runs-on: ${{ matrix.runner.labels }}
     permissions:
       contents: write
       pull-requests: write

@@ -16,10 +16,13 @@ jobs:
       matrix:
         runner:
           - name: ubuntu
-            runs_on: '["ubuntu-latest"]'
+            labels: ubuntu-latest
           - name: selfhosted
-            runs_on: '["self-hosted","cubecastle","docker"]'
-    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
+    runs-on: ${{ matrix.runner.labels }}
     env:
       ENFORCE: "0"  # TODO-TEMPORARY(2025-11-25): 仅报告 org:write 等老 scope，权限收敛后恢复 ENFORCE=1
     steps:
@@ -66,10 +69,13 @@ jobs:
       matrix:
         runner:
           - name: ubuntu
-            runs_on: '["ubuntu-latest"]'
+            labels: ubuntu-latest
           - name: selfhosted
-            runs_on: '["self-hosted","cubecastle","docker"]'
-    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
+    runs-on: ${{ matrix.runner.labels }}
     timeout-minutes: 20
     env:
       DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
@@ -110,10 +116,13 @@ jobs:
       matrix:
         runner:
           - name: ubuntu
-            runs_on: '["ubuntu-latest"]'
+            labels: ubuntu-latest
           - name: selfhosted
-            runs_on: '["self-hosted","cubecastle","docker"]'
-    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
+    runs-on: ${{ matrix.runner.labels }}
     timeout-minutes: 15
     env:
       DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable

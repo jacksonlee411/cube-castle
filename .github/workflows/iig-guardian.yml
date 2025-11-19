@@ -2,9 +2,9 @@ name: guardian-iig     (Implementation Inventory Guardian)
 
 on:
   push:
-    branches: [ main, master, develop, "feature/*" ]
+    branches: [ main, master, develop, "feature/*", feat/shared-dev ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feat/shared-dev ]
   workflow_dispatch:
     inputs:
       feature_description:
@@ -45,12 +45,15 @@ jobs:
       matrix:
         runner:
           - name: ubuntu
-            runs_on: "[\"ubuntu-latest\"]"
+            labels: ubuntu-latest
             prepare: false
           - name: selfhosted
-            runs_on: "[\"self-hosted\",\"cubecastle\",\"docker\"]"
+            labels:
+              - self-hosted
+              - cubecastle
+              - docker
             prepare: true
-    runs-on: ${{ fromJson(matrix.runner.runs_on) }}
+    runs-on: ${{ matrix.runner.labels }}
     permissions:
       contents: read
       pull-requests: write
