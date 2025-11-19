@@ -14,15 +14,16 @@ jobs:
   scan:
     strategy:
       matrix:
-        runner:
-          - name: ubuntu
+        runner: [ubuntu, selfhosted]
+        include:
+          - runner: ubuntu
             labels: ubuntu-latest
-          - name: selfhosted
+          - runner: selfhosted
             labels:
               - self-hosted
               - cubecastle
               - docker
-    runs-on: ${{ matrix.runner.labels }}
+    runs-on: ${{ matrix.labels }}
     env:
       ENFORCE: "0"  # TODO-TEMPORARY(2025-11-25): 仅报告 org:write 等老 scope，权限收敛后恢复 ENFORCE=1
     steps:
@@ -67,15 +68,16 @@ jobs:
     name: Audit DB Consistency (021→022 + Assertions)
     strategy:
       matrix:
-        runner:
-          - name: ubuntu
+        runner: [ubuntu, selfhosted]
+        include:
+          - runner: ubuntu
             labels: ubuntu-latest
-          - name: selfhosted
+          - runner: selfhosted
             labels:
               - self-hosted
               - cubecastle
               - docker
-    runs-on: ${{ matrix.runner.labels }}
+    runs-on: ${{ matrix.labels }}
     timeout-minutes: 20
     env:
       DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
@@ -114,15 +116,16 @@ jobs:
     name: Temporal Consistency (read-only checks)
     strategy:
       matrix:
-        runner:
-          - name: ubuntu
+        runner: [ubuntu, selfhosted]
+        include:
+          - runner: ubuntu
             labels: ubuntu-latest
-          - name: selfhosted
+          - runner: selfhosted
             labels:
               - self-hosted
               - cubecastle
               - docker
-    runs-on: ${{ matrix.runner.labels }}
+    runs-on: ${{ matrix.labels }}
     timeout-minutes: 15
     env:
       DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable

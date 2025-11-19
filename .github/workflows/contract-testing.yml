@@ -302,24 +302,25 @@ performance-impact-analysis:
   if: github.event_name == 'pull_request'
   strategy:
     matrix:
-      runner:
-        - name: ubuntu
+      runner: [ubuntu, selfhosted]
+      include:
+        - runner: ubuntu
           labels: ubuntu-latest
           prepare: false
-        - name: selfhosted
+        - runner: selfhosted
           labels:
             - self-hosted
             - cubecastle
             - docker
           prepare: true
-  runs-on: ${{ matrix.runner.labels }}
+  runs-on: ${{ matrix.labels }}
   
   steps:
   - name: Checkout代码
     uses: actions/checkout@v4
     
   - name: 自托管环境准备
-    if: matrix.runner.prepare == true
+    if: matrix.prepare == true
     shell: bash
     run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis
 
@@ -353,6 +354,6 @@ performance-impact-analysis:
       echo "契约测试执行时间已记录"
 
   - name: 自托管环境清理
-    if: matrix.runner.prepare == true
+    if: matrix.prepare == true
     shell: bash
     run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis --teardown

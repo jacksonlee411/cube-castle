@@ -51,17 +51,18 @@ jobs:
     name: 📄 文档同步一致性验证
     strategy:
       matrix:
-        runner:
-          - name: ubuntu
+        runner: [ubuntu, selfhosted]
+        include:
+          - runner: ubuntu
             labels: ubuntu-latest
             prepare: false
-          - name: selfhosted
+          - runner: selfhosted
             labels:
               - self-hosted
               - cubecastle
               - docker
             prepare: true
-    runs-on: ${{ matrix.runner.labels }}
+    runs-on: ${{ matrix.labels }}
     permissions:
       contents: write
       pull-requests: write
@@ -96,7 +97,7 @@ jobs:
         echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
         exit 0
     - name: 自托管环境准备
-      if: matrix.runner.prepare == true && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: matrix.prepare == true && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
     - name: 📥 检出代码
@@ -258,7 +259,7 @@ jobs:
           !reports/document-sync/**/*.tmp
 
     - name: 自托管环境清理
-      if: matrix.runner.prepare == true && always()
+      if: matrix.prepare == true && always()
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync --teardown
         retention-days: 30
