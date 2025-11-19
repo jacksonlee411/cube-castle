@@ -69,6 +69,12 @@ jobs:
       checks: write
 
     steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史用于比较分析
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Detect docs-only/ci-only changes
       id: changes
       uses: dorny/paths-filter@v3
@@ -100,13 +106,6 @@ jobs:
       if: matrix.prepare == true && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
-    - name: 📥 检出代码
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # 获取完整历史用于比较分析
-        token: ${{ secrets.GITHUB_TOKEN }}
-
     - name: 📦 设置Node.js环境
       if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
       uses: actions/setup-node@v4

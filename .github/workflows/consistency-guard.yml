@@ -79,11 +79,6 @@ jobs:
               - docker
     runs-on: ${{ matrix.labels }}
     timeout-minutes: 20
-    env:
-      DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
-      ENFORCE: "1"
-      APPLY_FIXES: "0"
-      CI_PREPARE_RUN_MIGRATIONS: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -100,10 +95,16 @@ jobs:
             | sudo tar -xz -C /usr/local/bin goose
 
       - name: Apply Goose migrations
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" goose -dir database/migrations up
 
       - name: Enforce audit consistency
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+          ENFORCE: "1"
+          APPLY_FIXES: "0"
         run: |
           bash scripts/apply-audit-fixes.sh
 
@@ -144,6 +145,8 @@ jobs:
           sudo apt-get install -y postgresql-client
 
       - name: Load schema needed for checks (minimal)
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           set -euo pipefail
           if [ -f database/schema.sql ]; then
@@ -153,6 +156,8 @@ jobs:
           fi
 
       - name: Run temporal consistency inspection (read-only)
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f sql/inspection/check_temporal_consistency.sql || true
 
