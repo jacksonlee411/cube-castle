@@ -103,11 +103,11 @@ jobs:
         echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
         exit 0
     - name: 自托管环境准备
-      if: matrix.prepare == true && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: matrix.prepare == true && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
     - name: 📦 设置Node.js环境
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       uses: actions/setup-node@v4
       with:
         node-version: '18'
@@ -115,7 +115,7 @@ jobs:
         cache-dependency-path: '**/package-lock.json'
 
     - name: 🔍 检测文档变更
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       id: detect_changes
       run: |
         # 获取变更文件列表
@@ -133,7 +133,7 @@ jobs:
         echo "$CHANGED_FILES" | tr ' ' '\n'
 
     - name: 🔒 目录边界检查（Reference vs Plans）
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       id: boundary_check
       run: |
         echo "🔒 执行 Reference vs Plans 目录边界检查..."
@@ -191,7 +191,7 @@ jobs:
         fi
 
     - name: 📊 文档同步一致性检查
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       id: sync_check
       run: |
         echo "🔄 执行文档同步检查..."
