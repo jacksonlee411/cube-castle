@@ -70,7 +70,7 @@ jobs:
 
     steps:
     - name: 📥 检出代码
-      uses: ./.github/actions/checkout
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0  # 获取完整历史用于比较分析
         token: ${{ secrets.GITHUB_TOKEN }}
