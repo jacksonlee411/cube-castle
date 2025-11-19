@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -361,7 +362,7 @@ func (h *DevToolsHandler) TestAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 构建目标URL
-	targetURL := fmt.Sprintf("http://localhost:9090%s", req.Path)
+	targetURL := fmt.Sprintf("%s%s", strings.TrimRight(h.commandBaseURL(), "/"), req.Path)
 
 	// 创建请求
 	testReq, err := http.NewRequest(req.Method, targetURL, bodyReader)
@@ -449,4 +450,20 @@ func (h *DevToolsHandler) writeErrorResponse(w http.ResponseWriter, code, messag
 			WithFields(pkglogger.Fields{"error": err}).
 			Error("encode devtools error response failed")
 	}
+}
+
+func (h *DevToolsHandler) commandBaseURL() string {
+	if v := strings.TrimSpace(os.Getenv("DEVTOOLS_COMMAND_BASE_URL")); v != "" {
+		return strings.TrimRight(v, "/")
+	}
+	host := strings.TrimSpace(os.Getenv("DEVTOOLS_COMMAND_HOST"))
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "9090"
+	}
+	port = strings.TrimPrefix(port, ":")
+	return fmt.Sprintf("http://%s:%s", host, port)
 }
