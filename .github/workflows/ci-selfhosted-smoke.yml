@@ -74,12 +74,23 @@ jobs:
       - name: 等待健康检查
         run: |
           set -euo pipefail
-          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml wait || (
-            echo "⚠️ Compose wait failed, dumping diagnostics" && \
-            COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps && \
-            COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml logs && \
-            exit 1
-          )
+          SERVICES=(postgres redis)
+          for svc in "${SERVICES[@]}"; do
+            echo "⏳ waiting for $svc to become healthy..."
+            ATTEMPTS=0
+            until COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps --format json \
+              | jq -e --arg svc "$COMPOSE_PROJECT_NAME-$svc-1" '.[] | select(.Name==$svc) | .State.Health.Status == "healthy"' >/dev/null; do
+              ATTEMPTS=$((ATTEMPTS+1))
+              if [ "$ATTEMPTS" -gt 30 ]; then
+                echo "❌ $svc failed to become healthy" >&2
+                COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps
+                COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml logs
+                exit 1
+              fi
+              sleep 2
+            done
+            echo "✅ $svc healthy"
+          done
 
       - name: 健康检查自检
         run: |
