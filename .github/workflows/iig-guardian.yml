@@ -62,6 +62,11 @@ jobs:
       actions: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Detect docs-only changes
         id: changes
         uses: dorny/paths-filter@v3
@@ -94,12 +99,6 @@ jobs:
         if: matrix.prepare == true && steps.changes.outputs.docs_only != 'true'
         shell: bash
         run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian
-      - name: Checkout repository
-        if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 获取完整历史
-
       - name: Setup Node.js runtime
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
