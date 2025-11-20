@@ -93,9 +93,11 @@ jobs:
             - '!database/**'
             - '!tests/**'
     - name: Docs/CI-only fast pass (Plan 261 临时短路)
+      id: fast_pass
       if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
       run: |
         echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
+        echo "fastpass=true" >> "$GITHUB_OUTPUT"
         exit 0
     - name: 自托管环境准备
       if: matrix.prepare == true && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
@@ -407,13 +409,20 @@ jobs:
     - name: ⚠️ 质量门禁检查
       if: always()
       run: |
-        SYNC_SUCCESS="${{ steps.sync_check.outputs.sync_success }}"
+        FAST_PASS="${{ steps.fast_pass.outputs.fastpass || 'false' }}"
+        SYNC_SUCCESS="${{ steps.sync_check.outputs.sync_success || steps.fast_pass.outputs.fastpass || '' }}"
         CONFLICTS="${{ steps.sync_check.outputs.conflicts }}"
         BOUNDARY_OK="${{ steps.boundary_check.outputs.boundary_ok || 'true' }}"
         
+        echo "Fast pass: $FAST_PASS"
         echo "同步状态: $SYNC_SUCCESS"
         echo "冲突数量: $CONFLICTS"
         echo "目录边界: $BOUNDARY_OK"
+        
+        if [[ "$FAST_PASS" == "true" ]]; then
+          echo "✅ Docs/CI-only fast pass: 已在 Plan 261 例外窗口中跳过重型检查"
+          exit 0
+        fi
         
         if [[ "$SYNC_SUCCESS" != "true" || "$BOUNDARY_OK" != "true" ]]; then
           if [[ "$AUTO_SYNC" == "true" ]]; then
