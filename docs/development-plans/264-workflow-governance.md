@@ -4,7 +4,8 @@
 **标题**: GitHub Actions 工作流盘点与激活策略  
 **版本**: v0.1  
 **创建日期**: 2025-11-18  
-**关联计划**: Plan 215（Phase2 日志）、Plan 255（本地 pre-push 守卫）、Plan 257（Facade Coverage）、Plan 258（Contract Drift Gate）
+**关联计划**: Plan 215（Phase2 日志）、Plan 255（本地 pre-push 守卫）、Plan 257（Facade Coverage）、Plan 258（Contract Drift Gate）  
+**状态**: ✅ 已完成（2025-11-20，11/11 Required checks 绿灯，证据见 §7）
 
 ---
 
