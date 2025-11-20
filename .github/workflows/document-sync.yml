@@ -117,17 +117,17 @@ jobs:
             - '!tests/**'
     - name: Docs/CI-only fast pass (Plan 261 临时短路)
       id: fast_pass
-      if: env.RUN_SELFHOSTED == 'true' and: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
+      if: env.RUN_SELFHOSTED == 'true' && (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
       run: |
         echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
         echo "fastpass=true" >> "$GITHUB_OUTPUT"
         exit 0
     - name: 自托管环境准备
-      if: env.RUN_SELFHOSTED == 'true' and: matrix.prepare == true && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
+      if: env.RUN_SELFHOSTED == 'true' && matrix.prepare == true && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
     - name: 📦 设置Node.js环境
-      if: env.RUN_SELFHOSTED == 'true' and: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
+      if: env.RUN_SELFHOSTED == 'true' && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
       uses: ./.github/actions/setup-node
       with:
         node-version: '18'
@@ -135,7 +135,7 @@ jobs:
         cache-dependency-path: '**/package-lock.json'
 
     - name: 🔍 检测文档变更
-      if: env.RUN_SELFHOSTED == 'true' and: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
+      if: env.RUN_SELFHOSTED == 'true' && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
       id: detect_changes
       run: |
         # 获取变更文件列表
@@ -153,7 +153,7 @@ jobs:
         echo "$CHANGED_FILES" | tr ' ' '\n'
 
     - name: 🔒 目录边界检查（Reference vs Plans）
-      if: env.RUN_SELFHOSTED == 'true' and: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
+      if: env.RUN_SELFHOSTED == 'true' && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
       id: boundary_check
       run: |
         echo "🔒 执行 Reference vs Plans 目录边界检查..."
@@ -211,7 +211,7 @@ jobs:
         fi
 
     - name: 📊 文档同步一致性检查
-      if: env.RUN_SELFHOSTED == 'true' and: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
+      if: env.RUN_SELFHOSTED == 'true' && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
       id: sync_check
       run: |
         echo "🔄 执行文档同步检查..."
@@ -279,12 +279,12 @@ jobs:
         retention-days: 30
 
     - name: 自托管环境清理
-      if: env.RUN_SELFHOSTED == 'true' and: matrix.prepare == true && always()
+      if: ${{ env.RUN_SELFHOSTED == 'true' && matrix.prepare == true && always() }}
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync --teardown
 
     - name: 💬 PR评论目录边界检查结果
-      if: env.RUN_SELFHOSTED == 'true' and: github.event_name == 'pull_request' && steps.boundary_check.outputs.boundary_ok == 'false'
+      if: env.RUN_SELFHOSTED == 'true' && github.event_name == 'pull_request' && steps.boundary_check.outputs.boundary_ok == 'false'
       uses: ./.github/actions/github-script
       with:
         script: |
@@ -355,7 +355,7 @@ jobs:
         cat sync_summary.md
 
     - name: 💬 PR评论同步结果
-      if: env.RUN_SELFHOSTED == 'true' and: github.event_name == 'pull_request' && always()
+      if: ${{ env.RUN_SELFHOSTED == 'true' && github.event_name == 'pull_request' && always() }}
       uses: ./.github/actions/github-script
       with:
         script: |
@@ -401,7 +401,7 @@ jobs:
           });
 
     - name: 🔄 自动同步提交 (如果启用)
-      if: env.RUN_SELFHOSTED == 'true' and: env.AUTO_SYNC == 'true' && env.DRY_RUN == 'false' && steps.sync_check.outputs.conflicts > 0
+      if: env.RUN_SELFHOSTED == 'true' && env.AUTO_SYNC == 'true' && env.DRY_RUN == 'false' && steps.sync_check.outputs.conflicts > 0
       run: |
         # 配置Git
         git config --local user.email "action@github.com"
