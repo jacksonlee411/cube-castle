@@ -35,6 +35,7 @@ allowed=(
   "docker-compose.runner.yml"
   "docker-compose.runner.ghcr.yml"
   "docker-compose.runner.docker.yml"
+  "docker-compose.runner.persist.yml"
   "docker-compose.test.yml"
   "docker-compose.yml"
   "go.mod"
