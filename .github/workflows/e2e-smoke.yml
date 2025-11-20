@@ -26,12 +26,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [ubuntu, selfhosted-docker, selfhosted-wsl]
+        label: [ubuntu, selfhosted-wsl]
         include:
           - label: ubuntu
             runs_on: '["ubuntu-latest"]'
-          - label: selfhosted-docker
-            runs_on: '["self-hosted","cubecastle","docker"]'
           - label: selfhosted-wsl
             runs_on: '["self-hosted","cubecastle","wsl"]'
             wsl_only: true

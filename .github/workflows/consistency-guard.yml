@@ -14,15 +14,10 @@ jobs:
   scan:
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
+        runner: [ubuntu, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
-          - runner: selfhosted-docker
-            labels:
-              - self-hosted
-              - cubecastle
-              - docker
           - runner: selfhosted-wsl
             labels:
               - self-hosted
@@ -75,15 +70,10 @@ jobs:
     name: Audit DB Consistency (021→022 + Assertions)
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
+        runner: [ubuntu, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
-          - runner: selfhosted-docker
-            labels:
-              - self-hosted
-              - cubecastle
-              - docker
           - runner: selfhosted-wsl
             labels:
               - self-hosted
@@ -131,15 +121,10 @@ jobs:
     name: Temporal Consistency (read-only checks)
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
+        runner: [ubuntu, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
-          - runner: selfhosted-docker
-            labels:
-              - self-hosted
-              - cubecastle
-              - docker
           - runner: selfhosted-wsl
             labels:
               - self-hosted

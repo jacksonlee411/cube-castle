@@ -76,7 +76,7 @@ bash scripts/ci/runner/wsl-install.sh \
 - Watchdog：可由 `scripts/ci/runner/watchdog.sh` 扩展，定期执行 `wsl-verify.sh` 与 `scripts/network/verify-github-connectivity.sh`
 - 定期升级：设置 `RUNNER_VERSION=<新版本>` 后重新运行 `wsl-install.sh`。脚本会先停止正在运行的守护进程，再下载目标版本并调用 `./config.sh --replace`。
 
-## 5. 卸载与回滚
+## 5. 卸载与节点替换
 
 ```bash
 # 1) 停止 Runner（tmux 模式）
@@ -94,7 +94,7 @@ bash scripts/ci/runner/wsl-uninstall.sh --use-systemd
 #   - 备份并删除 Runner 目录
 ```
 
-回滚到 Docker Runner：运行 `bash scripts/ci/runner/start-ghcr-runner-persistent.sh`，并在 workflow 中暂时移除 `wsl` 标签（若 WSL 故障）。
+> 若需要恢复 WSL Runner，请完成卸载后重新运行 `wsl-install.sh`；如确需启用其他类型的自托管 Runner（例如 Docker 容器），必须另行提交计划并获批。
 
 ## 6. 故障排查
 

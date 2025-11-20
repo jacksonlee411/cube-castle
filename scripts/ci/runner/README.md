@@ -61,9 +61,9 @@ docker compose -f docker-compose.runner.yml down -v
 
 ---
 
-## 六、WSL Runner（Plan 269 例外，CI 工具专用）
+## 六、WSL Runner（Plan 269 正式通道）
 
-> 2025-11-20 起，Plan 269 批准在满足“业务服务依旧运行在 Docker Compose 中”的前提下，允许在 WSL 发行版（Ubuntu 20.04+/22.04）中直接部署 GitHub Actions Runner，以缓解容器内网络/依赖问题。WSL Runner 标签固定为 `self-hosted,cubecastle,wsl`，Docker Runner 仍为默认与回退路径。
+> 2025-11-20 起，Plan 269 批准在满足“业务服务依旧运行在 Docker Compose 中”的前提下，将 WSL 发行版（Ubuntu 20.04+/22.04）中的原生 Runner 作为唯一的自托管通道。标签固定为 `self-hosted,cubecastle,wsl`；Docker Runner 已退役，如需恢复必须重新走计划审批。
 
 1. **安装 / 升级**
    ```bash
@@ -86,8 +86,8 @@ docker compose -f docker-compose.runner.yml down -v
    bash scripts/ci/runner/wsl-uninstall.sh --repo jacksonlee411/cube-castle
    ```
    - 自动停止 tmux/systemd、调用 `./config.sh remove --token ...` 并将目录备份到 `<dir>.bak-<timestamp>`。
-   - 任何 WSL 故障需在 30 分钟内切回 Docker Runner，并在 Plan 265/266/269 记录 run ID + 回滚日志。
+   - 若 WSL Runner 故障，应在 30 分钟内完成停机、修复或替换节点，并在 Plan 265/266/269 登记 run ID 与日志；如需重新启用 Docker Runner，须先走计划审批。
 4. **文档与守护**
-   - 完整步骤详见 `docs/reference/wsl-runner-setup.md`、对比见 `docs/reference/wsl-runner-comparison.md`。
+   - 完整步骤详见 `docs/reference/wsl-runner-setup.md`、对比见 `docs/reference/wsl-runner-comparison.md`（已更新为“WSL=默认、Docker=历史”）。
    - 网络诊断与 hosts/代理指南：`docs/reference/docker-network-playbook.md`；watchdog 可调用 `scripts/ci/runner/wsl-verify.sh` + `scripts/network/verify-github-connectivity.sh`。
-   - 所有 workflow self-hosted job 均已支持 `runs-on: [self-hosted,cubecastle,wsl]`（通过 matrix `wsl_only` 控制运行时机），请将首个成功 run 的 Run ID 写入 Plan 265/266。
+   - 所有 workflow self-hosted job 均固定 `runs-on: [self-hosted,cubecastle,wsl]`（通过 matrix `wsl_only` 控制运行时机），请把每次成功 run 的 Run ID 写入 Plan 265/266。

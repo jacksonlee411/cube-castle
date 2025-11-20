@@ -48,13 +48,13 @@
 - 历史 E2E：`frontend-e2e.yml` / `e2e-tests.yml` 使用包含前端容器的完整栈（逐步迁移中）
 
 ## 自托管 Runner 选型（Plan 265 + Plan 269）
-- **默认：Docker Runner**
-  - 通过 `docker-compose.runner.yml`（一次性）或 `docker-compose.runner.persist.yml`（常驻）启动，标签 `[self-hosted,cubecastle,docker]`。
-  - 负责 Required Checks 的主通道，所有 workflow 仍需保留该路径以便回退。
-- **获批备选：WSL Runner**
-  - 2025-11-20（Plan 269）获准将 Runner 裸部署在 WSL（Ubuntu 20.04+/22.04），标签 `[self-hosted,cubecastle,wsl]`。
-  - 通过 `scripts/ci/runner/wsl-install.sh`/`wsl-uninstall.sh`/`wsl-verify.sh` 管理；安装/回滚流程详见 `docs/reference/wsl-runner-setup.md`。
-  - 启用条件：Docker Runner 因网络/依赖持续不可用或需要原生 WSL 工具链；必须保留 Docker Runner 作为热备。
+- **默认：WSL Runner**
+  - 2025-11-20（Plan 269）起，唯一受支持的自托管形态；Runner 裸部署在 WSL（Ubuntu 20.04+/22.04），标签 `[self-hosted,cubecastle,wsl]`。
+  - 通过 `scripts/ci/runner/wsl-install.sh`/`wsl-uninstall.sh`/`wsl-verify.sh` 管理；步骤详见 `docs/reference/wsl-runner-setup.md`。
+  - 所有 workflow matrix 中的 self-hosted job 仅保留 `wsl` 标签，`wsl_only` 条件用于限制触发场景。
+- **历史方案：Docker Runner（已退役）**
+  - 旧版通过 `docker-compose.runner*.yml` 维护容器 Runner；现已关闭，不再作为回退路径。
+  - 如确需恢复 Docker Runner，必须创建新的计划条目并重新审批。
 - **CI 工作流调整**
   - 所有引用自托管 Runner 的 workflow（`document-sync`, `api-compliance`, `consistency-guard`, `ci-selfhosted-*`, `iig-guardian`, `contract-testing`, `plan-254-gates`, `e2e-smoke` 等）均已增加 `wsl` 标签。
   - Workflow matrix 需包含 `[self-hosted, cubecastle, wsl]` 并在 job 注释中声明：Runner 必须具备 Docker CLI/Compose，业务服务依旧在容器中运行。

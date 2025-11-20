@@ -10,7 +10,7 @@
 
 - 当前自托管 Runner 运行在 Docker 容器内（WSL2 宿主），但容器缺少 `docker compose`、Go/Node 等工具，需要额外补齐；同时容器内网络受 WSL/防火墙双重影响，导致 GitHub TLS、Compose 等步骤频繁失败。
 - 2025-11-20 经架构/安全/平台负责人联合评审，确认“Runner 属于 CI 基础设施，不在 Docker 强制约束的业务服务范围内”，允许在满足 Docker 服务依旧运行在容器中的前提下，引入“WSL 原生 Runner”作为官方备选方案。该结论需同步更新 `AGENTS.md` 与参考文档，避免事实来源分裂。
-- Plan 269 旨在评估并落地“在 WSL 内直接部署 Runner（Systemd service 或 CLI 模式）”的可行性，对照现有容器方案的优缺点，形成部署步骤、回滚方式、CI workflow 更新以及与仓库原则的兼容性说明，同时保持 Docker Runner 可用以便随时回退。
+- Plan 269 旨在评估并落地“在 WSL 内直接部署 Runner（Systemd service 或 CLI 模式）”的可行性，对照历史容器方案的优缺点，形成部署步骤、回滚方式、CI workflow 更新以及与仓库原则的兼容性说明，最终决定以 WSL Runner 作为唯一的自托管路径。
 
 ---
 
@@ -18,7 +18,7 @@
 
 | 类别 | 交付物 | 说明 |
 |------|--------|------|
-| 方案比较 | `docs/reference/wsl-runner-comparison.md` | Docker Runner vs WSL Runner trade-off（安全、隔离、可复制性、维护成本），明确默认推荐：优先 Docker，WSL 为经批准的备选 |
+| 方案比较 | `docs/reference/wsl-runner-comparison.md` | WSL Runner 与历史 Docker Runner 的差异（安全、隔离、可复制性、维护成本），并记录仓库“WSL=默认，Docker=退役”的结论 |
 | 部署指南 | `scripts/ci/runner/wsl-install.sh` + `scripts/ci/runner/wsl-uninstall.sh` + `docs/reference/wsl-runner-setup.md` | 覆盖依赖安装、环境变量、systemd/守护脚本、日志位置、Go/Node/Docker 版本校验 |
 | 网络与安全评估 | Plan 267 更新 + `docs/reference/docker-network-playbook.md` & `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md` | 追加 WSL 直连下的网络诊断、代理/hosts 回退流程，以及 Runner 隔离策略 |
 | 契约同步 | 更新 `AGENTS.md`、Plan 265/266/267 | 声明 WSL Runner 获批例外、记录残余风险与 Required Checks 变更 |
@@ -31,7 +31,7 @@
 ## 3. 实施步骤
 
 ### 3.1 方案调研与比较
-1. 盘点现有 Runner 架构：`docker-compose.runner.persist.yml`、`runner/persistent-entrypoint.sh`、`scripts/ci/runner/*`，明确 Docker Runner 仍为主路径。
+1. 盘点现有 Runner 架构：`docker-compose.runner.persist.yml`、`runner/persistent-entrypoint.sh`、`scripts/ci/runner/*`，明确 Docker Runner 的历史背景以及切换 WSL 后需要调整的脚本。
 2. 收集 WSL 直接运行 Runner 的官方指南（GitHub Actions Runner on Linux，systemd service），列出差异点（WSL 默认无 systemd，可通过 `systemd-genie`/`tmux`/`nohup`）。
 3. 记录审批依据：将 2025-11-20 的跨团队批准摘要写入 `docs/reference/wsl-runner-comparison.md` 与 `AGENTS.md`，强调“仅 Runner 属于例外，业务服务依旧必须运行在 Docker Compose 中”。
 4. 输出 `docs/reference/wsl-runner-comparison.md`，包含：
@@ -60,7 +60,7 @@
 
 ### 3.4 Pipeline 集成与验证
 1. 更新所有使用自托管 Runner 的 workflow（例如 `document-sync`, `ci-selfhosted-smoke`, `ci-selfhosted-diagnose`, `consistency-guard`, `api-compliance` 等）：
-   - `runs-on` 新增 `wsl` 标签（`[self-hosted, cubecastle, wsl]`），并在矩阵中保留 Docker Runner 作为备份。
+   - `runs-on` 仅保留 `wsl` 标签（`[self-hosted, cubecastle, wsl]`），移除 `selfhosted-docker` 相关矩阵。
    - 记录在 workflow 注释中：WSL Runner 需具备 Docker CLI，任务仍依赖 Docker Compose。
 2. 在 `docs/development-plans/265-selfhosted-required-checks.md` 追加“WSL Runner”执行记录：包含安装脚本、Run ID、日志路径、使用标签。
 3. 通过 `workflow_dispatch` 触发 `document-sync`、`api-compliance`、`consistency-guard`、`ci-selfhosted-smoke`，确保新的 Runner 标签生效并收集日志。
@@ -74,7 +74,7 @@
 - [ ] `AGENTS.md` 与 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md` 完成同步更新，清楚说明“业务服务仍强制 Docker，Runner 获批 WSL 例外 + 使用场景”。
 - [ ] `docs/reference/wsl-runner-comparison.md` 发布，明确列出 Docker vs WSL Runner 的差异、审批依据、推荐场景与默认顺序。
 - [ ] `scripts/ci/runner/wsl-install.sh`/`wsl-uninstall.sh`/`wsl-verify.sh` 编写完成，具备 Go/Node 版本检查、Docker CLI 检测与日志输出；在 README 或 `docs/reference/wsl-runner-setup.md` 中提供示例命令。
-- [ ] 至少一次 `document-sync (selfhosted)` 使用 `self-hosted,cubecastle,wsl` 标签成功运行，Run ID 记录在 Plan 265/269，并保留 Docker Runner 成功日志作为回退佐证。
+- [ ] 至少一次 `document-sync (selfhosted)` 使用 `self-hosted,cubecastle,wsl` 标签成功运行，Run ID 记录在 Plan 265/269，并附上 `logs/wsl-runner/*` 作为佐证。
 - [ ] `docs/reference/wsl-runner-setup.md` 详细描述安装、运行、日志、版本校验与回滚步骤，并在 `docs/reference/docker-network-playbook.md`、Plan 267 中注明 WSL 网络指引。
 - [ ] 所有依赖自托管 Runner 的 workflow 已更新 `runs-on` 标签并通过一次实际执行（记录 Run ID），残余风险登记到 Plan 265/266。
 
@@ -90,7 +90,7 @@
 | 网络仍受限制 | 即使 WSL 直连，企业代理仍断流 | 继续依赖 Plan 267 的 hosts/代理脚本；在失败时回退到 Docker 方案 |
 | 维护成本增加 | 需要同时维护 Docker 与 WSL 两种 runner | Plan 269 结论将给出默认推荐（例如优先 WSL，Docker 作为备选），避免双线维护 |
 
-回滚：执行 `scripts/ci/runner/wsl-uninstall.sh` 删除 Runner，恢复 `document-sync` 等 workflow 的 `runs-on` 仅指向 Docker Runner；必要时恢复 `docker-compose.runner.persist.yml` 方案。
+回滚：执行 `scripts/ci/runner/wsl-uninstall.sh` 删除 Runner，按需重新安装 WSL Runner 或提交新的计划；恢复 Docker Runner 需单独审批。
 
 ---
 

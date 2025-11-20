@@ -9,13 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [docker, wsl]
+        runner: [wsl]
         include:
-          - runner: docker
-            labels:
-              - self-hosted
-              - cubecastle
-              - docker
           - runner: wsl
             labels:
               - self-hosted

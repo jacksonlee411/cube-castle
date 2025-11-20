@@ -302,17 +302,11 @@ jobs:
     if: github.event_name == 'pull_request'
     strategy:
       matrix:
-        runner: [ubuntu, selfhosted-docker, selfhosted-wsl]
+        runner: [ubuntu, selfhosted-wsl]
         include:
           - runner: ubuntu
             labels: ubuntu-latest
             prepare: false
-          - runner: selfhosted-docker
-            labels:
-              - self-hosted
-              - cubecastle
-              - docker
-            prepare: true
           - runner: selfhosted-wsl
             labels:
               - self-hosted
