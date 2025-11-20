@@ -12,18 +12,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [ubuntu, selfhosted-wsl]
+        label: [ubuntu]
         include:
           - label: ubuntu
             runs_on: ubuntu-latest
-          - label: selfhosted-wsl
-            runs_on:
-              - self-hosted
-              - cubecastle
-              - wsl
-            wsl_only: true
     runs-on: ${{ matrix.runs_on }}
-    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'pull_request' }}
     
     steps:
       - name: Checkout代码
@@ -67,8 +61,8 @@ jobs:
           echo "Docs/CI-only changes detected. Skipping api-compliance heavy steps."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: 自托管环境准备
-        if: startsWith(matrix.label, 'selfhosted') && steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      - name: 自托管环境准备（已临时禁用，改用 ubuntu-latest）
+        if: false
         shell: bash
         run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance
 

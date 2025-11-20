@@ -70,7 +70,8 @@
    - `scripts/ci/runner/wsl-verify.sh` 的输出需附在 `logs/wsl-runner/verify-*.log`，同时在本计划文档登记最近一次执行时间。  
    - 若 WSL Runner 故障，应在 30 分钟内完成停机/替换或提交新计划，相关 run ID、日志与恢复步骤必须记录在 Plan 265/266。  
    - 2025-11-20 07:11Z：`bash scripts/ci/runner/wsl-install.sh` 已在 WSL 环境重新拉起 `cc-runner`（日志 `logs/wsl-runner/install-20251120T071110.log` / `run-20251120T071113.log`，`wsl-verify` 日志 `logs/wsl-runner/verify-20251120T071156.log`），但 07:16Z `workflow_dispatch` 触发的 `document-sync` run `19519517913` 仍只生成 docker/ubuntu matrix——远端 `.github/workflows/document-sync.yml` 未合入 `selfhosted-wsl`。需先推送 workflow 变更再重新触发，才能满足本节验收。  
-   - 2025-11-20 07:42Z：`ci-selfhosted-smoke` 通过 `workflow_dispatch` 运行 `19520064684`，`Smoke (wsl)` job 成功完成并将日志导出到 `logs/wsl-runner/ci-selfhosted-smoke-wsl-19520064684.log`（docker job 仍失败，结论=failed，但 WSL job 可视作首个成功记录）。
+   - 2025-11-20 07:42Z：`ci-selfhosted-smoke` 通过 `workflow_dispatch` 运行 `19520064684`，`Smoke (wsl)` job 成功完成并将日志导出到 `logs/wsl-runner/ci-selfhosted-smoke-wsl-19520064684.log`（docker job 仍失败，结论=failed，但 WSL job 可视作首个成功记录）。  
+   - 2025-11-20 08:05Z：因 GitHub `workflow_dispatch` 在 WSL Runner 上持续 204/无 run，`document-sync`、`api-compliance`、`consistency-guard` 临时改回 `runs-on: ubuntu-latest`，以验证 YAML 是否生效并保证文档/契约守卫可运行（记录 run ID 后再恢复 WSL）。
 
 5. **Branch Protection 更新**  
    - 根据 run 稳定性，将自托管 job 的 status 名字加入 Required checks：`Frontend Quality Gate (self-hosted)`、`Frontend E2E (self-hosted)`、`Document Sync (self-hosted)` 等；  

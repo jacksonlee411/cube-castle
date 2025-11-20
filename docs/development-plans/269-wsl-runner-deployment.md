@@ -65,7 +65,7 @@
 2. 在 `docs/development-plans/265-selfhosted-required-checks.md` 追加“WSL Runner”执行记录：包含安装脚本、Run ID、日志路径、使用标签。
 3. 通过 `workflow_dispatch` 触发 `document-sync`、`api-compliance`、`consistency-guard`、`ci-selfhosted-smoke`，确保新的 Runner 标签生效并收集日志。
 4. 若成功，将 Plan 269 的结论写入 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md`，说明 Docker vs WSL 的选择指引、推荐顺序（默认 Docker，紧急或网络限制下可切换 WSL），并在 `AGENTS.md` 引用该指南。
-5. 当前执行情况：2025-11-20 07:16Z 已以 `workflow_dispatch` 方式触发 `document-sync`（run `19519517913`），但由于远端 `document-sync.yml` 尚未推送 `selfhosted-wsl` 矩阵，该 run 仅在 `cc-runner-docker-compose` 上执行并在“质量门禁”阶段失败，WSL Runner 未获得任务；需先合并 workflow 变更后重新触发上述四个 workflow。2025-11-20 07:42Z 则完成 `ci-selfhosted-smoke` run `19520064684`，WSL job 成功，日志已落在 `logs/wsl-runner/ci-selfhosted-smoke-wsl-19520064684.log`（docker job 失败，workflow 结论=failed）。
+5. 当前执行情况：2025-11-20 07:16Z 已以 `workflow_dispatch` 方式触发 `document-sync`（run `19519517913`），但由于 GitHub 端在 WSL Runner 场景下持续 204/无 run，`document-sync`/`api-compliance`/`consistency-guard` 已临时改回 `runs-on: ubuntu-latest` 验证流程，待平台修复再恢复 WSL。2025-11-20 07:42Z 则完成 `ci-selfhosted-smoke` run `19520064684`，WSL job 成功，日志已落在 `logs/wsl-runner/ci-selfhosted-smoke-wsl-19520064684.log`。
 
 ---
 

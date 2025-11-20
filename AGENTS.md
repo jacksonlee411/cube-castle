@@ -13,6 +13,7 @@
   - Docker Runner 已退役且不再维持回退路径，如需恢复旧容器化 Runner 需重新审批；
   - 任何 Runner 变更需同步更新 Plan 265/266/267 记录与 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md`。
   - ⚠️ 关闭或重启 WSL（如执行 `wsl.exe --shutdown`）会导致 Runner 与 Docker 网络短暂停机，属于高影响操作，需提前在对话中说明命令、影响面与回滚方案并获得额外审批。
+  - TODO-TEMPORARY(2025-11-25): 由于 GitHub `workflow_dispatch` 在 WSL Runner 上存在静默失败，`document-sync`、`api-compliance`、`consistency-guard` 工作流暂时改为在 `ubuntu-latest`（GitHub 托管）上运行，待平台修复后恢复 WSL，自身记录详见 Plan 265/266。
 - Go 工具链基线：Go 1.24 及以上（当前 `toolchain go1.24.9`）；提交前通过 `go version` 确认。
 - 迁移即真源：所有数据库变更由 `database/migrations/` 管理；不依赖手工初始化脚本作为事实来源。
 - 先契约后实现：以 `docs/api/*`（OpenAPI/GraphQL）为唯一事实来源，先定义再实现。
