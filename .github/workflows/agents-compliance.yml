@@ -3,7 +3,8 @@ name: Agents Compliance
 on:
   pull_request:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, feat/shared-dev ]
+  workflow_dispatch: {}
 
 jobs:
   compliance:

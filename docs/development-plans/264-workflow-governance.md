@@ -20,19 +20,29 @@
 
 | 规则（context） | 状态 | 备注 / 证据 |
 |-----------------|------|-------------|
-| `gates-250` | ✅ success | 由 pre-push gate 驱动 |
-| `gates-255` | ✅ success | 同上 |
-| `Contract Drift Gate (Plan 258)` | ✅ success | `plan-258-gates.yml` push run 成功 |
+| `gates-250` | ✅ success | run `19521472180`（`plan-250-gates`，GitHub runner） |
+| `gates-255` | ✅ success | run `19521472200`（`plan-255-gates`，GitHub runner） |
+| `Contract Drift Gate (Plan 258)` | ✅ success | run `19521472199`（`plan-258-gates.yml` push） |
 | `🔍 Facade Coverage` | ⚠️ 未在最新 commit 运行（最近 success：`plan-257-gates` run `19452439292`） |
-| `Compose/Image Gates (Blocking)` | ✅ success | `plan-253-gates.yml` push run |
+| `Compose/Image Gates (Blocking)` | ✅ success | run `19521472168`（`plan-253-gates`，GitHub runner） |
 | `Agents Compliance / compliance` | ⚠️ 未在最新 commit 运行（最近 success：`agents-compliance` run `19450979818`） |
-| `Consistency Guard / scan` | ✅ success | run `19521200491`，`audit`/`temporal` job 在托管 runner 上因未启用 compose 被跳过 |
-| `API合规性检查 / API一致性与规范合规 (ubuntu)` | ✅ success | run `19521080317` |
-| `📝 文档自动同步验证 / 📄 文档同步一致性验证` | ✅ success | run `19521735164`（GitHub runner） |
+| `Consistency Guard / scan` | ✅ success | run `19521472183`（scan job success；`Temporal/Audit` 仍需在 compose 环境修复） |
+| `API合规性检查 / API一致性与规范合规 (ubuntu)` | ✅ success | run `19521472213` |
+| `📝 文档自动同步验证 / 📄 文档同步一致性验证` | ✅ success | run `19521735164`（workflow_dispatch） |
 | `PR Body Policy – required` | ⚠️ 未触发（只在 PR 场景运行） |
 | `Plan 254 Gate – ubuntu` | ❌ run `19521471914` 失败（workflow 未执行任何 job） |
 
 阶段性策略（2025-11-20 起）：除 `ci-selfhosted-smoke` 继续在 WSL Runner 上冒烟外，其余 Required workflow 全部回退到 GitHub `ubuntu-latest`，优先确保上述 11 条规则跑绿并留存 run ID；待 GitHub 针对 WSL Runner 的 `workflow_dispatch` 问题修复后，再逐条迁回自托管环境。
+
+未跑绿 / 需跟进项（commit `4dcaab68`）：
+1. `🔍 Facade Coverage` —— 缺少 `plan-257-gates.yml` 的最新 run，需要在 GitHub runner 上重新触发。
+2. `Agents Compliance / compliance` —— 缺少 push run，需在 `agents-compliance.yml` 上 rerun。
+3. `PR Body Policy – required` —— 仅在 PR 场景触发，需等 PR 更新或手动触发确保最新检查。
+4. `Plan 254 Gate – ubuntu` —— run `19521471914` 无 job，需排查 workflow 触发条件后在平台 runner 上重跑。
+
+支撑动作：已为 `plan-257-gates.yml` 与 `agents-compliance.yml` 补充 `workflow_dispatch` 触发，并将后者的 push 分支范围扩展到 `feat/shared-dev`，后续可直接通过 `gh workflow run <workflow> -r feat/shared-dev` 在 GitHub runner 上重跑（无须额外提交）。`Plan 254 Gate – ubuntu` 仍建议以 workflow_dispatch 触发单次运行，排查 0s failure 的根因后再调整。
+
+其余 7 条 Required status 已在 GitHub runner 上通过并记录 run ID（见上表），维持绿色后再评估 WSL 迁移时间表。
 
 ## 3. 启用/退役决策与步骤
 
