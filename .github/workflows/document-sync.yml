@@ -40,6 +40,14 @@ on:
         options:
         - 'true'
         - 'false'
+      enable_selfhosted_runner:
+        description: '在 workflow_dispatch 时同时运行 self-hosted (wsl) job'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 
 env:
   AUTO_SYNC: ${{ github.event.inputs.auto_sync || 'false' }}
@@ -51,13 +59,20 @@ jobs:
     name: 📄 文档同步一致性验证
     strategy:
       matrix:
-        runner: [ubuntu]
+        runner: [ubuntu, selfhosted-wsl]
         include:
           - runner: ubuntu
-            labels:
-              - ubuntu-latest
+            runner_labels: ubuntu-latest
             prepare: false
-    runs-on: ${{ matrix.labels }}
+          - runner: selfhosted-wsl
+            runner_labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            prepare: true
+            require_manual: true
+    runs-on: ${{ matrix.runner_labels }}
+    if: ${{ matrix.runner == 'ubuntu' || (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_selfhosted_runner == 'true') }}
     permissions:
       contents: write
       pull-requests: write
