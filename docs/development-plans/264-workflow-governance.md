@@ -16,7 +16,7 @@
 
 ## 2. Required Checks（feat/shared-dev）
 
-结合 Branch Protection 规则，当前 11 个 Required status 的状态如下（基于 commit `4dcaab68`）：
+结合 Branch Protection 规则，当前 11 个 Required status 的状态如下（基于 commit `f4714568`）：
 
 | 规则（context） | 状态 | 备注 / 证据 |
 |-----------------|------|-------------|
@@ -26,18 +26,17 @@
 | `🔍 Facade Coverage` | ✅ success | workflow_dispatch run `19523740120`（GitHub runner） |
 | `Compose/Image Gates (Blocking)` | ✅ success | run `19521472168`（`plan-253-gates`，GitHub runner） |
 | `Agents Compliance / compliance` | ✅ success | workflow_dispatch run `19523742214`（GitHub runner） |
-| `Consistency Guard / scan` | ✅ success | run `19521472183`（scan job success；`Temporal/Audit` 仍需在 compose 环境修复） |
+| `Consistency Guard / scan` | ✅ success | workflow_dispatch run `19525892315`（已通过 compose + goose 安装，Audit/Temporal job 均成功） |
 | `API合规性检查 / API一致性与规范合规 (ubuntu)` | ✅ success | run `19521472213` |
-| `📝 文档自动同步验证 / 📄 文档同步一致性验证` | ✅ success | run `19521735164`（workflow_dispatch） |
+| `📝 文档自动同步验证 / 📄 文档同步一致性验证` | ✅ success | workflow_dispatch run `19525954007`（手动 dry-run 校验通过） |
 | `PR Body Policy – required` | ✅ success | workflow_dispatch run `19524664645`（PR #22，手动注入 PR metadata） |
 | `Plan 254 Gate – ubuntu` | ✅ success | workflow_dispatch run `19523699856`（`plan-254-gates`） |
 
 阶段性策略（2025-11-20 起）：除 `ci-selfhosted-smoke` 继续在 WSL Runner 上冒烟外，其余 Required workflow 全部回退到 GitHub `ubuntu-latest`，优先确保上述 11 条规则跑绿并留存 run ID；待 GitHub 针对 WSL Runner 的 `workflow_dispatch` 问题修复后，再逐条迁回自托管环境。
 
-未跑绿 / 需跟进项（commit `bdb91033`）：
-1. `PR Body Policy – required` —— 仅在 PR 场景触发，需等 PR 更新或手动触发确保最新检查。
+未跑绿 / 需跟进项（commit `1096321a`）：暂无（11/11 Required checks 已在 GitHub runner 上跑绿，run ID 见上表）。
 
-支撑动作：已为 `plan-257-gates.yml` 与 `agents-compliance.yml` 补充 `workflow_dispatch` 触发，并将后者的 push 分支范围扩展到 `feat/shared-dev`，后续可直接通过 `gh workflow run <workflow> -r feat/shared-dev` 在 GitHub runner 上重跑（无须额外提交）。`plan-254-gates.yml` 现阶段仅保留 `ubuntu-latest` 变体，移除了 WSL matrix 以避免 GitHub 对 job-level `matrix` 条件的语法拒绝；若后续需要恢复自托管版本，可单独新增 job 并以 `workflow_dispatch` 触发。`pr-body-policy.yml` 同步支持 workflow_dispatch（必填 `pr_number`），内部会通过 GitHub API 拉取 PR 元数据后复用原校验脚本，确保在共享分支 push 后无需额外变基也能手动补跑 Required check。
+支撑动作：已为 `plan-257-gates.yml` 与 `agents-compliance.yml` 补充 `workflow_dispatch` 触发，并将后者的 push 分支范围扩展到 `feat/shared-dev`，后续可直接通过 `gh workflow run <workflow> -r feat/shared-dev` 在 GitHub runner 上重跑（无须额外提交）。`plan-254-gates.yml` 现阶段仅保留 `ubuntu-latest` 变体，移除了 WSL matrix 以避免 GitHub 对 job-level `matrix` 条件的语法拒绝；若后续需要恢复自托管版本，可单独新增 job 并以 `workflow_dispatch` 触发。`pr-body-policy.yml` 同步支持 workflow_dispatch（必填 `pr_number`），内部会通过 GitHub API 拉取 PR 元数据后复用原校验脚本，确保在共享分支 push 后无需额外变基也能手动补跑 Required check。针对 Consistency Guard，Audit/Temporal job 增加 goose 安装步骤并锁定 minimal schema、通过 `workflow_dispatch` run `19525892315` 验证；document-sync 在 dry-run（workflow_dispatch run `19525954007`）确认逻辑正常，可在 push 上继续沿用。
 
 其余 7 条 Required status 已在 GitHub runner 上通过并记录 run ID（见上表），维持绿色后再评估 WSL 迁移时间表。
 
