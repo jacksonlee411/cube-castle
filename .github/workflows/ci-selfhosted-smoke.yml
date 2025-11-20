@@ -1,33 +1,118 @@
 name: CI (Self-Hosted Runner Smoke)
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
   push:
-    branches: [ master ]
-    paths:
-      - '.github/workflows/ci-selfhosted-smoke.yml'
-      - 'docker-compose.runner.yml'
-      - 'docs/development-plans/262-self-hosted-runner.md'
+    branches: [feat/shared-dev]
 
 jobs:
   smoke:
-    name: Self-Hosted Runner Smoke
-    runs-on: [self-hosted, cubecastle, docker]
-    timeout-minutes: 20
+    name: Smoke (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [wsl]
+        include:
+          - runner: wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+    runs-on: ${{ matrix.labels }}
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: cc-selfhosted-smoke
+      COMPOSE_HTTP_TIMEOUT: 300
     steps:
-      - name: Checkout
+      - name: 预清理旧 smoke 容器
+        run: |
+          set -euo pipefail
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml down -v --remove-orphans || true
+
+      - name: Checkout 仓库
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Print environment
+      - name: 确认 Docker Compose 可用
         run: |
-          uname -a
-          node -v || true
-          echo "Env OK"
+          set -euo pipefail
+          if docker compose version >/dev/null 2>&1; then
+            docker compose version
+            exit 0
+          fi
+          echo "Docker Compose plugin missing, installing from Docker APT repo..."
+          sudo apt-get update -y
+          sudo apt-get install -y ca-certificates curl gnupg
+          sudo install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y docker-ce-cli docker-compose-plugin
+          docker compose version
 
-      # Skip docker/go validation in smoke: runner镜像未内置 docker/go，可在后续工作流按需校验
-
-      - name: Quick frontend install (lockfile only)
+      - name: 准备诊断 Compose
         run: |
-          node -v
-          npm --prefix frontend ci
-          echo "Frontend deps OK"
+          cat >smoke-compose.yml <<'EOF'
+          services:
+            postgres:
+              image: postgres:15-alpine
+              environment:
+                POSTGRES_PASSWORD: runner
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 2s
+                timeout: 5s
+                retries: 15
+            redis:
+              image: redis:7-alpine
+              command: ["redis-server", "--save", "", "--appendonly", "no"]
+              healthcheck:
+                test: ["CMD", "redis-cli", "PING"]
+                interval: 2s
+                timeout: 5s
+                retries: 15
+          EOF
+
+      - name: 启动 Compose 工作负载
+        run: |
+          set -xe
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml up -d --wait
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps
+
+      - name: 等待健康检查
+        run: |
+          set -euo pipefail
+          SERVICES=(postgres redis)
+          for svc in "${SERVICES[@]}"; do
+            echo "⏳ waiting for $svc to become healthy..."
+            ATTEMPTS=0
+            CONTAINER_NAME="${COMPOSE_PROJECT_NAME}-${svc}-1"
+            until STATUS=$(docker inspect "$CONTAINER_NAME" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' 2>/dev/null || echo "unknown"); [ "$STATUS" = "healthy" ]; do
+              ATTEMPTS=$((ATTEMPTS+1))
+              if [ "$ATTEMPTS" -gt 30 ]; then
+                echo "❌ $svc failed to become healthy" >&2
+                COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml ps
+                COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml logs
+                exit 1
+              fi
+              sleep 2
+            done
+            echo "✅ $svc healthy"
+          done
+
+      - name: 健康检查自检
+        run: |
+          set -euo pipefail
+          for svc in postgres redis; do
+            CONTAINER_NAME="${COMPOSE_PROJECT_NAME}-${svc}-1"
+            STATUS=$(docker inspect "$CONTAINER_NAME" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' 2>/dev/null || echo "unknown")
+            echo "$CONTAINER_NAME $STATUS"
+          done
+
+      - name: 清理
+        if: always()
+        run: |
+          COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" docker compose -f smoke-compose.yml down -v

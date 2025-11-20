@@ -4,6 +4,7 @@ on:
     branches: [master, main, develop, feat/shared-dev]
   pull_request:
     branches: [master, main, develop, feat/shared-dev]
+  workflow_dispatch: {}
 
 jobs:
   api-compliance-check:
@@ -11,21 +12,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [ubuntu, selfhosted]
+        label: [ubuntu]
         include:
           - label: ubuntu
-            runs_on: '["ubuntu-latest"]'
-          - label: selfhosted
-            runs_on: '["self-hosted","cubecastle","docker"]'
-    runs-on: ${{ fromJson(matrix.runs_on) }}
+            runs_on: ubuntu-latest
+    runs-on: ${{ matrix.runs_on }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'pull_request' }}
     
     steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史用于diff检查
+
       - name: Detect docs-only/ci-only changes
         id: changes
         uses: dorny/paths-filter@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          filters:
+          filters: |
             docs_only:
               - 'AGENTS.md'
               - '**/*.md'
@@ -51,20 +56,19 @@ jobs:
               - '!database/**'
               - '!tests/**'
       - name: Docs/CI-only fast pass
-        if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+        if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
         run: |
           echo "Docs/CI-only changes detected. Skipping api-compliance heavy steps."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: Checkout代码
-        if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # 获取完整历史用于diff检查
+      - name: 自托管环境准备（已临时禁用，改用 ubuntu-latest）
+        if: false
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance
 
       - name: 设置 Node.js 环境
         if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -220,8 +224,13 @@ jobs:
 
       - name: 上传合规性报告
         if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: api-compliance-report
           path: api-compliance-report.md
           retention-days: 30
+
+      - name: 自托管环境清理
+        if: matrix.label == 'selfhosted' && always()
+        shell: bash
+        run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance --teardown

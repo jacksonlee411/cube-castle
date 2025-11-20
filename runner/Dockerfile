@@ -9,7 +9,7 @@ RUN useradd -m runner && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/r
 WORKDIR /home/runner
 
 # Install GitHub Actions Runner (version pinned)
-ARG RUNNER_VERSION=2.315.0
+ARG RUNNER_VERSION=2.329.0
 ENV RUNNER_VERSION=${RUNNER_VERSION}
 # Resilient download with retries and archive validation (network may be flaky)
 RUN bash -lc 'set -e; \

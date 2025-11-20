@@ -22,9 +22,19 @@ jobs:
           echo "ref=${{ github.ref }}"
           echo "OK"
   e2e-smoke:
-    # TODO-TEMPORARY(2025-11-22): 临时收敛为 ubuntu-latest，避免 no-jobs
-    name: E2E Smoke – ubuntu
-    runs-on: ubuntu-latest
+    name: E2E Smoke – ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [ubuntu, selfhosted-wsl]
+        include:
+          - label: ubuntu
+            runs_on: '["ubuntu-latest"]'
+          - label: selfhosted-wsl
+            runs_on: '["self-hosted","cubecastle","wsl"]'
+            wsl_only: true
+    runs-on: ${{ fromJson(matrix.runs_on) }}
+    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 40
     env:
       # PR 固定 255；push 使用 run_number，便于证据分桶
@@ -36,7 +46,7 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          filters:
+          filters: |
             docs_only:
               - 'AGENTS.md'
               - '**/*.md'

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -56,6 +57,20 @@ func killIfRunning(_ *testing.T, cmd *exec.Cmd) {
 	}
 	_ = cmd.Process.Kill()
 	_, _ = cmd.Process.Wait()
+}
+
+func commandBaseURL() string {
+	if v := strings.TrimSpace(os.Getenv("COMMAND_BASE_URL")); v != "" {
+		return strings.TrimRight(v, "/")
+	}
+	return "http://127.0.0.1:9090"
+}
+
+func queryBaseURL() string {
+	if v := strings.TrimSpace(os.Getenv("QUERY_BASE_URL")); v != "" {
+		return strings.TrimRight(v, "/")
+	}
+	return "http://127.0.0.1:8090"
 }
 
 func projectRoot(t *testing.T) string {
@@ -110,27 +125,27 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 	// Start query service (JWKS verify)
 	gqlEnv := []string{
 		"JWT_ALG=RS256",
-		"JWT_JWKS_URL=http://localhost:9090/.well-known/jwks.json",
+		fmt.Sprintf("JWT_JWKS_URL=%s/.well-known/jwks.json", commandBaseURL()),
 	}
 	gqlSrv := startService(t, root, gqlEnv, "go", "run", "./cmd/hrms-server/query/main.go")
 	defer killIfRunning(t, gqlSrv)
 
-	waitHealthy(t, "http://localhost:9090/health", 20*time.Second)
-	waitHealthy(t, "http://localhost:8090/health", 20*time.Second)
+	waitHealthy(t, fmt.Sprintf("%s/health", commandBaseURL()), 20*time.Second)
+	waitHealthy(t, fmt.Sprintf("%s/health", queryBaseURL()), 20*time.Second)
 
 	// Cookie jar client
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
 
 	// Trigger login (OIDC simulate path will set sid/csrf and redirect)
-	resp, err := client.Get("http://localhost:9090/auth/login?redirect=%2F")
+	resp, err := client.Get(fmt.Sprintf("%s/auth/login?redirect=%%2F", commandBaseURL()))
 	if err != nil {
 		t.Fatalf("login request failed: %v", err)
 	}
 	_ = resp.Body.Close()
 
 	// Get session
-	resp, err = client.Get("http://localhost:9090/auth/session")
+	resp, err = client.Get(fmt.Sprintf("%s/auth/session", commandBaseURL()))
 	if err != nil {
 		t.Fatalf("session failed: %v", err)
 	}
@@ -145,7 +160,7 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 
 	// GraphQL OK with matching tenant
 	reqBody := strings.NewReader(`{"query":"query { __typename }"}`)
-	req, _ := http.NewRequest("POST", "http://localhost:8090/graphql", reqBody)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/graphql", queryBaseURL()), reqBody)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("X-Tenant-ID", tenantID)
@@ -160,7 +175,7 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 
 	// GraphQL 403 with mismatched tenant
 	reqBody2 := strings.NewReader(`{"query":"query { __typename }"}`)
-	req2, _ := http.NewRequest("POST", "http://localhost:8090/graphql", reqBody2)
+	req2, _ := http.NewRequest("POST", fmt.Sprintf("%s/graphql", queryBaseURL()), reqBody2)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.Header.Set("Authorization", "Bearer "+accessToken)
 	req2.Header.Set("X-Tenant-ID", "mismatch-tenant")
@@ -175,7 +190,7 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 
 	// Refresh token
 	// Extract csrf from cookie jar
-	u, _ := url.Parse("http://localhost:9090/")
+	u, _ := url.Parse(commandBaseURL() + "/")
 	var csrf string
 	for _, c := range jar.Cookies(u) {
 		if c.Name == "csrf" {
@@ -186,7 +201,7 @@ func TestAuthFlow_RealHTTP_RS256_JWKS_and_TenantChecks(t *testing.T) {
 	if csrf == "" {
 		t.Fatalf("missing csrf cookie")
 	}
-	req3, _ := http.NewRequest("POST", "http://localhost:9090/auth/refresh", nil)
+	req3, _ := http.NewRequest("POST", fmt.Sprintf("%s/auth/refresh", commandBaseURL()), nil)
 	req3.Header.Set("X-CSRF-Token", csrf)
 	resp, err = client.Do(req3)
 	if err != nil {

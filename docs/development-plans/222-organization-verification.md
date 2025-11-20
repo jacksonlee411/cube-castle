@@ -33,6 +33,7 @@
 - ✅ E2E Smoke（Live 小集合）通过：`frontend/tests/e2e/{basic-functionality-test,simple-connection-test,organization-create}.spec.ts`；日志：`logs/plan222/playwright-LIVE-*.log`
 - 🔄 覆盖率补位：`logs/plan222/coverage-org-*.{out,txt,html}`（阶段达成≥30%：见 `coverage-org-20251115-135303.txt`；后续目标≥55%/≥80%）
   - 本地复验（2025-11-16）：组合覆盖率 ~31.1%（最新产物：`logs/plan222/coverage-org-20251116-100747.{out,txt,html}`），repository/handler/service 负路径用例已补入
+  - 本次推进（2025-11-18 第二轮）：新增 repository/job-catalog/devtools/middleware/scheduler 覆盖，组合覆盖率连续提升 **35.9% → 36.6%**（最新 `logs/plan222/coverage-org-20251118-034157.{txt,out,html}`），`go test -race ./internal/organization/...` 通过
   - 覆盖率口径说明：顶层关键包覆盖率（当前约 ~84.8%）与组合 total 覆盖率（当前约 ~31%）为不同统计口径；验收以“阶段门槛（组合 total）+ 顶层关键包守底线”双指标管理。
 - 🔄 性能基准：已执行短压测并记录 JSON Summary（node 驱动），详见 `logs/219E/perf-rest-20251116-094327.log`；补充一轮较大并发样本（含限流触发）见 `logs/219E/perf-rest-20251116-100552.log`（requested=400、concurrency=50、201=303、429=97、p95≈490ms、p99≈630ms）；完整基准（222B）仍将按门槛参数复跑
 

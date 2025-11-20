@@ -292,7 +292,7 @@ func main() {
 
 	// CORS设置
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"},
+		AllowedOrigins:   config.ResolveAllowedOrigins("COMMAND_ALLOWED_ORIGINS", "", nil),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Tenant-ID"},
 		ExposedHeaders:   []string{"Link"},
@@ -324,7 +324,6 @@ func main() {
 	// Prometheus metrics 端点（无需认证，供监控系统采集）
 	if !authOnlyMode {
 		r.Handle("/metrics", promhttp.Handler())
-		commandLogger.Info("📊 Prometheus metrics 端点: http://localhost:9090/metrics")
 	}
 
 	// 限流状态监控端点（Dev-only）
@@ -350,7 +349,6 @@ func main() {
 			fmt.Fprintf(w, `{"activeClients": %d, "timestamp": "%s"}`, len(clients), time.Now().Format(time.RFC3339))
 		})
 
-		commandLogger.Info("🚦 限流监控端点(Dev): http://localhost:9090/debug/rate-limit/stats")
 	}
 
 	// 设置开发工具路由 (仅开发模式，无认证要求)
@@ -359,7 +357,7 @@ func main() {
 	}
 
 	// 📎 BFF 认证路由（生产态登录/会话管理） - 不要求已有Authorization
-	bffHandler := authbff.NewBFFHandler(jwtConfig.Secret, jwtConfig.Issuer, jwtConfig.Audience, commandLogger, devMode, auditLogger)
+	bffHandler := authbff.NewBFFHandler(commandLogger, devMode, auditLogger, jwtConfig)
 	bffHandler.SetupRoutes(r)
 
 	// GraphQL 查询路由（单体合流挂载）
@@ -457,6 +455,13 @@ func main() {
 		commandLogger.Info("✅ Outbox dispatcher 已启动")
 	}
 	if !authOnlyMode {
+		commandLogger.Infof("📊 Prometheus metrics 端点: %s/metrics", externalCommandBaseURL(port))
+	}
+	if devMode {
+		commandLogger.Infof("🚦 限流监控端点(Dev): %s/debug/rate-limit/stats", externalCommandBaseURL(port))
+	}
+
+	if !authOnlyMode {
 		orgModule.Services.Scheduler.Start(ctx)
 		commandLogger.Info("✅ 运维任务调度器已启动")
 	}
@@ -525,4 +530,20 @@ func openRedis(logger pkglogger.Logger) *redis.Client {
 		"address":   addr,
 	}).Info("✅ Redis连接成功")
 	return client
+}
+
+func externalCommandBaseURL(port string) string {
+	host := strings.TrimSpace(os.Getenv("COMMAND_BASE_HOST"))
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	scheme := strings.TrimSpace(os.Getenv("COMMAND_BASE_SCHEME"))
+	if scheme == "" {
+		scheme = "http"
+	}
+	cleanPort := strings.TrimPrefix(strings.TrimSpace(port), ":")
+	if cleanPort == "" {
+		cleanPort = "9090"
+	}
+	return fmt.Sprintf("%s://%s:%s", scheme, host, cleanPort)
 }

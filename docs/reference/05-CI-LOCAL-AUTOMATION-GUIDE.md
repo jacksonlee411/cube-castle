@@ -1,7 +1,7 @@
 # 05 — CI/本地一键自动化指引（本地兜底 = PR 等效）
 
-版本: v1.3  
-最后更新: 2025-11-16  
+版本: v1.4  
+最后更新: 2025-11-20  
 适用范围: 前端 E2E 与统一门禁（CQRS/端口/禁用端点）+ 后端 golangci-lint  
 唯一事实来源: 工作流与脚本文件（见“权威索引”），本指南仅作执行指引与经验沉淀（若有偏差，以工作流与脚本为准）
 
@@ -46,6 +46,20 @@
 - ESLint 架构守卫：记录日志，不阻断
 - E2E（统一推荐）：`frontend-e2e-devserver.yml` 仅 compose 后端（postgres/redis/rest/graphql），前端由 Playwright dev server 启动（`PW_SKIP_SERVER=0`）
 - 历史 E2E：`frontend-e2e.yml` / `e2e-tests.yml` 使用包含前端容器的完整栈（逐步迁移中）
+
+## 自托管 Runner 选型（Plan 265 + Plan 269）
+- **阶段性策略：GitHub 平台 runner 优先，WSL Runner 做 smoke 验证**
+  - 2025-11-20 起，WSL Runner 是唯一允许的自托管形态；目前仅 `ci-selfhosted-smoke`/诊断类任务在 `runs-on: [self-hosted,cubecastle,wsl]` 上运行，以验证网络与依赖。
+  - 所有 Required workflow（document-sync、api-compliance、consistency-guard、plan-254-gates、iig-guardian、contract-testing、e2e-smoke 等）暂时改为 `runs-on: ubuntu-latest`，待 GitHub `workflow_dispatch` 在 WSL Runner 上恢复正常后，再按计划逐步迁移回 WSL。
+- **历史方案：Docker Runner（已退役）**
+  - 旧版通过 `docker-compose.runner*.yml` 维护容器 Runner；现已关闭，不再作为默认路径。
+  - 如确需恢复 Docker Runner，必须创建新的计划条目并重新审批。
+- **CI 工作流调整**
+  - 所有引用自托管 Runner 的 workflow（`document-sync`, `api-compliance`, `consistency-guard`, `ci-selfhosted-*`, `iig-guardian`, `contract-testing`, `plan-254-gates`, `e2e-smoke` 等）均已增加 `wsl` 标签。
+  - Workflow matrix 需包含 `[self-hosted, cubecastle, wsl]` 并在 job 注释中声明：Runner 必须具备 Docker CLI/Compose，业务服务依旧在容器中运行。
+- **记录与监控**
+  - 每次切换或新增 Runner 节点，必须在 Plan 265/266 中记录 Run ID、脚本日志与回滚方案。
+  - `scripts/network/verify-github-connectivity.sh` 与 `docs/reference/docker-network-playbook.md` 提供网络守护；`scripts/ci/runner/watchdog.sh` 可扩展自动校验。
 
 ## 本地一键（VS Code/命令行）
 - VS Code 任务（Terminal → Run Task…）：
@@ -116,6 +130,41 @@
 注意
 - 远程抓取需要 `GITHUB_TOKEN`（加载顺序：`secrets/.env.local` → `secrets/.env` → `.env.local` → `.env` → 环境变量）
 - 若仅本地门禁可执行（architecture-validator + golangci-lint）但无法 E2E，请以 CI 产出的 E2E 证据作为验收对等物（登记时标注“E2E=CI 取证”）
+
+### Plan 267-D：WSL 静态 hosts 覆盖（GitHub 应急）
+
+> 适用范围：受限网络下 `github.com` 被劫持到 11.x.x.x，导致 `git ls-remote` / `curl` 在 WSL/Docker 中失败。Plan 267-D 已验证“WSL 停止自动生成 hosts + 静态写入官方 IP”能恢复访问。
+
+1. **预检**：确保 `/etc/wsl.conf` 已包含：
+   ```ini
+   [network]
+   generateHosts=false
+   ```
+   修改后执行 `wsl.exe --shutdown`（Windows PowerShell）重启 WSL，防止 `/etc/hosts` 被自动覆盖。
+2. **写入官方 IP**：在 WSL 内运行：
+   ```bash
+   sudo bash scripts/network/configure-github-hosts.sh
+   ```
+   脚本会先备份 `HOSTS_FILE`（示例 `/etc/hosts.plan267.<timestamp>.bak`），然后写入 `# Plan 267-D GitHub override` 块，包含 `github.com`、`codeload.github.com`、`api.github.com`、`raw.githubusercontent.com`、`github-releases.githubusercontent.com`、`objects.githubusercontent.com`、`objects-origin.githubusercontent.com`、`release-assets.githubusercontent.com` 等关键域名的最新官方 IP（2025-11-19 取自 `getent ahostsv4`）。
+3. **同步 Runner**：执行
+   ```bash
+   bash scripts/network/apply-github-hosts-to-runner.sh
+   ```
+   该脚本会先更新宿主 `/etc/hosts`，再将 `configure-github-hosts.sh` 拷贝到 `cubecastle-gh-runner` 容器并用 `sudo bash` 应用，确保自托管 Runner 与宿主保持一致。
+4. **验证命令**（所有命令需返回 200 并解析到脚本写入的 IP）：
+   ```bash
+   getent hosts github.com
+   curl -I https://github.com
+   git ls-remote https://github.com/jacksonlee411/cube-castle
+   docker compose -f docker-compose.runner.persist.yml exec gh-runner curl -I https://github.com
+   ```
+   建议将 `git ls-remote` 结果接入 Watchdog/诊断脚本，发现异常时自动重新执行本脚本。
+5. **回退/更新 IP**：若网络团队放通或 GitHub IP 变更，记录最近一次备份文件并执行：
+   ```bash
+   sudo cp /etc/hosts.plan267.<timestamp>.bak /etc/hosts
+   wsl.exe --shutdown
+   ```
+   然后依据新的官方 IP（必要时重新采集）再运行 `bash scripts/network/apply-github-hosts-to-runner.sh`。
 
 ## SUMMARY 打印与远程抓取
 - 本地/CI 打印：`node scripts/ci/print-e2e-summary.js <planId>` 会扫描 `logs/plan<ID>/results-*.json` 并输出机器可读汇总

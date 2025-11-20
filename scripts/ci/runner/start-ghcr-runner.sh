@@ -43,8 +43,8 @@ if [[ -z "$RUNNER_TOKEN" ]]; then
 fi
 echo "✅ Obtained registration token."
 
-echo "🐳 Pull GHCR official actions-runner image (2.315.0)..."
-docker pull ghcr.io/actions/actions-runner:2.315.0
+echo "🐳 Pull GHCR official actions-runner image (2.329.0)..."
+docker pull ghcr.io/actions/actions-runner:2.329.0
 
 echo "🚀 Starting GHCR-based runner via compose..."
 RUNNER_TOKEN="$RUNNER_TOKEN" docker compose -f docker-compose.runner.ghcr.yml up -d
@@ -61,4 +61,3 @@ done
 
 echo "⚠️  Runner did not confirm readiness within timeout. Check logs: docker logs cubecastle-gh-runner"
 exit 5
-

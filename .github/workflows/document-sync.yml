@@ -2,7 +2,7 @@ name: 📝 文档自动同步验证
 
 on:
   push:
-    branches: [ main, master, develop, "feature/*", feat/shared-dev ]
+    branches: [ "main", "master", "develop", "feature/*", "feat/shared-dev" ]
     paths:
       - 'docs/**'
       - 'README.md'
@@ -12,7 +12,7 @@ on:
       - 'frontend/vite.config.ts'
       - 'frontend/playwright.config.ts'
   pull_request:
-    branches: [ main, master, develop, feat/shared-dev ]
+    branches: [ "main", "master", "develop", "feat/shared-dev" ]
     paths:
       - 'docs/**'
       - 'README.md'
@@ -49,19 +49,33 @@ env:
 jobs:
   document-sync-validation:
     name: 📄 文档同步一致性验证
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ubuntu]
+        include:
+          - runner: ubuntu
+            labels:
+              - ubuntu-latest
+            prepare: false
+    runs-on: ${{ matrix.labels }}
     permissions:
       contents: write
       pull-requests: write
       checks: write
 
     steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史用于比较分析
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Detect docs-only/ci-only changes
       id: changes
-      uses: dorny/paths-filter@v3
+      uses: ./.github/actions/paths-filter
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        filters:
+        filters: |
           docs_only:
             - 'AGENTS.md'
             - '**/*.md'
@@ -79,27 +93,26 @@ jobs:
             - '!database/**'
             - '!tests/**'
     - name: Docs/CI-only fast pass (Plan 261 临时短路)
-      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+      id: fast_pass
+      if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
       run: |
         echo "Docs/CI-only changes detected. Skipping document-sync heavy checks (temporary until 2025-11-22)."
+        echo "fastpass=true" >> "$GITHUB_OUTPUT"
         exit 0
-    - name: 📥 检出代码
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # 获取完整历史用于比较分析
-        token: ${{ secrets.GITHUB_TOKEN }}
-
+    - name: 自托管环境准备
+      if: matrix.prepare == true && (github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'))
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync
     - name: 📦 设置Node.js环境
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
-      uses: actions/setup-node@v4
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
+      uses: ./.github/actions/setup-node
       with:
         node-version: '18'
         cache: 'npm'
         cache-dependency-path: '**/package-lock.json'
 
     - name: 🔍 检测文档变更
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       id: detect_changes
       run: |
         # 获取变更文件列表
@@ -117,7 +130,7 @@ jobs:
         echo "$CHANGED_FILES" | tr ' ' '\n'
 
     - name: 🔒 目录边界检查（Reference vs Plans）
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       id: boundary_check
       run: |
         echo "🔒 执行 Reference vs Plans 目录边界检查..."
@@ -175,7 +188,7 @@ jobs:
         fi
 
     - name: 📊 文档同步一致性检查
-      if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true'
+      if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
       id: sync_check
       run: |
         echo "🔄 执行文档同步检查..."
@@ -234,17 +247,22 @@ jobs:
 
     - name: 📤 上传同步报告
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: document-sync-report-${{ github.run_number }}
+        name: document-sync-report-${{ matrix.runner }}-${{ github.run_number }}-${{ github.run_attempt }}
         path: |
           reports/document-sync/
           !reports/document-sync/**/*.tmp
         retention-days: 30
 
+    - name: 自托管环境清理
+      if: matrix.prepare == true && always()
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh document-sync --teardown
+
     - name: 💬 PR评论目录边界检查结果
       if: github.event_name == 'pull_request' && steps.boundary_check.outputs.boundary_ok == 'false'
-      uses: actions/github-script@v7
+      uses: ./.github/actions/github-script
       with:
         script: |
           const fs = require('fs');
@@ -315,7 +333,7 @@ jobs:
 
     - name: 💬 PR评论同步结果
       if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v7
+      uses: ./.github/actions/github-script
       with:
         script: |
           const fs = require('fs');
@@ -373,15 +391,12 @@ jobs:
           
           # 添加并提交变更
           git add -A
-          git commit -m "📝 自动同步文档一致性
-
-由GitHub Actions自动执行的文档同步，确保关键文档间的一致性。
-
-- 同步对象: ${{ steps.sync_check.outputs.total_pairs }} 个
-- 修复冲突: ${{ steps.sync_check.outputs.conflicts }} 个
-- 自动化系统: P3.3文档同步系统
-
-🤖 Generated by GitHub Actions Document Sync"
+          git commit -m "📝 自动同步文档一致性" \
+            -m "由GitHub Actions自动执行的文档同步，确保关键文档间的一致性。" \
+            -m "- 同步对象: ${{ steps.sync_check.outputs.total_pairs }} 个" \
+            -m "- 修复冲突: ${{ steps.sync_check.outputs.conflicts }} 个" \
+            -m "- 自动化系统: P3.3文档同步系统" \
+            -m "🤖 Generated by GitHub Actions Document Sync"
           
           # 推送变更
           git push
@@ -394,13 +409,20 @@ jobs:
     - name: ⚠️ 质量门禁检查
       if: always()
       run: |
-        SYNC_SUCCESS="${{ steps.sync_check.outputs.sync_success }}"
+        FAST_PASS="${{ steps.fast_pass.outputs.fastpass || 'false' }}"
+        SYNC_SUCCESS="${{ steps.sync_check.outputs.sync_success || steps.fast_pass.outputs.fastpass || '' }}"
         CONFLICTS="${{ steps.sync_check.outputs.conflicts }}"
         BOUNDARY_OK="${{ steps.boundary_check.outputs.boundary_ok || 'true' }}"
         
+        echo "Fast pass: $FAST_PASS"
         echo "同步状态: $SYNC_SUCCESS"
         echo "冲突数量: $CONFLICTS"
         echo "目录边界: $BOUNDARY_OK"
+        
+        if [[ "$FAST_PASS" == "true" ]]; then
+          echo "✅ Docs/CI-only fast pass: 已在 Plan 261 例外窗口中跳过重型检查"
+          exit 0
+        fi
         
         if [[ "$SYNC_SUCCESS" != "true" || "$BOUNDARY_OK" != "true" ]]; then
           if [[ "$AUTO_SYNC" == "true" ]]; then

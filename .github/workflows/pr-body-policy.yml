@@ -3,18 +3,63 @@ name: pr-body-policy
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to evaluate'
+        required: true
 
 jobs:
   policy:
     name: PR Body Policy – required
     runs-on: ubuntu-latest
     steps:
-      - name: Evaluate PR body
+      - name: Resolve PR metadata
         env:
+          EVENT_NAME: ${{ github.event_name }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ -z "$INPUT_PR_NUMBER" ]; then
+              echo "::error::workflow_dispatch 触发必须提供 pr_number"
+              exit 1
+            fi
+            export GH_TOKEN
+            repo="${GITHUB_REPOSITORY}"
+            pr_json=$(gh api "repos/${repo}/pulls/${INPUT_PR_NUMBER}")
+            pr_number="$INPUT_PR_NUMBER"
+            pr_title=$(echo "$pr_json" | jq -r '.title')
+            pr_body=$(echo "$pr_json" | jq -r '.body')
+            pr_url=$(echo "$pr_json" | jq -r '.html_url')
+          else
+            pr_number="$PR_NUMBER"
+            pr_title="$PR_TITLE"
+            pr_body="$PR_BODY"
+            pr_url="$PR_HTML_URL"
+          fi
+          {
+            echo "RESOLVED_PR_NUMBER=$pr_number"
+            echo "RESOLVED_PR_HTML_URL=$pr_url"
+            echo "RESOLVED_PR_TITLE<<EOF"
+            echo "$pr_title"
+            echo "EOF"
+            echo "RESOLVED_PR_BODY<<EOF"
+            echo "$pr_body"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Evaluate PR body
+        env:
+          PR_TITLE: ${{ env.RESOLVED_PR_TITLE }}
+          PR_BODY: ${{ env.RESOLVED_PR_BODY }}
+          PR_NUMBER: ${{ env.RESOLVED_PR_NUMBER }}
+          PR_HTML_URL: ${{ env.RESOLVED_PR_HTML_URL }}
         run: |
           echo "PR #$PR_NUMBER $PR_HTML_URL"
           echo "Title: $PR_TITLE"

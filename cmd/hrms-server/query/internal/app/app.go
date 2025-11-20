@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -244,9 +245,8 @@ func (a *Application) buildServer(repo *organization.QueryRepository, assignment
 	schemaPath := schemaLoader.GetDefaultSchemaPath()
 	a.log("graphql.schema", pkglogger.Fields{"path": schemaPath}).Info("✅ GraphQL Schema compiled from single source via gqlgen")
 
-	router := a.buildRouter(graphqlServer, graphqlMiddleware, devMode)
-
 	port := getEnv("PORT", "8090")
+	router := a.buildRouter(graphqlServer, graphqlMiddleware, devMode, port)
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      router,
@@ -258,13 +258,13 @@ func (a *Application) buildServer(repo *organization.QueryRepository, assignment
 	return server, nil
 }
 
-func (a *Application) buildRouter(graphqlServer http.Handler, permission *auth.GraphQLPermissionMiddleware, devMode bool) http.Handler {
+func (a *Application) buildRouter(graphqlServer http.Handler, permission *auth.GraphQLPermissionMiddleware, devMode bool, port string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(requestMiddleware.RequestIDMiddleware)
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   resolveQueryAllowedOrigins(port),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"Link"},
@@ -305,6 +305,22 @@ func (a *Application) buildRouter(graphqlServer http.Handler, permission *auth.G
 	r.Handle("/metrics", promhttp.Handler())
 
 	return r
+}
+
+func resolveQueryAllowedOrigins(port string) []string {
+	scheme := firstNonEmpty(os.Getenv("QUERY_BASE_SCHEME"), os.Getenv("COMMAND_BASE_SCHEME"), "http")
+	host := firstNonEmpty(os.Getenv("QUERY_BASE_HOST"), os.Getenv("COMMAND_BASE_HOST"), "127.0.0.1")
+	defaultOrigin := config.BuildOrigin(scheme, host, port)
+	return config.ResolveAllowedOrigins("QUERY_ALLOWED_ORIGINS", "COMMAND_ALLOWED_ORIGINS", []string{defaultOrigin})
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if trimmed := strings.TrimSpace(v); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func metricsMiddleware(next http.Handler) http.Handler {

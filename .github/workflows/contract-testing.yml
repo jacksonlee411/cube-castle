@@ -6,6 +6,7 @@ name: 契约测试自动化验证
   pull_request:
     branches: [ main, master, develop, feat/shared-dev ]
     types: [opened, synchronize, reopened]
+  workflow_dispatch: {}
 
 jobs:
   contract-snapshot:
@@ -52,7 +53,7 @@ jobs:
             - '!database/**'
             - '!tests/**'
     - name: Docs/CI-only fast pass
-      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+      if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
       run: |
         echo "Docs/CI-only changes detected. Skipping contract snapshot heavy steps."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
@@ -158,7 +159,7 @@ jobs:
             - '!database/**'
             - '!tests/**'
     - name: Docs/CI-only fast pass
-      if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+      if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
       run: |
         echo "Docs/CI-only changes detected. Skipping contract testing heavy steps."
         echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
@@ -298,13 +299,33 @@ jobs:
 
   performance-impact-analysis:
     name: 性能影响分析
-    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        runner: [ubuntu, selfhosted-wsl]
+        include:
+          - runner: ubuntu
+            labels: ubuntu-latest
+            prepare: false
+          - runner: selfhosted-wsl
+            labels:
+              - self-hosted
+              - cubecastle
+              - wsl
+            prepare: true
+            wsl_only: true
+    runs-on: ${{ matrix.labels }}
+    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (matrix.wsl_only != true || github.event_name == 'workflow_dispatch') }}
     
     steps:
     - name: Checkout代码
       uses: actions/checkout@v4
       
+    - name: 自托管环境准备
+      if: matrix.prepare == true
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis
+
     - name: 设置Node.js环境
       uses: actions/setup-node@v4
       with:
@@ -333,3 +354,8 @@ jobs:
         cd frontend
         time npm run test:contract
         echo "契约测试执行时间已记录"
+
+    - name: 自托管环境清理
+      if: matrix.prepare == true
+      shell: bash
+      run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis --teardown
