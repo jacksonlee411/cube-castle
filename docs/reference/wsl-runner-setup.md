@@ -67,7 +67,7 @@ bash scripts/ci/runner/wsl-install.sh \
 1. `bash scripts/ci/runner/wsl-verify.sh`：输出版本、Docker socket、GitHub API 可访问性；若失败脚本返回非 0。
 2. `tmux ls` 确认存在 `cc-runner`（或自定义）session；`tmux logs` 里应出现 Runner 心跳。
 3. GitHub → Settings → Actions → Runners：在线 Runner 应显示 `self-hosted`, `cubecastle`, `wsl` 标签。
-4. 触发 `CI (Self-Hosted Runner Smoke)` 或 `document-sync` workflow 并记录 Run ID、日志路径到 Plan 265/266。
+4. 触发 `CI (Self-Hosted Runner Smoke)` 并记录 Run ID、日志路径到 Plan 265/266；其余 Required workflow 暂在 GitHub runner 上运行，待迁回 WSL 时再按计划收集证据。
 
 ## 4. 日志与维护
 

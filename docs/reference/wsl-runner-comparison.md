@@ -1,12 +1,12 @@
 # WSL Runner vs Docker Runner 对比指引（Plan 269）
 
-**最后更新**：2025-11-20（Plan 269 批准，2025-11-20 结论更新：WSL 为唯一自托管方案）  
+**最后更新**：2025-11-20（Plan 269 批准，阶段性策略：GitHub runner 为主、WSL Runner 仅用于 smoke）  
 **关联文档**：AGENTS.md、Plan 262/265/266/267、`docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md`
 
 ## 背景与结论
 
 - 业务服务、数据库、中间件仍受“Docker Compose 强制”约束；任何生产/研发服务不得在宿主或 WSL 中裸跑。
-- 2025-11-20 架构 + 安全 + 平台联合评审确认：CI 自托管 Runner 属于开发工具，可在满足隔离/日志条件下于 WSL 内直接运行；随后的 2025-11-20 决议要求 **自托管 Runner 仅保留 WSL 形态**，Docker Runner 退役，如需恢复必须重新立项。
+- 2025-11-20 架构 + 安全 + 平台联合评审确认：CI 自托管 Runner 属于开发工具，可在满足隔离/日志条件下于 WSL 内直接运行；当前阶段仅 `ci-selfhosted-smoke` 在 WSL 运行，其余 Required workflow 暂时使用 GitHub 托管 runner，待平台问题解决再迁回 WSL。Docker Runner 退役，如需恢复必须重新立项。
 
 ## 维度对比
 
@@ -22,8 +22,8 @@
 ## 选择流程
 
 1. **安装与配置**：严格按 `docs/reference/wsl-runner-setup.md` + `scripts/ci/runner/wsl-install.sh` 操作，标签设置为 `self-hosted,cubecastle,wsl`。
-2. **验证**：运行 `scripts/ci/runner/wsl-verify.sh`、`scripts/network/verify-github-connectivity.sh --smoke`，随后触发 `ci-selfhosted-smoke`、`document-sync (selfhosted)` 等 workflow 并记录 Run ID。
-3. **问题处理**：若出现网络/权限异常，按 Plan 265/266/267 的诊断脚本收集日志；无法在 WSL 内恢复时，需提交新的计划以重新启用 Docker Runner（默认不再保留）。
+2. **验证**：运行 `scripts/ci/runner/wsl-verify.sh`、`scripts/network/verify-github-connectivity.sh --smoke`，随后触发 `ci-selfhosted-smoke` 记录 Run ID；在 GitHub runner 上先跑绿 Required workflow，并将成果写入 Plan 265/266/269。
+3. **迁移回 WSL**：待平台问题解决后，逐条将 workflow `runs-on` 切回 `[self-hosted,cubecastle,wsl]`，并在 WSL Runner 上收集成功 run 证据。
 
 ## 审批与审计
 

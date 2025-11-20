@@ -7,13 +7,13 @@
 ## 核心开发指导原则（长期稳定）
 - 资源唯一性与跨层一致性（最高优先级）：契约、实现与文档指向同一事实来源；一旦发现偏离，优先回滚或整改。
 - Docker 容器化部署（强制）：所有业务服务统一由 Docker Compose 管理；宿主机严禁安装 PostgreSQL/Redis/Temporal 等；如端口冲突，卸载宿主服务，不得改映射端口。
-- 自托管 Runner 例外（Plan 269 批准，2025-11-20）：CI Runner 属于开发辅助设施，当前唯一支持的形态为 **WSL 原生 Runner**，必须满足：
+- 自托管 Runner 例外（Plan 269 批准，2025-11-20）：CI Runner 属于开发辅助设施，当前唯一支持的形态为 **WSL 原生 Runner**，但目前仅用于 `ci-selfhosted-smoke` 等诊断类 workflow，其余 Required checks 暂时回退到 GitHub 平台 runner；必须满足：
   - 业务服务依旧在 Docker 容器内启动，Runner 只负责调度作业；
-  - WSL Runner 必须按 `docs/reference/wsl-runner-setup.md` 安装，具备 Go 1.24.9+/Node 18+/Docker CLI，并且所有 self-hosted workflow 仅使用 `runs-on: [self-hosted,cubecastle,wsl]`；
+  - WSL Runner 必须按 `docs/reference/wsl-runner-setup.md` 安装，具备 Go 1.24.9+/Node 18+/Docker CLI；当前仅 `ci-selfhosted-smoke` 使用 `runs-on: [self-hosted,cubecastle,wsl]`，其他 workflow 统一使用 `ubuntu-latest` 直至 WSL 跑通；
   - Docker Runner 已退役且不再维持回退路径，如需恢复旧容器化 Runner 需重新审批；
-  - 任何 Runner 变更需同步更新 Plan 265/266/267 记录与 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md`。
+  - 任何 Runner 变更需同步更新 Plan 265/266/267 记录与 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md`；
   - ⚠️ 关闭或重启 WSL（如执行 `wsl.exe --shutdown`）会导致 Runner 与 Docker 网络短暂停机，属于高影响操作，需提前在对话中说明命令、影响面与回滚方案并获得额外审批。
-  - TODO-TEMPORARY(2025-11-25): 由于 GitHub `workflow_dispatch` 在 WSL Runner 上存在静默失败，`document-sync`、`api-compliance`、`consistency-guard` 工作流暂时改为在 `ubuntu-latest`（GitHub 托管）上运行，待平台修复后恢复 WSL，自身记录详见 Plan 265/266。
+  - TODO-TEMPORARY(2025-11-25): 由于 GitHub `workflow_dispatch` 在 WSL Runner 上存在静默失败，`document-sync`、`api-compliance`、`consistency-guard` 等 Required workflow 暂时回退到 `ubuntu-latest` 跑绿并收集证据，待平台修复后再逐步迁移回 WSL。
 - Go 工具链基线：Go 1.24 及以上（当前 `toolchain go1.24.9`）；提交前通过 `go version` 确认。
 - 迁移即真源：所有数据库变更由 `database/migrations/` 管理；不依赖手工初始化脚本作为事实来源。
 - 先契约后实现：以 `docs/api/*`（OpenAPI/GraphQL）为唯一事实来源，先定义再实现。

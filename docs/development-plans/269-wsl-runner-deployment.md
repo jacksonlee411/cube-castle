@@ -60,7 +60,8 @@
 
 ### 3.4 Pipeline 集成与验证
 1. 更新所有使用自托管 Runner 的 workflow（例如 `document-sync`, `ci-selfhosted-smoke`, `ci-selfhosted-diagnose`, `consistency-guard`, `api-compliance` 等）：
-   - `runs-on` 仅保留 `wsl` 标签（`[self-hosted, cubecastle, wsl]`），移除 `selfhosted-docker` 相关矩阵。
+   - 第一阶段：除 `ci-selfhosted-smoke` 外全部改为 `runs-on: ubuntu-latest`，确保托管 runner 跑绿并记录 Run ID；
+   - 第二阶段：在 GitHub 平台 runner 上稳定后，再逐条切换回 `runs-on: [self-hosted,cubecastle,wsl]` 并删除 `ubuntu` 分支。
    - 记录在 workflow 注释中：WSL Runner 需具备 Docker CLI，任务仍依赖 Docker Compose。
 2. 在 `docs/development-plans/265-selfhosted-required-checks.md` 追加“WSL Runner”执行记录：包含安装脚本、Run ID、日志路径、使用标签。
 3. 通过 `workflow_dispatch` 触发 `document-sync`、`api-compliance`、`consistency-guard`、`ci-selfhosted-smoke`，确保新的 Runner 标签生效并收集日志。
