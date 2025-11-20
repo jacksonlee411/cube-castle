@@ -7,6 +7,12 @@
 
 ---
 
+
+## 📌 搁置结论
+
+- 由于自托管 workflow（document-sync/api-compliance/consistency-guard）在 WSL Runner 上仍缺乏成功 run，Plan 266 的追踪任务暂时冻结，仅保留 `ci-selfhosted-smoke` 结果作为基线。
+- 后续待 Runner 网络恢复后再继续补齐 run ID 并恢复追踪。
+
 ## 1. 最新进展
 
 1. `cmd/hrms-server/command/main.go`、`internal/organization/handler/devtools.go`、`tests/e2e/auth_flow_e2e_test.go` 已移除 `http://localhost` 等硬编码，引入 `COMMAND_ALLOWED_ORIGINS`、`COMMAND_BASE_HOST/SCHEME`、`DEVTOOLS_COMMAND_BASE_URL`、`COMMAND_BASE_URL/QUERY_BASE_URL` 等环境变量（commit `b3aff300`）。

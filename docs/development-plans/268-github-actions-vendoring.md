@@ -7,6 +7,12 @@
 
 ---
 
+
+## 📌 搁置结论
+
+- Actions vendoring 需要依赖自托管 runner 验证（document-sync/api-compliance 等），当前 WSL runner 尚未稳定，无法验证本地 actions 与 workflow dispatch。
+- Plan 268 相关脚本/文档保持现状，待 Plan 265/267 恢复后再继续推广。
+
 ## 1. 背景与目标
 
 - 自托管 Runner 每次执行 `document-sync`/`api-compliance` 等门禁时，都会重新从 GitHub 下载 `actions/checkout`、`actions/setup-node`、`actions/upload-artifact` 等依赖。日志显示重复的 `Download action repository ...`，甚至因网络抖动出现 `HttpClient.Timeout`、`GnuTLS recv error (-110)`，延长排队时间并造成失败。

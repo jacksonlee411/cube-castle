@@ -9,6 +9,13 @@
 
 ---
 
+
+## 📌 搁置结论
+
+- 因 WSL Runner 网络/调度未恢复，Plan 265 所要求的自托管门禁跑通无法完成。
+- 2025-11-20 起暂停执行自托管扩展，唯一保留的作业为 `ci-selfhosted-smoke`（runner 健康检查）。
+- 需待 Plan 267/269 网络治理完成并重新触发 document-sync/api-compliance/consistency-guard 等 job 后，再恢复本计划。
+
 ## 1. 背景与目标
 
 - Plan 262 已通过 `docker-compose.runner.persist.yml`、`start-ghcr-runner-persistent.sh`、`watchdog.sh` 将自托管 Runner 持续在线，冒烟/诊断 run（19485705844 / 19486773039）证明 runner 能稳定运行 Docker Compose。
