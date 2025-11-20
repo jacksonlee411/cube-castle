@@ -40,7 +40,7 @@
 3. `PR Body Policy – required` —— 仅在 PR 场景触发，需等 PR 更新或手动触发确保最新检查。
 4. `Plan 254 Gate – ubuntu` —— run `19521471914` 无 job，需排查 workflow 触发条件后在平台 runner 上重跑。
 
-支撑动作：已为 `plan-257-gates.yml` 与 `agents-compliance.yml` 补充 `workflow_dispatch` 触发，并将后者的 push 分支范围扩展到 `feat/shared-dev`，后续可直接通过 `gh workflow run <workflow> -r feat/shared-dev` 在 GitHub runner 上重跑（无须额外提交）。`Plan 254 Gate – ubuntu` 仍建议以 workflow_dispatch 触发单次运行，排查 0s failure 的根因后再调整。
+支撑动作：已为 `plan-257-gates.yml` 与 `agents-compliance.yml` 补充 `workflow_dispatch` 触发，并将后者的 push 分支范围扩展到 `feat/shared-dev`，后续可直接通过 `gh workflow run <workflow> -r feat/shared-dev` 在 GitHub runner 上重跑（无须额外提交）。`plan-254-gates.yml` 现阶段仅保留 `ubuntu-latest` 变体，移除了 WSL matrix 以避免 GitHub 对 job-level `matrix` 条件的语法拒绝；若后续需要恢复自托管版本，可单独新增 job 并以 `workflow_dispatch` 触发。
 
 其余 7 条 Required status 已在 GitHub runner 上通过并记录 run ID（见上表），维持绿色后再评估 WSL 迁移时间表。
 

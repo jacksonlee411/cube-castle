@@ -27,19 +27,8 @@ on:
 
 jobs:
   gate:
-    name: Plan 254 Gate – ${{ matrix.label }}
-    strategy:
-      fail-fast: false
-      matrix:
-        label: [ubuntu, selfhosted-wsl]
-        include:
-          - label: ubuntu
-            runs_on: '["ubuntu-latest"]'
-          - label: selfhosted-wsl
-            runs_on: '["self-hosted","cubecastle","wsl"]'
-            wsl_only: true
-    runs-on: ${{ fromJson(matrix.runs_on) }}
-    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' }}
+    name: Plan 254 Gate – ubuntu
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
