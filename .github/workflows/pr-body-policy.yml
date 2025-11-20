@@ -46,10 +46,10 @@ jobs:
           {
             echo "RESOLVED_PR_NUMBER=$pr_number"
             echo "RESOLVED_PR_HTML_URL=$pr_url"
-            echo "RESOLVED_PR_TITLE<<'EOF'"
+            echo "RESOLVED_PR_TITLE<<EOF"
             echo "$pr_title"
             echo "EOF"
-            echo "RESOLVED_PR_BODY<<'EOF'"
+            echo "RESOLVED_PR_BODY<<EOF"
             echo "$pr_body"
             echo "EOF"
           } >> "$GITHUB_ENV"
