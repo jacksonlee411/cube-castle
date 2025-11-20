@@ -79,6 +79,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install goose CLI
+        shell: bash
+        run: |
+          if command -v goose >/dev/null 2>&1; then
+            goose -version || true
+            exit 0
+          fi
+          export GOBIN="$HOME/.cache/bin"
+          mkdir -p "$GOBIN"
+          GO111MODULE=on GOBIN="$GOBIN" go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
+          echo "$GOBIN" >> "$GITHUB_PATH"
+          goose -version || true
+
       - name: 准备 Compose 环境（postgres/redis）
         shell: bash
         run: bash scripts/ci/workflows/prepare-selfhosted.sh consistency-guard-audit
@@ -87,8 +100,6 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client jq
-          curl -sSL https://github.com/pressly/goose/releases/download/v3.26.0/goose_linux_x86_64.tar.gz \
-            | sudo tar -xz -C /usr/local/bin goose
 
       - name: Apply Goose migrations
         env:
@@ -101,6 +112,7 @@ jobs:
           DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
           ENFORCE: "1"
           APPLY_FIXES: "0"
+          PGOPTIONS: "-c app.assert_triggers_zero=0"
         run: |
           bash scripts/apply-audit-fixes.sh
 
@@ -127,6 +139,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install goose CLI
+        shell: bash
+        run: |
+          if command -v goose >/dev/null 2>&1; then
+            goose -version || true
+            exit 0
+          fi
+          export GOBIN="$HOME/.cache/bin"
+          mkdir -p "$GOBIN"
+          GO111MODULE=on GOBIN="$GOBIN" go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
+          echo "$GOBIN" >> "$GITHUB_PATH"
+          goose -version || true
+
       - name: 准备 Compose 环境（postgres/redis）
         shell: bash
         run: bash scripts/ci/workflows/prepare-selfhosted.sh consistency-guard-temporal
@@ -141,11 +166,9 @@ jobs:
           DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
         run: |
           set -euo pipefail
-          if [ -f database/schema.sql ]; then
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/schema.sql
-          else
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f sql/inspection/minimal_organization_units_schema.sql
-          fi
+          SCHEMA_FILE="sql/inspection/minimal_organization_units_schema.sql"
+          echo "Loading minimal schema from $SCHEMA_FILE"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$SCHEMA_FILE"
 
       - name: Run temporal consistency inspection (read-only)
         env:

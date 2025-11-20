@@ -62,17 +62,6 @@ require_env() {
   require_cmd make
 }
 
-install_goose_if_missing() {
-  if command -v goose >/dev/null 2>&1; then
-    log "goose already installed: $(goose -version || true)"
-    return
-  fi
-  log "goose not found, installing v3.26.0"
-  curl -sSL https://github.com/pressly/goose/releases/download/v3.26.0/goose_linux_x86_64.tar.gz \
-    | sudo tar -xz -f - -C /usr/local/bin goose
-  log "goose version: $(goose -version)"
-}
-
 bring_up_services() {
   log "Compose up services (postgres, redis) with $compose_file"
   docker compose -f "$compose_file" config -q
@@ -90,7 +79,6 @@ tear_down_services() {
 
 run_prepare() {
   require_env
-  install_goose_if_missing
   check_versions
   bring_up_services
   if [[ "${CI_PREPARE_RUN_MIGRATIONS:-0}" == "1" ]]; then
