@@ -1,7 +1,12 @@
 name: Consistency Guard
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      enable_compose_jobs:
+        description: 'Run audit/temporal jobs (requires Docker-in-Docker support)'
+        required: false
+        default: 'false'
   push:
     branches: [ "**" ]
     tags: [ "*" ]
@@ -68,7 +73,7 @@ jobs:
           - runner: ubuntu
             labels: ubuntu-latest
     runs-on: ${{ matrix.labels }}
-    if: ${{ true }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.enable_compose_jobs == 'true' }}
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -113,7 +118,7 @@ jobs:
           - runner: ubuntu
             labels: ubuntu-latest
     runs-on: ${{ matrix.labels }}
-    if: ${{ true }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.enable_compose_jobs == 'true' }}
     timeout-minutes: 15
     env:
       DATABASE_URL: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
