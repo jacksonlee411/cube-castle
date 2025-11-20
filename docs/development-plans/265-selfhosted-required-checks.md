@@ -4,7 +4,8 @@
 **标题**: 自托管 Runner 门禁扩展（Plan 263/264 衔接）  
 **版本**: v0.1  
 **创建日期**: 2025-11-19  
-**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）
+**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）  
+**状态**: ⚠️ 搁置（2025-11-20）——受限于 WSL Runner 网络/调度，暂无法满足自托管门禁运行要求；待 Plan 267/269 网络与 Runner 稳定后重新评估。
 
 ---
 
@@ -81,7 +82,9 @@
    - 每个 workflow 在 YAML 内保留注释说明如何回退到 `runs-on: ubuntu-latest`；  
    - 若自托管 runner 故障，可通过 `workflow_dispatch` 触发 ubuntu-only job 并在 Branch Protection 暂时移除 self-hosted 项；Plan 265 文档需记录回滚时间/原因。
 
-## 4. 验收标准
+## 4. 验收标准（已搁置）
+
+> **搁置说明（2025-11-20）**：由于 WSL Runner 网络与调度仍不稳定（参考 Plan 266/267），`document-sync`、`api-compliance`、`consistency-guard` 等自托管 job 暂无法获取成功 run。以下验收项保持原描述，待 Runner 可用且网络恢复后再恢复执行：
 
 - [ ] `contract-testing.yml` 中 `performance-impact-analysis` job 在 self-hosted runner 上 0 error，通过至少 3 次 PR run，并列入 Branch Protection Required 列表。  
 - [ ] `frontend-quality-gate.yml`、`frontend-e2e.yml`、`document-sync.yml`、`consistency-guard.yml`、`plan-254-gates.yml`、`api-compliance.yml`、`iig-guardian.yml` 均已启用，且最新 push 在 self-hosted runner 上成功运行（含 run ID 记录）。  

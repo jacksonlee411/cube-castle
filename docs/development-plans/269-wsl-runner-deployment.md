@@ -2,7 +2,8 @@
 
 **文档编号**: 269  
 **创建日期**: 2025-11-20  
-**关联计划**: Plan 262（自托管 Runner 基建）、Plan 265（Required Checks）、Plan 267（网络稳定化）
+**关联计划**: Plan 262（自托管 Runner 基建）、Plan 265（Required Checks）、Plan 267（网络稳定化）  
+**状态**: ⚠️ 搁置（2025-11-20）——WSL Runner 需等待 Plan 267 网络方案落地，现阶段仅保留 `ci-selfhosted-smoke` 作为健康验证，其余验收项暂缓。
 
 ---
 
