@@ -22,7 +22,7 @@
 ## 2. 交付物
 - 目录结构与命名约定文档（引用 203/204/AGENTS）；
 - 最小守卫与校验脚本（ESLint 架构守卫、document-sync、API compliance）；
-- 合流基线清单与风险登记（docs/development-plans/250-* 路径内）；
+- 合流基线清单与风险登记（参见本档案与仍在开发目录下的补充方案，如 `docs/development-plans/250A-*`）；
 - 验收记录与日志（logs/plan250/*）。
 
 ## 3. 依赖与约束

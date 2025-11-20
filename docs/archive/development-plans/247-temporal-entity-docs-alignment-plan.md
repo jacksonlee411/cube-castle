@@ -30,9 +30,9 @@
   - `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`
   - `docs/reference/02-IMPLEMENTATION-INVENTORY.md`
   - `docs/development-plans/06-integrated-teams-progress-log.md`
-  - `docs/development-plans/240-position-management-page-refactor.md`
-  - `docs/development-plans/241-frontend-framework-refactor.md`
-  - `docs/development-plans/242-temporal-naming-abstraction-plan.md`
+  - `docs/archive/development-plans/240-position-management-page-refactor.md`
+  - `docs/archive/development-plans/241-frontend-framework-refactor.md`
+  - `docs/archive/development-plans/242-temporal-naming-abstraction-plan.md`
   - `README.md`
 - 排除项（历史保留，不纳入“零引用”校验统计）：
   - `docs/archive/**`（历史记录允许保留旧名引用，以便溯源；如需纠偏，另起归档修订 MR）

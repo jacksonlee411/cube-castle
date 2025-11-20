@@ -4,6 +4,7 @@
 标题: 协议重复矩阵生成与业务 GET 白名单固化（259 子计划）  
 创建日期: 2025-11-16  
 版本: v1.0  
+状态: ✅ 已完成（2025-11-20，business GET=0，阈值=0；参见 `logs/plan259/guard-plan259-20251120_130632.log`）  
 父计划: 259（协议策略复审）  
 关联: 202、255、256、258、215、AGENTS.md
 
@@ -67,9 +68,8 @@
 - 门禁阈值切换为 0：与 259‑T4 废止窗口同步（参考 259 主计划）
 
 ## 9. 关联与索引
-- 主计划：`docs/development-plans/259-protocol-strategy-review.md`
+- 主计划：`docs/archive/development-plans/259-protocol-strategy-review.md`
 - 原则：`AGENTS.md`
 - 契约：`docs/api/openapi.yaml`、`docs/api/schema.graphql`
 - 权限校验器：`scripts/quality/auth-permission-contract-validator.js`（Plan 252）
 - 结果登记：`docs/development-plans/215-phase2-execution-log.md`
-

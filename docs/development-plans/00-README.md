@@ -53,9 +53,14 @@
 
 ### **归档文档** (docs/archive/development-plans/)
 
-> **最新归档时间**: 2025-11-06
-> **最新归档原因**: Phase1（Plans 210-214）已完美收官，全部完成无遗留问题，按规范归档；Plan 205 已于 2025-11-04 完成并归档
+> **最新归档时间**: 2025-11-16
+> **最新归档原因**: Plan 250（模块化单体合流）与 Plan 256（契约 SSoT 生成链路）已完成并通过签收，按规范移入归档；Phase1（Plans 210-214）历史记录保持不变
 > **访问方式**: `../archive/development-plans/` 子目录中可继续访问所有归档文档
+
+#### **最近新增归档（2025-11-16）**
+- `../archive/development-plans/250-modular-monolith-merge.md` - 模块化单体合流与边界治理（Plan 250 主文档；plan-250-gates CI 守卫与日志登记保持不变）
+- `../archive/development-plans/256-contract-ssot-generation-pipeline.md` - 契约单一事实来源与生成链路（Plan 256 主文档；contract-sync / drift 报告模式已落地）
+- `../archive/development-plans/256-signoff-20251116.md` - Plan 256 验收纪要（签收记录，明确归档状态与后续责任）
 
 #### **最近新增归档（2025-11-06）**
 - `../archive/development-plans/210-database-baseline-reset-plan.md` - 数据库基线重建（Goose + Atlas 工作流，已验证）

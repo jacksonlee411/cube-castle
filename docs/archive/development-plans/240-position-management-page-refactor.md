@@ -13,16 +13,16 @@
 为避免第二事实来源，子计划状态以各自计划文档与落盘证据为准，本节仅做索引与归档登记：
 
 - 240A – 职位详情 Layout 对齐与骨架替换：已完成（验收通过）  
-  - 事实来源：`docs/development-plans/240A-position-layout-alignment.md`  
+  - 事实来源：`docs/archive/development-plans/240A-position-layout-alignment.md`  
   - 证据：`logs/plan240/A/architecture-validator.log`、`logs/plan240/A/document-sync.log`、`logs/plan240/A/selector-guard.log`、`logs/plan240/A/e2e-position-tabs-{chromium,firefox}.log`、`logs/plan240/A/playwright-trace/trace.zip`
 - 240B – 数据装载链路与等待治理：已完成  
-  - 事实来源：`docs/development-plans/240B-position-loading-governance.md`  
+  - 事实来源：`docs/archive/development-plans/240B-position-loading-governance.md`  
   - 证据：`logs/plan240/B/guard-plan245.log`、`logs/plan240/B/guard-selectors-246.log`、`logs/plan240/B/e2e-*.log`
 - 240C – DOM/TestId 治理与选择器统一：已完成（验收通过）  
-  - 事实来源：`docs/development-plans/240C-position-selectors-unification.md`  
+  - 事实来源：`docs/archive/development-plans/240C-position-selectors-unification.md`  
   - 证据：`logs/plan240/C/selector-guard.log`、`logs/plan240/C/unit-and-e2e.log`（如有）
 - 240D – 职位详情可观测性与指标注入：已完成（验收通过）  
-  - 事实来源：`docs/development-plans/240D-position-observability.md`、`CHANGELOG.md:3`（v1.5.7）  
+  - 事实来源：`docs/archive/development-plans/240D-position-observability.md`、`CHANGELOG.md:3`（v1.5.7）  
   - 证据：`logs/plan240/D/obs-position-observability-chromium.log`、`frontend/playwright-report/index.html`
 - 240E – 回归与 Runbook：已完成（本地 Smoke + 守卫通过；登记见 Plan 215）  
   - 事实来源：`docs/development-plans/240E-position-regression-and-runbook.md`、`docs/development-plans/215-phase2-execution-log.md`  
@@ -32,7 +32,7 @@
    - 证据：`logs/plan240/BT/smoke-org-detail.log`、`logs/plan240/BT/health-checks.log`  
 
 依赖状态同步：
-- Plan 242 – 命名抽象：已完成，作为 240 的关键解锁条件（见 `docs/development-plans/244-temporal-timeline-status-plan.md` “完成登记”与 `CHANGELOG.md:26`）。  
+- Plan 242 – 命名抽象：已完成，作为 240 的关键解锁条件（见 `docs/archive/development-plans/244-temporal-timeline-status-plan.md` “完成登记”与 `CHANGELOG.md:26`）。  
 - Plan 244 – Timeline/Status 抽象：已完成（验收通过）；240B/240D 已按新命名空间落地。  
 - 契约与实现一致性：`docs/api/openapi.yaml`、`docs/api/schema.graphql` 已按 242/244 更新；240 不新增契约，遵循“先契约后实现”。  
 
@@ -40,7 +40,7 @@
 
 ## 0.1 影响评估：240 先于 241 完成的权衡与回补计划（已登记）
 
-背景：Plan 241（前端页面与框架一体化重构）当前为“部分完成 · 验收未通过”（见 `docs/development-plans/241-frontend-framework-refactor.md`）。本计划的 A–D 子任务已交付在既有骨架与 Hook 上，存在“在 241 交付前的临时对齐与薄适配”的客观状态。
+背景：Plan 241（前端页面与框架一体化重构）当前为“部分完成 · 验收未通过”（见 `docs/archive/development-plans/241-frontend-framework-refactor.md`）。本计划的 A–D 子任务已交付在既有骨架与 Hook 上，存在“在 241 交付前的临时对齐与薄适配”的客观状态。
 
 - 影响评估（风险与现状）
   - 骨架重复与收敛负担：职位端依旧基于既有 `TemporalMasterDetailView` 外层与 `PositionDetailView` 自身布局进行对齐（240A），未采用 241 计划中的中性骨架；后续需二次替换为 241 的共享 Layout（不引入第二事实来源，引用 241 的组件/指南）。  
@@ -51,7 +51,7 @@
 
 - 回补计划（241 完成后，240 的待回归事项）
   1) 骨架切换（不改契约）  
-     - 将职位详情外层容器替换为 241 交付的中性骨架组件（参考：`docs/development-plans/241-frontend-framework-refactor.md` 的收尾目标“TemporalEntityLayout”）。  
+     - 将职位详情外层容器替换为 241 交付的中性骨架组件（参考：`docs/archive/development-plans/241-frontend-framework-refactor.md` 的收尾目标“TemporalEntityLayout”）。  
      - A11y 与视觉间距维持与组织端一致；任何差异在 MR 中登记原因与后续修正（不在本文件复制规范正文，唯一事实来源：`docs/reference/temporal-entity-experience-guide.md`）。
   2) Hook/Loader 统一（薄适配回收）  
      - 将职位域数据读取入口切换为 241 的统一 Hook/工厂（如 `useTemporalEntityDetail`/`createTemporalDetailLoader`），保留 240B 的取消/重试/失效策略，通过 241 的统一配置导出（SSoT）。  

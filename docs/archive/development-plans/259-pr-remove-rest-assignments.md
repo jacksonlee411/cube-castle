@@ -3,6 +3,7 @@
 标题: feat!: remove REST business GET /api/v1/positions/{code}/assignments  
 关联计划: 259（主）、259A、258、257、215、AGENTS.md  
 影响范围: REST 合约与命令服务路由（读→GraphQL）, 测试清理  
+状态: ✅ 已完成（2025-11-20，CI Run ID [19537850179](https://github.com/jacksonlee411/cube-castle/actions/runs/19537850179)，business GET=0）
 
 ---
 
@@ -59,5 +60,4 @@
 - [x] 移除命令服务路由 GET
 - [x] 移除 handler 单测（GET）
 - [x] 运行 259A：`make guard-plan259`（business GET=0）
-- [ ] 合并后：设置 `PLAN259_BUSINESS_GET_THRESHOLD=0` 并触发 plan-258-gates（登记 215）
-
+- [x] 合并后：设置 `PLAN259_BUSINESS_GET_THRESHOLD=0` 并触发 plan-258-gates（Run ID: [19537850179](https://github.com/jacksonlee411/cube-castle/actions/runs/19537850179)，evidence logged in `docs/development-plans/215-phase2-execution-log.md`）

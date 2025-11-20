@@ -4,6 +4,7 @@
 标题: 协议策略复审（来源：202 计划拆分）  
 创建日期: 2025-11-15  
 版本: v1.0  
+状态: ✅ 已完成（2025-11-20，restBusinessGetCount=0，PLAN259_BUSINESS_GET_THRESHOLD=0；CI Run ID [19537850179](https://github.com/jacksonlee411/cube-castle/actions/runs/19537850179)）  
 关联计划: 202、203、CQRS 与契约双栈（REST/GraphQL）
 
 ---
@@ -139,5 +140,5 @@
 - 执行登记：docs/development-plans/215-phase2-execution-log.md
 - 变更通告：CHANGELOG.md
 - 原则索引：AGENTS.md
-- 子计划：259A（docs/development-plans/259A-protocol-duplication-and-whitelist-hardening.md）
+- 子计划：259A（`docs/archive/development-plans/259A-protocol-duplication-and-whitelist-hardening.md`）
 - 迁移指南：docs/migrations/positions-assignments-to-graphql.md

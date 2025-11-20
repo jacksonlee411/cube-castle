@@ -104,7 +104,7 @@ grep -r "Job Catalog" docs/archive/plan-230/
 
 **查看关联计划**：
 - 上游计划：`docs/archive/plan-216-219/219E-e2e-validation.md`
-- 下游计划：`docs/development-plans/231-outbox-dispatcher-gap.md`、`docs/development-plans/232-playwright-p0-stabilization.md`
+- 下游计划：`../development-plans/231-outbox-dispatcher-gap.md`、`docs/development-plans/232-playwright-p0-stabilization.md`
 
 ---
 
