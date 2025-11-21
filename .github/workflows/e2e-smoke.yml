@@ -65,7 +65,7 @@ jobs:
               - '!database/**'
               - '!tests/**'
       - name: Docs/CI-only fast pass
-        if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true')
+        if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
         run: |
           echo "Docs/CI-only changes detected. Skipping E2E Smoke."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
