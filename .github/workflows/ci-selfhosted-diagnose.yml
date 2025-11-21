@@ -5,18 +5,8 @@ on:
 
 jobs:
   diagnose:
-    name: Diagnose (${{ matrix.runner }})
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [wsl]
-        include:
-          - runner: wsl
-            labels:
-              - self-hosted
-              - cubecastle
-              - wsl
-    runs-on: ${{ matrix.labels }}
+    name: Diagnose (ubuntu)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout 仓库
         uses: actions/checkout@v4

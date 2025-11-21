@@ -22,62 +22,19 @@ jobs:
           echo "ref=${{ github.ref }}"
           echo "OK"
   e2e-smoke:
-    name: E2E Smoke – ${{ matrix.label }}
-    strategy:
-      fail-fast: false
-      matrix:
-        label: [ubuntu, selfhosted-wsl]
-        include:
-          - label: ubuntu
-            runs_on: '["ubuntu-latest"]'
-          - label: selfhosted-wsl
-            runs_on: '["self-hosted","cubecastle","wsl"]'
-            wsl_only: true
-    runs-on: ${{ fromJson(matrix.runs_on) }}
+    name: E2E Smoke – ubuntu
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
       # PR 固定 255；push 使用 run_number，便于证据分桶
       E2E_PLAN_ID: ${{ (github.event_name == 'pull_request') && '255' || github.run_number }}
 
     steps:
-      - name: 运行器触发守卫（Plan 270）
-        id: runner-gate
-        shell: bash
-        env:
-          MATRIX_WSL_ONLY: ${{ matrix.wsl_only == true }}
-        run: |
-          set -euo pipefail
-          skip=false
-          reason=""
-          if [ "$MATRIX_WSL_ONLY" = "true" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
-            skip=true
-            reason="Self-hosted WSL 仅允许 workflow_dispatch 触发，当前事件=${GITHUB_EVENT_NAME}"
-          fi
-          echo "skip=$skip" >> "$GITHUB_OUTPUT"
-          echo "reason=$reason" >> "$GITHUB_OUTPUT"
-          if [ "$skip" = "true" ]; then
-            echo "ℹ️ $reason"
-          else
-            echo "✅ Runner gate passed（event=${GITHUB_EVENT_NAME}, matrix.wsl_only=$MATRIX_WSL_ONLY）"
-          fi
-
-      - name: 跳过当前矩阵变体
-        if: steps.runner-gate.outputs.skip == 'true'
-        shell: bash
-        env:
-          RUNNER_SKIP_REASON: ${{ steps.runner-gate.outputs.reason }}
-        run: |
-          set -euo pipefail
-          msg="${RUNNER_SKIP_REASON:-Self-hosted 变体在该触发场景下禁用}"
-          echo "⏭️ $msg"
-          echo "剩余步骤已跳过。"
       - name: Checkout
-        if: steps.runner-gate.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Detect docs-only/ci-only changes
-        if: steps.runner-gate.outputs.skip != 'true'
         id: changes
         uses: dorny/paths-filter@v3
         with:
@@ -108,47 +65,47 @@ jobs:
               - '!database/**'
               - '!tests/**'
       - name: Docs/CI-only fast pass
-        if: steps.runner-gate.outputs.skip != 'true' && (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true')
+        if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true')
         run: |
           echo "Docs/CI-only changes detected. Skipping E2E Smoke."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
       - name: Set up Node (Frontend tooling)
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Set up Docker Buildx
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Prepare dev JWT keys
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           make jwt-dev-setup
 
       - name: Compose backends (dev)
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           docker compose -f docker-compose.dev.yml build rest-service
           # Plan 261: 使用 --wait 利用 healthcheck，提高稳定性
           docker compose -f docker-compose.dev.yml up -d postgres redis rest-service --wait
 
       - name: Wait for services
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           # Plan 261: 兜底等待，延长至 300s，并在失败时输出 compose 日志
           timeout 300 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done' || (docker compose -f docker-compose.dev.yml logs --no-color > backend-compose.log || true; exit 1)
 
       - name: Run contract tests (frontend)
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           npm --prefix frontend ci
           npm --prefix frontend run -s test:contract
 
       - name: Run simplified E2E smoke
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           bash scripts/simplified-e2e-test.sh | tee e2e-test-output.txt
           # Fail if any ❌
@@ -156,7 +113,7 @@ jobs:
           [ "$fails" = "0" ] || (echo "E2E had $fails failures" && exit 1)
 
       - name: Upload E2E artifacts
-        if: steps.runner-gate.outputs.skip != 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-smoke-outputs
@@ -168,5 +125,5 @@ jobs:
           retention-days: 14
 
       - name: Compose Down
-        if: steps.runner-gate.outputs.skip != 'true' && always()
+        if: always()
         run: docker compose -f docker-compose.dev.yml down -v --remove-orphans

@@ -41,21 +41,7 @@ env:
 jobs:
   iig-guardian-check:
     name: guardian-iig    
-    strategy:
-      matrix:
-        runner: [ubuntu, selfhosted-wsl]
-        include:
-          - runner: ubuntu
-            labels: ubuntu-latest
-            prepare: false
-          - runner: selfhosted-wsl
-            labels:
-              - self-hosted
-              - cubecastle
-              - wsl
-            prepare: true
-            wsl_only: true
-    runs-on: ${{ matrix.labels }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
@@ -63,45 +49,12 @@ jobs:
       actions: read
 
     steps:
-      - name: 运行器触发守卫（Plan 270）
-        id: runner-gate
-        shell: bash
-        env:
-          MATRIX_WSL_ONLY: ${{ matrix.wsl_only == true }}
-        run: |
-          set -euo pipefail
-          skip=false
-          reason=""
-          if [ "$MATRIX_WSL_ONLY" = "true" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
-            skip=true
-            reason="Self-hosted WSL 仅允许 workflow_dispatch 触发，当前事件=${GITHUB_EVENT_NAME}"
-          fi
-          echo "skip=$skip" >> "$GITHUB_OUTPUT"
-          echo "reason=$reason" >> "$GITHUB_OUTPUT"
-          if [ "$skip" = "true" ]; then
-            echo "ℹ️ $reason"
-          else
-            echo "✅ Runner gate passed（event=${GITHUB_EVENT_NAME}, matrix.wsl_only=$MATRIX_WSL_ONLY）"
-          fi
-
-      - name: 跳过当前矩阵变体
-        if: steps.runner-gate.outputs.skip == 'true'
-        shell: bash
-        env:
-          RUNNER_SKIP_REASON: ${{ steps.runner-gate.outputs.reason }}
-        run: |
-          set -euo pipefail
-          msg="${RUNNER_SKIP_REASON:-Self-hosted 变体在该触发场景下禁用}"
-          echo "⏭️ $msg"
-          echo "剩余步骤已跳过。"
       - name: Checkout repository
-        if: steps.runner-gate.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Detect docs-only changes
-        if: steps.runner-gate.outputs.skip != 'true'
         id: changes
         uses: dorny/paths-filter@v3
         with:
@@ -124,17 +77,13 @@ jobs:
               - '!package*.json'
               - '!.github/workflows/**'
       - name: Docs-only fast pass
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only == 'true' && github.event_name != 'workflow_dispatch'
+        if: steps.changes.outputs.docs_only == 'true' && github.event_name != 'workflow_dispatch'
         run: |
           echo "Docs-only changes detected. Skipping IIG guardian heavy checks."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: 自托管环境准备
-        if: steps.runner-gate.outputs.skip != 'true' && matrix.prepare == true && steps.changes.outputs.docs_only != 'true'
-        shell: bash
-        run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian
       - name: Setup Node.js runtime
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -142,7 +91,7 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
 
       - name: Install guardian toolchain
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           npm install -g jscpd@latest
           echo "jscpd version: $(jscpd --version)"
@@ -150,7 +99,7 @@ jobs:
           chmod +x scripts/quality/*.js
 
       - name: Prepare report directories
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           mkdir -p reports/iig-guardian
           mkdir -p reports/duplicate-code
@@ -158,7 +107,7 @@ jobs:
           mkdir -p reports/document-sync
 
       - name: Run code smell quick check
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: |
           chmod +x scripts/code-smell-check-quick.sh
           scripts/code-smell-check-quick.sh \
@@ -167,7 +116,7 @@ jobs:
             --ci-output "reports/iig-guardian/code-smell-ci-${{ github.run_id }}.md"
 
       - name: "          (      )"
-        if: steps.runner-gate.outputs.skip != 'true' && env.FEATURE_DESCRIPTION == 'auto-detected-changes'
+        if: env.FEATURE_DESCRIPTION == 'auto-detected-changes'
         run: |
           #              
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -197,7 +146,7 @@ jobs:
           echo "         : $FEATURE_TYPE"
 
       - name: "Guardian:   IIG      "
-        if: steps.runner-gate.outputs.skip != 'true' && env.GUARDIAN_MODE == 'guard'
+        if: env.GUARDIAN_MODE == 'guard'
         run: |
           echo "Guardian:   IIG     -       "
           echo "      : $FEATURE_DESCRIPTION"
@@ -225,13 +174,13 @@ jobs:
           fi
 
       - name: "    IIG      "
-        if: steps.runner-gate.outputs.skip != 'true' && env.GUARDIAN_MODE == 'check'
+        if: env.GUARDIAN_MODE == 'check'
         run: |
           echo "    IIG     -       "
           node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --check
 
       - name: "    IIG      "
-        if: steps.runner-gate.outputs.skip != 'true' && env.GUARDIAN_MODE == 'analysis'
+        if: env.GUARDIAN_MODE == 'analysis'
         run: |
           echo "    IIG     -       "
           
@@ -248,13 +197,8 @@ jobs:
           echo "    IIG    ..."
           node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard
 
-      - name: 自托管环境清理
-        if: matrix.prepare == true && steps.runner-gate.outputs.skip != 'true' && always()
-        shell: bash
-        run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian --teardown
-
       - name: "          "
-        if: steps.runner-gate.outputs.skip != 'true' && always()
+        if: always()
         run: |
           echo "    IIG      ..."
           
@@ -295,7 +239,7 @@ jobs:
           echo "         : $REPORTS_SUMMARY"
 
       - name:     IIG    
-        if: steps.runner-gate.outputs.skip != 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: iig-guardian-reports-${{ github.run_number }}
@@ -308,7 +252,7 @@ jobs:
           retention-days: 30
 
       - name:   PR   - IIG    
-        if: steps.runner-gate.outputs.skip != 'true' && github.event_name == 'pull_request' && always()
+        if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
           script: |
@@ -389,7 +333,7 @@ jobs:
             });
 
       - name:         
-        if: steps.runner-gate.outputs.skip != 'true' && always()
+        if: always()
         run: |
           echo "    IIG        ..."
           

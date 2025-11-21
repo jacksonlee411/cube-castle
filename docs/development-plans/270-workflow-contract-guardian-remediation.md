@@ -96,9 +96,24 @@
 - 新增 `scripts/ci/workflows/run-actionlint.sh`、`make workflow-lint` 目标与 `reports/workflows/.gitkeep`/`.gitignore`，Agents Compliance workflow 在 checkout 后运行 actionlint 并上传 `workflow-lint-<run_id>` artifact；本地验证记录：`reports/workflows/actionlint-20251121T103910Z.txt`（Plan 270）。  
 - Plan 264/265/CI 指南已纳入 workflow lint 要求，Runbook 需在 Required checks 变更时记录 actionlint 报告路径；Plan 265 示例条目：`2025-11-21 10:39Z / make workflow-lint / reports/workflows/actionlint-20251121T103910Z.txt`。  
 - `.github/actions/paths-filter` 增补 `docs_only`/`ci_only` 输出定义，`api-compliance.yml` 移除恒 false 的自托管准备 step，确保 actionlint 对现有 workflow 全量通过。
+- 2025-11-21 12:14Z 运行 `make workflow-lint`（输出：`reports/workflows/actionlint-20251121T121401Z.txt`）与 `cd frontend && npm run build`，确认 workflow lint 与 `tsc -b && vite build` 均成功，`keepPreviousData` 被移除后本地性能构建可通过，待推送与远端 workflow 复核。
 
-## 9. 待办与阻塞
+## 9. Runbook 与阻塞事项
 
-- `contract-testing.yml` 的 `performance-impact-analysis` job 在 `workflow_dispatch` Run `19568443094` 中因前端 TypeScript 错误失败（`PositionDetailView.tsx` tabId、`StatusBadge.tsx` 颜色属性、`temporalMasterDetailApi.ts` 缺少 unified client 等），需先修复前端类型问题（Plan 263 范畴）方可加入 Required checks。
-- `iig-guardian.yml`（Run `19568402680`）与 `e2e-smoke.yml`（Run `19568978952`）的 `self-hosted,cubecastle,wsl` 矩阵长期 `queued`，显示 WSL Runner 不可用；需按 Plan 269/265 恢复 WSL runner 后重新收集成功 run 作为验收证据。
-- `e2e-smoke` Ubuntu 变体已通过 docs-only 快速通道并上传 `e2e-smoke-outputs`，但尚未执行真实 E2E（WSL 环境未恢复）；待 WSL runner 可用后需重新触发完整栈并记录 `e2e-test-output.txt`/`backend-compose.log` 等工件。
+| 时间 (UTC) | 场景 / 命令 | Run ID / 报告 | 备注 |
+|------------|-------------|---------------|------|
+| 2025-11-21 10:39 | 本地 `make workflow-lint` | `reports/workflows/actionlint-20251121T103910Z.txt` | 首次 actionlint 记录；Agents Compliance 将继续上传 artifact |
+| 2025-11-21 11:02 | push 触发契约测试 (`contract-testing.yml`) | Run `19568402684` | ubuntu jobs 正常结束，`performance-impact-analysis` 仍需手动触发 |
+| 2025-11-21 11:04 | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19568443094` | `performance-impact-analysis` 在前端 TS 错误（`PositionDetailView.tsx` 等）处失败 |
+| 2025-11-21 11:05 | push 触发 IIG Guardian (`iig-guardian.yml`) | Run `19568402680` | `self-hosted,cubecastle,wsl` job 长时间 `queued`，最终被取消 |
+| 2025-11-21 11:24 | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | Run `19568978952` / artifact `e2e-smoke-outputs` | ubuntu 变体通过 docs-only 快捷路径，WSL job 因 runner 不可用而 `queued` |
+| 2025-11-21 12:14 | 本地 `make workflow-lint` + `cd frontend && npm run build` | `reports/workflows/actionlint-20251121T121401Z.txt` | 工作流 lint、`tsc -b && vite build` 均通过，验证 `placeholderData` 方案可编译 |
+| 2025-11-21 12:15 | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19570157332` | 远端仍因 `keepPreviousData` 选项报错（旧 code 未推送），性能 job 失败 |
+| 2025-11-21 12:47 UTC | 本地 `make workflow-lint` + `npm --prefix frontend run build` | `reports/workflows/actionlint-20251121T124634Z.txt` | actionlint 再次通过；`tsc -b && vite build` 已验证成功，产物位于 `frontend/dist/`，可作为 `performance-impact-analysis` job 的本地佐证 |
+| 2025-11-21 13:15 UTC | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19571663599` | workflow_dispatch 触发契约测试；`性能影响分析 (ubuntu)` 在 `useEnterprisePositions.ts:1601` 仍因 `keepPreviousData` 选项报错而失败，WSL 变体因 runner 不可用被取消 |
+| 2025-11-21 13:45 UTC | 更新契约/IIG/E2E/Document Sync/CI 相关 workflow | N/A | 移除所有 `self-hosted,cubecastle,wsl` 矩阵，统一改用 `runs-on: ubuntu-latest`，平台 runner 直接参与 Required checks |
+
+仍存阻塞：
+
+- `contract-testing.yml` 的 `performance-impact-analysis` job 需在推送 `useEnterprisePositions.ts` 修复后重新触发，收集通过 Run ID 并写入 Plan 265 Runbook；2025-11-21 12:47 UTC 本地 `npm --prefix frontend run build` 已通过（见 `reports/workflows/actionlint-20251121T124634Z.txt` 记录行），但最新 workflow_dispatch Run `19571663599` 仍在 `keepPreviousData` 选项报错，需等待新代码推送后再重跑。
+- IIG Guardian / E2E Smoke / Document Sync 已切换为 `ubuntu-latest` 门禁，仍需各自跑一轮完整流程（非 docs-only 快捷路径）并在 Plan 265 回填 run ID 与 artifact。
