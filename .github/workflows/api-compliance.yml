@@ -61,11 +61,6 @@ jobs:
           echo "Docs/CI-only changes detected. Skipping api-compliance heavy steps."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: 自托管环境准备（已临时禁用，改用 ubuntu-latest）
-        if: false
-        shell: bash
-        run: bash scripts/ci/workflows/prepare-selfhosted.sh api-compliance
-
       - name: 设置 Node.js 环境
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4

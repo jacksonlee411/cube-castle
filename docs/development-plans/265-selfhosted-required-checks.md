@@ -81,6 +81,11 @@
    - 每个 workflow 在 YAML 内保留注释说明如何回退到 `runs-on: ubuntu-latest`；  
    - 若自托管 runner 故障，可通过 `workflow_dispatch` 触发 ubuntu-only job 并在 Branch Protection 暂时移除 self-hosted 项；Plan 265 文档需记录回滚时间/原因。
 
+7. **Workflow 契约守卫（Plan 270）**  
+   - 新增 `make workflow-lint`（封装 `scripts/ci/workflows/run-actionlint.sh`），统一在本地/CI 执行 actionlint，输出统一落在 `reports/workflows/actionlint-<timestamp>.txt`；Agents Compliance workflow 已增加对应步骤并上传 `workflow-lint-<run_id>` artifact。  
+   - Runbook 需记录最近一次执行（命令、commit、报告路径、artifact 链接），并在 Required checks 变更后更新表格。  
+   - 若 actionlint 失败视为 Required checks 未通过，禁止合并；如需传递额外参数，可通过 `ACTIONLINT_ARGS='--color' make workflow-lint` 复现 CI 输出。
+
 ## 4. 验收标准
 
 - [ ] `contract-testing.yml` 中 `performance-impact-analysis` job 在 self-hosted runner 上 0 error，通过至少 3 次 PR run，并列入 Branch Protection Required 列表。  
@@ -125,3 +130,12 @@
 
 - 2025-11-19：v0.1 草拟，定义范围、步骤与验收标准。 (BY: Codex)
 - 2025-11-20：补充 Plan 269 批准的 WSL Runner 例外、运行记录与风险条目；统一 `runs-on` 标签为 `[self-hosted,cubecastle,wsl]` 并扩展验收要求。
+
+## 9. Runbook（Plan 270 守卫记录）
+
+| 时间 (UTC) | 命令 / 场景 | 产物 / Run ID | 备注 |
+|-----------|-------------|---------------|------|
+| 2025-11-21 10:39 | `make workflow-lint`（本地） | `reports/workflows/actionlint-20251121T103910Z.txt` | 首次 actionlint 记录，Agents Compliance 将在下一次 CI 中上传 `workflow-lint-<run_id>` artifact |
+| 待补：契约测试 (`contract-testing`) | `gh workflow run contract-testing.yml --ref feat/shared-dev` | _Pending – 需合并当前改动后重新触发，记录 Run ID/Artifact_ | 推送包含 Plan 270 修复的 commit 后执行 |
+| 待补：IIG Guardian (`iig-guardian.yml`) | `gh workflow run iig-guardian.yml --ref feat/shared-dev` | _Pending_ | 同上，要求 self-hosted (workflow_dispatch) 与 ubuntu job 均成功 |
+| 待补：E2E Smoke (`e2e-smoke.yml`) | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | _Pending_ | 同上，附上 `e2e-test-output.txt` artifact 路径 |

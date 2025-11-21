@@ -299,7 +299,7 @@ jobs:
 
   performance-impact-analysis:
     name: 性能影响分析
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         runner: [ubuntu, selfhosted-wsl]
@@ -315,18 +315,51 @@ jobs:
             prepare: true
             wsl_only: true
     runs-on: ${{ matrix.labels }}
-    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (matrix.wsl_only != true || github.event_name == 'workflow_dispatch') }}
     
     steps:
+    - name: 运行器触发守卫（Plan 270）
+      id: runner-gate
+      shell: bash
+      env:
+        MATRIX_WSL_ONLY: ${{ matrix.wsl_only == true }}
+      run: |
+        set -euo pipefail
+        skip=false
+        reason=""
+        if [ "$MATRIX_WSL_ONLY" = "true" ] && [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
+          skip=true
+          reason="Self-hosted WSL 仅允许 workflow_dispatch 触发，当前事件=${GITHUB_EVENT_NAME}"
+        fi
+        echo "skip=$skip" >> "$GITHUB_OUTPUT"
+        echo "reason=$reason" >> "$GITHUB_OUTPUT"
+        if [ "$skip" = "true" ]; then
+          echo "ℹ️ $reason"
+        else
+          echo "✅ Runner gate passed（event=${GITHUB_EVENT_NAME}, matrix.wsl_only=$MATRIX_WSL_ONLY）"
+        fi
+
+    - name: 跳过当前矩阵变体
+      if: steps.runner-gate.outputs.skip == 'true'
+      shell: bash
+      env:
+        RUNNER_SKIP_REASON: ${{ steps.runner-gate.outputs.reason }}
+      run: |
+        set -euo pipefail
+        msg="${RUNNER_SKIP_REASON:-Self-hosted 变体在该触发场景下禁用}"
+        echo "⏭️ $msg"
+        echo "后续步骤已跳过。"
+
     - name: Checkout代码
+      if: steps.runner-gate.outputs.skip != 'true'
       uses: actions/checkout@v4
       
     - name: 自托管环境准备
-      if: matrix.prepare == true
+      if: steps.runner-gate.outputs.skip != 'true' && matrix.prepare == true
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis
 
     - name: 设置Node.js环境
+      if: steps.runner-gate.outputs.skip != 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '20'
@@ -334,28 +367,32 @@ jobs:
         cache-dependency-path: frontend/package-lock.json
         
     - name: 安装依赖包
+      if: steps.runner-gate.outputs.skip != 'true'
       run: |
         cd frontend
         npm ci
         
     - name: 构建性能分析
+      if: steps.runner-gate.outputs.skip != 'true'
       run: |
         cd frontend
         npm run build
         
     - name: Bundle大小分析
+      if: steps.runner-gate.outputs.skip != 'true'
       run: |
         cd frontend
         echo "📊 Bundle大小分析：" 
         du -sh dist/ || echo "构建输出不存在"
         
     - name: 契约测试性能基准
+      if: steps.runner-gate.outputs.skip != 'true'
       run: |
         cd frontend
         time npm run test:contract
         echo "契约测试执行时间已记录"
 
     - name: 自托管环境清理
-      if: matrix.prepare == true
+      if: matrix.prepare == true && steps.runner-gate.outputs.skip != 'true' && always()
       shell: bash
       run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis --teardown

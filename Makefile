@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint workflow-lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch
 .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 .PHONY: generate-contracts verify-contracts
 .PHONY: guard-plan258
@@ -49,6 +49,7 @@ help:
 	@echo "  temporal-validate- 校验时态工具引用与规则（前端统一入口）"
 	@echo "  fmt              - Go 代码格式化"
 	@echo "  lint             - golangci-lint 检查"
+	@echo "  workflow-lint    - 使用 actionlint 校验 .github/workflows（产出 reports/workflows/*）"
 	@echo "  security         - gosec 安全扫描"
 	@echo "  bench            - Go 基准测试"
 	@echo "  coverage         - 生成覆盖率报告 (coverage.html)"
@@ -336,6 +337,10 @@ lint:
 	  golangci-lint version || true; \
 	  golangci-lint run; \
 	fi
+
+workflow-lint:
+	@echo "🔍 使用 actionlint 校验 .github/workflows ..."
+	@bash scripts/ci/workflows/run-actionlint.sh $(ACTIONLINT_ARGS)
 
 security:
 	@echo "🔒 gosec 安全扫描..."

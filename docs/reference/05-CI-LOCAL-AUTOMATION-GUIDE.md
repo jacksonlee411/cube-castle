@@ -44,6 +44,7 @@
 - 门禁：`plan-255-gates.yml` 在 CI 中运行 `architecture-validator`（规则：cqrs,ports,forbidden），并归档报告
 - 后端门禁：`golangci-lint run`（版本固定，阻断）
 - ESLint 架构守卫：记录日志，不阻断
+- Workflow YAML 守卫：`make workflow-lint`（封装 actionlint）在本地/Agents Compliance workflow 中执行，产物统一落在 `reports/workflows/actionlint-<timestamp>.txt` 并作为 workflow 变更的证据；CI 会上传 `workflow-lint-<run_id>` artifact，运行失败即视为门禁失败
 - E2E（统一推荐）：`frontend-e2e-devserver.yml` 仅 compose 后端（postgres/redis/rest/graphql），前端由 Playwright dev server 启动（`PW_SKIP_SERVER=0`）
 - 历史 E2E：`frontend-e2e.yml` / `e2e-tests.yml` 使用包含前端容器的完整栈（逐步迁移中）
 
@@ -82,6 +83,10 @@
 
 ## PR 等效的“本地兜底流程”（强烈建议）
 以下步骤严格复刻 PR 的远程门禁（plan-255），用于本地自查。若某一步失败，请先以“权威索引”中的脚本/工作流为准排障。
+
+0) Workflow YAML Lint（Plan 270 新增）
+   - 提交前执行 `make workflow-lint`（封装 actionlint），确认 `.github/workflows/*` 结构合法并生成 `reports/workflows/actionlint-<timestamp>.txt`；该文件无需提交，但需在 PR 描述或 Plan 265 Runbook 中登记时间戳/路径。
+   - Agents Compliance workflow 会重复此步骤并上传 `workflow-lint-<run_id>` artifact，确保 Required checks 始终引用通过校验的 YAML。
 
 1) 版本与端口预检（符合 AGENTS 强约束）
    - Go ≥1.24（与仓库 toolchain 对齐），Node ≥18（E2E 建议 Node 20）

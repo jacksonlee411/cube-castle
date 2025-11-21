@@ -13,6 +13,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Workflow lint (actionlint · Plan 270)
+        id: workflow_lint
+        run: |
+          make workflow-lint
+
+      - name: Upload workflow lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-lint-${{ github.run_id }}
+          path: ${{ steps.workflow_lint.outputs.report_path }}
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

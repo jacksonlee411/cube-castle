@@ -47,6 +47,10 @@ inputs:
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
+  docs_only:
+    description: 'Whether docs_only filter matched ("true"/"false")'
+  ci_only:
+    description: 'Whether ci_only filter matched ("true"/"false")'
 runs:
   using: 'node20'
   main: 'dist/index.js'
