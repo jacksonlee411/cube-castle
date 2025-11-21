@@ -71,41 +71,41 @@ jobs:
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
       - name: Set up Node (Frontend tooling)
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Set up Docker Buildx
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Prepare dev JWT keys
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           make jwt-dev-setup
 
       - name: Compose backends (dev)
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           docker compose -f docker-compose.dev.yml build rest-service
           # Plan 261: 使用 --wait 利用 healthcheck，提高稳定性
           docker compose -f docker-compose.dev.yml up -d postgres redis rest-service --wait
 
       - name: Wait for services
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           # Plan 261: 兜底等待，延长至 300s，并在失败时输出 compose 日志
           timeout 300 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done' || (docker compose -f docker-compose.dev.yml logs --no-color > backend-compose.log || true; exit 1)
 
       - name: Run contract tests (frontend)
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           npm --prefix frontend ci
           npm --prefix frontend run -s test:contract
 
       - name: Run simplified E2E smoke
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           bash scripts/simplified-e2e-test.sh | tee e2e-test-output.txt
           # Fail if any ❌
