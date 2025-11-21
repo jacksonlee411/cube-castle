@@ -135,7 +135,8 @@
 
 | 时间 (UTC) | 命令 / 场景 | 产物 / Run ID | 备注 |
 |-----------|-------------|---------------|------|
-| 2025-11-21 10:39 | `make workflow-lint`（本地） | `reports/workflows/actionlint-20251121T103910Z.txt` | 首次 actionlint 记录，Agents Compliance 将在下一次 CI 中上传 `workflow-lint-<run_id>` artifact |
-| 待补：契约测试 (`contract-testing`) | `gh workflow run contract-testing.yml --ref feat/shared-dev` | _Pending – 需合并当前改动后重新触发，记录 Run ID/Artifact_ | 推送包含 Plan 270 修复的 commit 后执行 |
-| 待补：IIG Guardian (`iig-guardian.yml`) | `gh workflow run iig-guardian.yml --ref feat/shared-dev` | _Pending_ | 同上，要求 self-hosted (workflow_dispatch) 与 ubuntu job 均成功 |
-| 待补：E2E Smoke (`e2e-smoke.yml`) | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | _Pending_ | 同上，附上 `e2e-test-output.txt` artifact 路径 |
+| 2025-11-21 10:39 | `make workflow-lint`（本地） | `reports/workflows/actionlint-20251121T103910Z.txt` | 首次 actionlint 记录，Agents Compliance 会在 CI 中继续上传 `workflow-lint-<run_id>` |
+| 2025-11-21 11:02 | push 触发契约测试 (`contract-testing.yml`) | Run `19568402684` | ubuntu jobs 完成，逻辑符合 docs-only fast pass；`performance-impact-analysis` 仍依赖 workflow_dispatch 执行 |
+| 2025-11-21 11:04 | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19568443094` | `performance-impact-analysis` 进入构建阶段但被现有 TS 编译错误阻塞（Plan 263 需处理）；WSL job 被 workflow 矩阵跳过 |
+| 2025-11-21 11:05 | push 触发 IIG Guardian (`iig-guardian.yml`) | Run `19568402680` | WSL Runner 无可用 slot，job 长时间 `queued` 后被人工取消，需配合 Plan 269 恢复 WSL 节点 |
+| 2025-11-21 11:24 | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | Run `19568978952` + artifact `e2e-smoke-outputs` | ubuntu 变体通过 docs-only 快速通道（`paths-filter` 修复生效），WSL job 因 runner 不可用持续 `queued`，最终人工取消；artifact 仅包含 diag 输出 |
