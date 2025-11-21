@@ -54,7 +54,7 @@ const organizationConfig: TemporalEntityRouteConfig = {
   renderContent: ctx => (
     <TemporalEntityLayout.Shell entity="organization">
       <TemporalMasterDetailView
-        organizationCode={ctx.isCreateMode ? null : ctx.code}
+        organizationCode={ctx.isCreateMode ? null : ctx.code ?? null}
         onBack={ctx.navigateToList}
         onCreateSuccess={createdCode => ctx.navigateToDetail(createdCode, { replace: true })}
         readonly={false}

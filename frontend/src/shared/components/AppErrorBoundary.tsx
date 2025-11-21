@@ -19,7 +19,7 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren, A
     this.state = { hasError: false, error: undefined }
   }
 
-  static override getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
     return { hasError: true, error }
   }
 

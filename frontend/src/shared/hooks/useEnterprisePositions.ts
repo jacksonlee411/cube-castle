@@ -309,6 +309,14 @@ interface NormalizedPositionAssignmentsQueryParams {
   includeActingOnly: boolean;
 }
 
+const DISABLED_ASSIGNMENT_QUERY_PARAMS: NormalizedPositionAssignmentsQueryParams = {
+  positionCode: '__disabled__',
+  page: 1,
+  pageSize: 1,
+  includeHistorical: false,
+  includeActingOnly: false,
+};
+
 export interface PositionAssignmentsQueryResult {
   data: PositionAssignmentRecord[];
   pagination: {
@@ -1580,12 +1588,15 @@ export function usePositionAssignments(
     return normalizeAssignmentQueryParams(positionCode, params);
   }, [positionCode, params]);
 
-  const queryKey = normalizedParams
-    ? positionAssignmentsQueryKey(normalizedParams)
-    : ([...POSITION_ASSIGNMENTS_QUERY_ROOT_KEY, 'disabled'] as const);
+  const effectiveParams = normalizedParams ?? DISABLED_ASSIGNMENT_QUERY_PARAMS;
 
-  return useQuery<PositionAssignmentsQueryResult>({
-    queryKey: queryKey as unknown as PositionAssignmentsQueryKey,
+  return useQuery<
+    PositionAssignmentsQueryResult,
+    Error,
+    PositionAssignmentsQueryResult,
+    PositionAssignmentsQueryKey
+  >({
+    queryKey: positionAssignmentsQueryKey(effectiveParams),
     queryFn: positionAssignmentsQueryFn,
     keepPreviousData: true,
     staleTime: 30_000,

@@ -11,14 +11,13 @@ import { invalidateTemporalDetail } from '../invalidation';
 
 describe('invalidateTemporalDetail (SSoT)', () => {
   let client: QueryClient;
-  let spy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     client = new QueryClient();
-    spy = vi.spyOn(client, 'invalidateQueries').mockImplementation(() => Promise.resolve());
   });
 
   it('invalidates position keys (list + detail variants)', async () => {
+    const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue(undefined);
     const code = 'P1234567';
     invalidateTemporalDetail(client, 'position', code);
 
@@ -43,10 +42,10 @@ describe('invalidateTemporalDetail (SSoT)', () => {
   });
 
   it('no code: still invalidates list/root detail keys', async () => {
+    const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue(undefined);
     invalidateTemporalDetail(client, 'position', undefined);
     expect(spy).toHaveBeenCalledWith({ queryKey: POSITIONS_QUERY_ROOT_KEY, exact: false });
     expect(spy).toHaveBeenCalledWith({ queryKey: VACANT_POSITIONS_QUERY_ROOT_KEY, exact: false });
     expect(spy).toHaveBeenCalledWith({ queryKey: POSITION_DETAIL_QUERY_ROOT_KEY, exact: false });
   });
 });
-
