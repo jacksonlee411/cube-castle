@@ -1,15 +1,15 @@
 {
   "files": {
     "docs/api/openapi.yaml": {
-      "sha256": "1f19e413a7a114c80dc8451c7607a654b10f95e1e1edc14cd269eb6cc7b16a71",
-      "lineCount": 4489
+      "sha256": "8aa69000de18c38e8198ad22b7525316da5ba0b2374a2bf85c67d91f61ebb8fd",
+      "lineCount": 4420
     },
     "docs/api/schema.graphql": {
-      "sha256": "70999e17fb20d471000b244481ad120fb1410b42ebe558fafdd2ea338ff84bab",
+      "sha256": "920558c8a4812f8617bc49d685528e56c721bca4e348fb16d4d4b10628450565",
       "lineCount": 1343
     },
     "shared/contracts/organization.json": {
-      "sha256": "662f90ee63bae5720f23108c9e5ba95e2859cd2b3fc35da578bea3c3a1bae143",
+      "sha256": "e646348493335c34ef84ac4e458b8c3acb6afa8645cb7ed6d92090a008d65074",
       "lineCount": 100
     },
     "internal/types/contract_gen.go": {
