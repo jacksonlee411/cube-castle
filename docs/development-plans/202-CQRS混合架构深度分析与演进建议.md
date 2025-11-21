@@ -51,14 +51,14 @@
   - 257 前端领域 API 门面采纳（隔离协议细节，禁直连 client）
   - 258 契约漂移校验门禁（OpenAPI ↔ GraphQL 一致性）
 - 阶段 3（可选）—— 协议策略复盘
-  - 259 协议统一评估（默认保持混合；仅在极端情况下评估统一到 GraphQL/REST）
+- 259 协议统一评估（默认保持混合；仅在极端情况下评估统一到 GraphQL/REST；已于 2025-11-20 完成，详见 `../archive/development-plans/259-protocol-strategy-review.md`）
 
 说明：阶段 1 先落架构，直接化解 4/6 核心挑战；阶段 2 完成协议层工程化，清除剩余风险；阶段 3 基于证据做策略复盘，通常不需要执行。
 
 ---
 
 ## 4. 子任务关联与验收摘录（25x）
-- 250 模块化单体合流（docs/development-plans/250-modular-monolith-merge.md）
+- 250 模块化单体合流（`../archive/development-plans/250-modular-monolith-merge.md`）
   - 目标：单一二进制、单端口（9090）；`/health`、`/metrics`、`/api/v1`、`/graphql` 可用
   - 验收：功能等价、221/232/241 烟测通过；215 登记命令与日志证据
 - 251 运行时统一（docs/development-plans/251-runtime-unification-health-metrics.md）
@@ -79,7 +79,7 @@
 - 258 契约漂移门禁（docs/development-plans/258-contract-drift-validation-gate.md）
   - 目标：OpenAPI ↔ GraphQL 字段/类型/描述/可空一致性校验
   - 验收：差异报告稳定；PR 门禁必过，白名单可控
-- 259 协议策略复盘（docs/development-plans/259-protocol-strategy-review.md）
+- 259 协议策略复盘（`../archive/development-plans/259-protocol-strategy-review.md`）
   - 目标：基于成本/效率/团队反馈评估是否统一协议（默认保持混合）
   - 验收：复盘报告与结论；如需统一，提交后续蓝图（非本期实施）
 
@@ -97,7 +97,7 @@
 
 ## 6. 关联文档（唯一事实来源索引）
 - 执行登记：`docs/development-plans/215-phase2-execution-log.md`
-- 计划分解：`docs/development-plans/250-259*.md`
+- 计划分解：`../archive/development-plans/250-modular-monolith-merge.md`（已归档） + `docs/development-plans/251-259*.md`
 - 架构与最佳实践：`docs/development-plans/200-Go语言ERP系统最佳实践.md`、`docs/development-plans/201-Go实践对齐分析.md`
 - 测试基座：`docs/development-plans/221-docker-integration-testing.md`
 - 模块模板：`docs/development-plans/220-module-template-documentation.md`

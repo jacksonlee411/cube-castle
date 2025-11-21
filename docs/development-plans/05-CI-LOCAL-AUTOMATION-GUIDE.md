@@ -3,7 +3,7 @@
 版本: v2.0  
 最后更新: 2025-11-17  
 适用范围: GitHub Actions 自托管 Runner 的部署/运维/故障排除  
-唯一事实来源: Plan 262（docs/development-plans/262-self-hosted-runner.md）、`docker-compose.runner*.yml`、`scripts/ci/runner/*`
+唯一事实来源: Plan 262（已归档，见 `docs/archive/development-plans/262-self-hosted-runner.md`）、`docker-compose.runner*.yml`、`scripts/ci/runner/*`
 
 ---
 
@@ -17,7 +17,7 @@
 - 记录诊断与常见问题，支撑 CI 迁移与平滑回滚。
 
 ## 2. 权威索引
-- 方案与状态：`docs/development-plans/262-self-hosted-runner.md`
+- 方案与状态：`docs/archive/development-plans/262-self-hosted-runner.md`
 - Compose 描述：
   - `docker-compose.runner.yml`（Ephemeral）
   - `docker-compose.runner.persist.yml`（持久化，需按 Plan 262 修正 command）

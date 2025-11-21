@@ -30,7 +30,7 @@
 - 验收标准：  
   - `rg "PositionDetailQuery|OrganizationUnit"` 等旧命名清零；`useTemporalEntityDetail` 覆盖所有消费端。  
   - `go test ./cmd/hrms-server/...`、`make test`、`npm run lint`、`cd frontend && npm run test`、`npm run test:e2e -- --project=chromium --project=firefox`（三轮连跑）、`node scripts/quality/architecture-validator.js`、`node scripts/generate-implementation-inventory.js` 全部执行并在 `logs/plan242/t3/` 留存命令输出；若 Playwright 因环境受限无法运行，须在日志说明原因并在本地/CI 补测。  
-  - `reports/plan242/naming-inventory.md`、`docs/development-plans/242-temporal-naming-abstraction-plan.md`、`docs/development-plans/215-phase2-execution-log.md` 均已更新，记录类型/契约统一结果与验证证据。
+- `reports/plan242/naming-inventory.md`、`docs/archive/development-plans/242-temporal-naming-abstraction-plan.md`、`docs/development-plans/215-phase2-execution-log.md` 均已更新，记录类型/契约统一结果与验证证据。
 
 ## 汇报
 - 每日更新 `logs/plan242/t3/`，附所有命令输出；阶段完成后更新 `reports/plan242/naming-inventory.md`、Plan 242 文档、`215-phase2-execution-log.md`。

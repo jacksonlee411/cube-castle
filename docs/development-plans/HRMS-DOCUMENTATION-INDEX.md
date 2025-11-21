@@ -120,15 +120,15 @@
 - 222：organization 模块 Phase2 验收
   - 文件: `222-organization-verification.md`（状态：阶段性通过·PARTIAL PASS；待 232/252 与覆盖率/222B 达标后最终验收）
 - 231：Outbox Dispatcher 接入差距分析
-  - 文件: `231-outbox-dispatcher-gap.md`（状态：记录/整改跟踪）
+  - 文件: `../archive/development-plans/231-outbox-dispatcher-gap.md`（状态：已完成（验收通过 · 2025-11-08）；Outbox→Dispatcher→Query 链路 Runbook 证据已落盘）
 - 232：Playwright P0 稳定专项
   - 文件: `232-playwright-p0-stabilization.md`（状态：进行中）
 - 232T：Playwright P0 测试清单
   - 文件: `232t-test-checklist.md`（状态：清单/滚动维护）
 - 233：审计历史页签失败调查
-  - 文件: `233-audit-history-tab-failure.md`（状态：进行中）
+  - 文件: `../archive/development-plans/233-audit-history-tab-failure.md`（状态：已完成（验收通过 · 2025-11-09）；GraphQL/命令服务回归与数据校正就绪）
 - 234：触发器清理评估与验证
-  - 文件: `234-trigger-cleanup-assessment.md`（状态：进行中）
+  - 文件: `../archive/development-plans/234-trigger-cleanup-assessment.md`（状态：已完成（触发器清理 · 2025-11-10）；Goose 迁移与校验脚本更新）
 - 234T：触发器验证补充记录
   - 文件: `234t.md`（状态：记录/补充）
 
@@ -205,8 +205,8 @@
   - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：已完成（验收通过 · 2025-11-16）；Facade 覆盖率门禁为阻断（阈值≥0.8））
 - 258：契约漂移校验与门禁（阶段2）
   - 文件: `258-contract-drift-validation-gate.md`（状态：进行中；字段矩阵阻断门禁已接线，allowlist 设定一个迭代窗口）
-- 259：协议策略复盘与评估（可选）
-  - 文件: `259-protocol-strategy-review.md`（状态：未启动；阶段1+2 完成后评估）
+- 259：协议策略复盘与评估（已完成，business GET=0，门禁阈值=0）
+  - 文件: `../archive/development-plans/259-protocol-strategy-review.md`（归档：2025-11-20；Run ID 19537850179）
 - 260：审计历史页签异常调查与整改方案（组织详情 1333848）
   - 文件: `260-audit-history-1333848-investigation.md`（状态：已完成（验收通过 · 2025-11-16）；短期前端矫正与查询层一致性整改已落地）
 

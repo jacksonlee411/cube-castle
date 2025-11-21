@@ -156,10 +156,16 @@
   - 实现：命令服务未暴露该 GET（仅写路径）；验证路径参见 `internal/organization/handler/position_handler.go`  
   - 测试修订：`tests/consolidated/position-assignments-cross-tenant.sh` 读取校验改为 GraphQL `positionAssignments`，并容忍“HTTP 200 + 企业信封 success=false”的拒绝形式  
   - 结果：本地脚本通过，GraphQL 查询对 A/B 租户的鉴权表现符合预期（A=200/success=true，B=403 或 200/success=false）
-- 🔜 门禁阈值切换（需要远程变量更新）：将仓库变量 `PLAN259_BUSINESS_GET_THRESHOLD` 从 1 → 0 以启用硬门禁  
-  - 待执行命令（需要网络权限）：更新 GitHub Actions Repository Variable 并手动触发 `plan-258-gates`  
-  - 预期：`reports/plan259/protocol-duplication-matrix.json` 中 business GET 计数=0；工作流结论=success  
-  - 执行后在本段落补充 Run ID 与工件名称
+
+### 新增（2025-11-20 — Plan 259 门禁切换与归档）
+- ✅ [Plan 259A] 将仓库变量 `PLAN259_BUSINESS_GET_THRESHOLD` 最终切换为 0，并以 `plan-258-gates` 验证 business GET=0  
+  - 操作：手动调用 GitHub REST API 更新仓库变量、随后以 `ref=master` 触发 `.github/workflows/plan-258-gates.yml`；Run ID: [19537850179](https://github.com/jacksonlee411/cube-castle/actions/runs/19537850179)（status=completed, conclusion=success；artifact=`plan258-permissions-and-259A`）  
+  - 结论：`reports/plan259/protocol-duplication-matrix.json`（timestamp=20251120_130632）中 `restBusinessGetCount=0`，CI 阶段上线硬门禁；阈值回退路径仍保留脚本 `scripts/ci/plan259-switch-hardgate.sh`
+- ✅ [Plan 259] 运行 `PLAN259_BUSINESS_GET_THRESHOLD=0 make guard-plan259` 获取本地证据并输出最新日志  
+  - 产物：`logs/plan259/guard-plan259-20251120_130632.log`、`logs/plan259/permissions-summary-20251120_130632.txt`、`logs/plan259/protocol-duplication-summary-20251120_130632.txt`  
+  - 业务 GET 清单：`reports/plan259/business-get-list.{txt,json}`（restBusinessGetCount=0，空列表）  
+  - 摘要：`logs/plan259/business-get-summary-20251120_130632.txt`  
+  - 后续：Plan 259/259A 文档迁移至 `docs/archive/development-plans/`，在 HRMS 索引中标记为“已归档/完成”
 - Root 审计门禁开关：已切换为 hard（阻断）。  
   - 单一事实来源：`.github/workflows/plan-255-gates.yml` 中 `PLAN255_ROOT_AUDIT_MODE=hard`  
   - 清单来源：`logs/plan255/audit-root-*.log`（集中建 Issue，分批回收）
@@ -284,12 +290,9 @@
   3) 移除 allowlist 对应项；  
   4) 已启用字段矩阵阻断（2025-11-16）；登记报告快照：`reports/contracts/drift-report.json`（CI artifact: plan258-drift-report）
 
-- 259 · 协议策略复盘（可选）  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
-  - 准入条件：阶段 1+2 完成（250/251/253/254/256/257/258）  
-  - 产物/证据：`logs/plan259/*`、复盘报告与结论  
-  - 文档：`docs/development-plans/259-protocol-strategy-review.md`
+- 259 · 协议策略复盘（已完成，business GET=0）  
+  - 结论：门禁阈值=0，CI Run ID 19537850179，证据统一落盘 `logs/plan259/*`（2025-11-20 刷新）  
+  - 归档文档：`../archive/development-plans/259-protocol-strategy-review.md`
 
 ---
 
@@ -317,7 +320,7 @@
 
 ### Plan 242 – 里程碑与验收清单（骨架）
 
-说明：Plan 242 分解为 T0–T5 六个子阶段；本清单仅登记里程碑与验收证据路径，实施细节以各子计划为唯一事实来源（docs/development-plans/242-*.md）。
+说明：Plan 242 分解为 T0–T5 六个子阶段；本清单仅登记里程碑与验收证据路径，实施细节以各子计划为唯一事实来源（docs/archive/development-plans/242-*.md）。
 
 - T0 现状盘点（已完成）
   - 事实来源：`reports/plan242/naming-inventory.md`（最新）
@@ -325,12 +328,12 @@
     - [ ] `logs/plan242/t0/rg-inventory-scan.log`
     - [ ] `logs/plan242/t0/inventory-sha256.txt`
 - T1 页面与路由命名抽象（已完成，详见 Plan 243）
-  - 事实来源：`docs/development-plans/243-temporal-entity-page-plan.md`
+  - 事实来源：`docs/archive/development-plans/243-temporal-entity-page-plan.md`
   - 证据登记：
     - [ ] `logs/plan242/t1/storybook-diff.log`
     - [ ] `logs/plan242/t1/router-migration.log`
 - T2 Timeline/Status 抽象（进行中，详见 Plan 244）
-  - 事实来源：`docs/development-plans/244-temporal-timeline-status-plan.md`
+  - 事实来源：`docs/archive/development-plans/244-temporal-timeline-status-plan.md`
   - 验收门槛（登记用）：
     - [ ] 前端：`npm run lint`、`npm run test`、`npm run test:e2e -- --project=chromium --project=firefox`（各至少 1 轮）
     - [ ] 后端：`go generate ./cmd/hrms-server/query/...`、`go test ./cmd/hrms-server/...`
@@ -338,14 +341,14 @@
     - [ ] 日志：`logs/plan242/t2/*.log`（包含上述命令输出）
 - T3 类型与契约统一（已完成，详见 Plan 245/245A/245T）
   - 事实来源：
-    - `docs/development-plans/245-temporal-entity-type-contract-plan.md`
-    - `docs/development-plans/245A-unified-hook-adoption.md`
-    - `docs/development-plans/245T-openapi-no-ref-siblings-fix.md`
+    - `docs/archive/development-plans/245-temporal-entity-type-contract-plan.md`
+    - `docs/archive/development-plans/245A-unified-hook-adoption.md`
+    - `docs/archive/development-plans/245T-openapi-no-ref-siblings-fix.md`
   - 证据登记：
     - [ ] `logs/plan242/t3/implementation-inventory.log`
     - [ ] `logs/plan242/t3/plan245-guard.log`
 - T4 Selectors & Fixtures 统一（已完成 Phase 1，详见 Plan 246）
-  - 事实来源：`docs/development-plans/246-temporal-entity-selectors-fixtures-plan.md`
+  - 事实来源：`docs/archive/development-plans/246-temporal-entity-selectors-fixtures-plan.md`
   - 运行门禁：`npm run guard:selectors-246`（计数不升高）
   - 证据登记：
     - [ ] `logs/plan242/t4/selector-guard-246.log`
@@ -372,7 +375,7 @@
 
 ### Plan 240B – 职位详情数据装载与等待治理（登记）
 
-说明：本节用于登记 240B 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240B-position-loading-governance.md` 为唯一事实来源。
+说明：本节用于登记 240B 的依赖门槛、执行证据与验收结果。实施细节以 `docs/archive/development-plans/240B-position-loading-governance.md` 为唯一事实来源。
 
 - 依赖与准入（需全部满足）
   - [x] 243/T1 统一入口已合并（`TemporalEntityPage` 可用）
@@ -403,7 +406,7 @@
 
 ### Plan 240A – 职位详情 Layout 对齐与骨架替换（登记）
 
-说明：本节用于登记 240A 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240A-position-layout-alignment.md` 为唯一事实来源。
+说明：本节用于登记 240A 的依赖门槛、执行证据与验收结果。实施细节以 `docs/archive/development-plans/240A-position-layout-alignment.md` 为唯一事实来源。
 
 - 依赖与准入（需全部满足）
   - [x] 242/247 文档与命名治理闭环（引用 reference 指南，不复制正文）
@@ -427,7 +430,7 @@
 
 ### Plan 240C – 职位 DOM/TestId 治理与选择器统一（登记）
 
-说明：本节用于登记 240C 的依赖门槛、执行证据与验收结果。实施细节以 `docs/development-plans/240C-position-selectors-unification.md` 为唯一事实来源。
+说明：本节用于登记 240C 的依赖门槛、执行证据与验收结果。实施细节以 `docs/archive/development-plans/240C-position-selectors-unification.md` 为唯一事实来源。
 
 - 依赖与准入（需全部满足）
   - [x] 240A 基线对齐完成（布局/组件一致性）  

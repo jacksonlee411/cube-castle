@@ -26,8 +26,8 @@
 
 ## 1. 背景与动因
 
-1. Plan 240 在 T1/T2 中暴露“布局与数据 Hook 重复造轮子”风险：职位页面试图重新实现 `TemporalMasterDetailView` 骨架与 `usePositionDetail` 行为（docs/development-plans/240-position-management-page-refactor.md:52-78），违背唯一事实来源原则。
-2. 现有组织/职位详情在组件、GraphQL hook、测试标识等方面缺乏共享抽象，导致 DOM/test id 漂移与 Playwright 选择器不稳定（docs/development-plans/240-position-management-page-refactor.md:70-88）。
+1. Plan 240 在 T1/T2 中暴露“布局与数据 Hook 重复造轮子”风险：职位页面试图重新实现 `TemporalMasterDetailView` 骨架与 `usePositionDetail` 行为（docs/archive/development-plans/240-position-management-page-refactor.md:52-78），违背唯一事实来源原则。
+2. 现有组织/职位详情在组件、GraphQL hook、测试标识等方面缺乏共享抽象，导致 DOM/test id 漂移与 Playwright 选择器不稳定（docs/archive/development-plans/240-position-management-page-refactor.md:70-88）。
 3. 232/232T 的 P0 用例持续失败与等待链路超时（docs/development-plans/232t-test-checklist.md:25-69），说明前端数据加载与可观测性必须统一治理，而非在单个页面内“补丁式”处理。
 
 > **结论**：需以 Plan 241 统筹 UI 骨架、数据 Hook、Design Token 与可观测性框架，提供一次性重构，避免 Plan 240 等专项重复造轮子。

@@ -30,12 +30,11 @@
     - `scripts/plan240/record-240e-acceptance.sh`
 - 文档与索引
   - Plan 240：标记“已完成（验收通过）”，新增“0.1 影响评估：240 先于 241 完成的回补计划”  
-    - `docs/development-plans/240-position-management-page-refactor.md`
+    - `docs/archive/development-plans/240-position-management-page-refactor.md`
   - Plan 240B：标注硬依赖“240BT 路由解耦完成”  
-    - `docs/development-plans/240B-position-loading-governance.md`
-  - Plan 240BT：验收完成并归档（开发目录下保留已归档占位符）  
-    - 归档：`docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`  
-    - 占位：`docs/development-plans/240bt-org-detail-blank-page-mitigation.md`
+    - `docs/archive/development-plans/240B-position-loading-governance.md`
+  - Plan 240BT：验收完成并归档  
+    - `docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`
   - Plan 240E：登记本地 Smoke + 守卫证据，新增“关闭确认”段落；215 执行日志同步  
     - `docs/development-plans/240E-position-regression-and-runbook.md`  
     - `docs/development-plans/215-phase2-execution-log.md`
@@ -81,4 +80,3 @@ cd frontend && PW_SKIP_SERVER=1 npm run test:e2e:smoke
 - Hook/Loader 统一到 241 的唯一入口并回收薄适配  
 - 可观测性归一至骨架；页面仅保留必要事件  
 - Feature Flag 收敛与 E2E 复跑；守卫/架构/临时标签全部通过
-

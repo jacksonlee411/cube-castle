@@ -111,7 +111,6 @@ export async function listPositionAssignments(positionCode: string, page = 1, pa
 ---
 
 ## 7. 关联
-- 方案与决议：`docs/development-plans/259-protocol-strategy-review.md`、`docs/development-plans/259A-protocol-duplication-and-whitelist-hardening.md`
+- 方案与决议：`docs/archive/development-plans/259-protocol-strategy-review.md`、`docs/archive/development-plans/259A-protocol-duplication-and-whitelist-hardening.md`
 - 门禁与产物：`make guard-plan259`、`.github/workflows/plan-258-gates.yml`
 - 原则：`AGENTS.md`
-

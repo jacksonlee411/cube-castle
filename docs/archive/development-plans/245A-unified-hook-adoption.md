@@ -129,5 +129,5 @@
   - operation 命名统一为 `TemporalEntity*`（详情/版本/路径/审计；树查询部分保留测试敏感项）
   - Plan 245 守卫接入 CI（agents-compliance / frontend-quality-gate）
 - 参考：
-  - `docs/development-plans/245-temporal-entity-type-contract-plan.md`（完成说明与证据）
+  - `docs/archive/development-plans/245-temporal-entity-type-contract-plan.md`（完成说明与证据）
   - `docs/api/schema.graphql` / `docs/api/openapi.yaml`（Plan 245 注释）
