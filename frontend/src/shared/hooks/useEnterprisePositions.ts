@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { QueryFunctionContext, UseQueryResult } from '@tanstack/react-query';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter';
 import { createQueryError } from '../api/queryClient';
@@ -1598,7 +1598,7 @@ export function usePositionAssignments(
   >({
     queryKey: positionAssignmentsQueryKey(effectiveParams),
     queryFn: positionAssignmentsQueryFn,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
     enabled: Boolean(normalizedParams),
   });
