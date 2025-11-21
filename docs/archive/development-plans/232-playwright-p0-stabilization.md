@@ -4,7 +4,7 @@
 **上级计划**: Plan 219E / Plan 06  
 **创建时间**: 2025-11-08 14:45 CST  
 **负责人**: 前端团队 + QA（Playwright）  
-**状态**: ✅ 已完成（2025-11-21 12:30 CST）— 结果已归档，持续维护请参考 `docs/development-plans/232t-test-checklist.md` 与 `docs/archive/plan-216-219/219E-e2e-validation.md`。
+**状态**: ✅ 已完成（2025-11-21 12:30 CST）— 结果已归档，持续维护请参考 `docs/archive/development-plans/232t-test-checklist.md` 与 `docs/archive/plan-216-219/219E-e2e-validation.md`。
 
 ---
 

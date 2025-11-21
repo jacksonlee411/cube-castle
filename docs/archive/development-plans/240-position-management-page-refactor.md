@@ -76,7 +76,7 @@
 
 ## 1. 背景与动因
 
-1. `position-tabs`、`position-lifecycle` 场景在 232T 复测中持续失败，暴露 GraphQL 等待链路、Tab 渲染与 DOM 标识缺口，Firefox 甚至尚未补跑（docs/development-plans/232t-test-checklist.md:25-69）。  
+1. `position-tabs`、`position-lifecycle` 场景在 232T 复测中持续失败，暴露 GraphQL 等待链路、Tab 渲染与 DOM 标识缺口，Firefox 甚至尚未补跑（docs/archive/development-plans/232t-test-checklist.md:25-69）。  
 2. Plan 06 最新纪要同样记录职位模块 P0 用例在 `任职历史`、`position-detail-card` 等关键元素上无法渲染，说明问题已影响集成回归（docs/development-plans/06-integrated-teams-progress-log.md:11-19）。  
 3. 80/86/107 号计划虽宣告职位管理功能上线，但当前 UI 结构沿袭 Stage 2 的临时实现，缺乏统一的状态机、GraphQL 数据缓存与指标监控，导致一旦数据延迟或租户切换即出现“白屏/元素缺失”。  
 

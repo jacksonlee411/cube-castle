@@ -73,7 +73,7 @@
   - NPM Registry 锁定：仓库根配置 `.npmrc` 指向 `https://registry.npmjs.org/`，以确保依赖解析一致性（CI/本地环境一致）。
 - 运行 `node scripts/generate-implementation-inventory.js` 对照 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，避免重复造轮子。
 - 校验契约：查阅 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql`，确认字段保持 camelCase 与 `{code}` 路径参数，任何偏差需先更新契约。
-- 在 `docs/development-plans/` 建立或更新计划，完成后归档至 `docs/archive/development-plans/`，并记录验收标准；计划内容需引用唯一事实来源并说明一致性校验。
+- 在 `docs/development-plans/` 建立或更新计划，完成后必须迁移至 `docs/archive/development-plans/` 并从原目录移除，只保留 `00-README.md`/索引文件中的链接记录；归档版本需带验收标准并注明唯一事实来源与一致性校验。
 - 如需快速确认环境，可执行 `make status`、`curl http://localhost:9090/health` 与 `curl http://localhost:8090/health`（命令返回 200 表示核心服务就绪）。
 
 ## 构建、测试与开发命令
