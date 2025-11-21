@@ -112,8 +112,11 @@
 | 2025-11-21 12:47 UTC | 本地 `make workflow-lint` + `npm --prefix frontend run build` | `reports/workflows/actionlint-20251121T124634Z.txt` | actionlint 再次通过；`tsc -b && vite build` 已验证成功，产物位于 `frontend/dist/`，可作为 `performance-impact-analysis` job 的本地佐证 |
 | 2025-11-21 13:15 UTC | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19571663599` | workflow_dispatch 触发契约测试；`性能影响分析 (ubuntu)` 在 `useEnterprisePositions.ts:1601` 仍因 `keepPreviousData` 选项报错而失败，WSL 变体因 runner 不可用被取消 |
 | 2025-11-21 13:45 UTC | 更新契约/IIG/E2E/Document Sync/CI 相关 workflow | N/A | 移除所有 `self-hosted,cubecastle,wsl` 矩阵，统一改用 `runs-on: ubuntu-latest`，平台 runner 直接参与 Required checks |
+| 2025-11-21 14:11 UTC | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19573102399` | 契约快照/测试/合规 gate + `performance-impact-analysis` job 在 `ubuntu-latest` 全绿（bundle 体积与 contract tests 结果见 `plan256-drift-report`、`contract-test-results` artifact） |
+| 2025-11-21 14:12 UTC | `gh workflow run iig-guardian.yml --ref feat/shared-dev` | Run `19573142692` | IIG Guardian 主 job 及报告上传步骤完成，`iig-guardian-reports-<run>` artifact 已生成，验证 docs-only 快捷路径仍可在 push/PR 中生效 |
+| 2025-11-21 14:13 UTC | `gh workflow run document-sync.yml --ref feat/shared-dev` | Run `19573173780` | 文档同步守卫在平台 runner 跑完目录边界检查、`document-sync-report.json` 生成与质量门禁，workflow_dispatch 下不再依赖 self-hosted |
+| 2025-11-21 14:15 UTC | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | Run `19574492374` | Ubuntu 变体启动 postgres/redis/rest-service 并执行 `scripts/simplified-e2e-test.sh`，生成 `e2e-smoke-outputs` artifact；CI 中通过 `E2E_SKIP_FRONTEND=1` 跳过前端检查 |
 
 仍存阻塞：
 
-- `contract-testing.yml` 的 `performance-impact-analysis` job 需在推送 `useEnterprisePositions.ts` 修复后重新触发，收集通过 Run ID 并写入 Plan 265 Runbook；2025-11-21 12:47 UTC 本地 `npm --prefix frontend run build` 已通过（见 `reports/workflows/actionlint-20251121T124634Z.txt` 记录行），但最新 workflow_dispatch Run `19571663599` 仍在 `keepPreviousData` 选项报错，需等待新代码推送后再重跑。
-- IIG Guardian / E2E Smoke / Document Sync 已切换为 `ubuntu-latest` 门禁，仍需各自跑一轮完整流程（非 docs-only 快捷路径）并在 Plan 265 回填 run ID 与 artifact。
+- 由于 E2E smoke 目前在 CI 环境仅启动后端容器，数据库健康端点返回的 payload 未包含 `database` 字段，脚本暂时按“未返回内容视为跳过”处理；待 Query Service / health payload 回补字段后需恢复严格校验并同步更新脚本说明。
