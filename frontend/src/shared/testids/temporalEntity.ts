@@ -98,7 +98,7 @@ export type TemporalSelectors = {
     versionRow?: (key: string) => string;
     versionRowPrefix?: string;
     tabVersions?: string;
-    tabId?: (key: string) => string;
+    tabId: (key: string) => string;
     vacancyBoard?: string;
     headcountDashboard?: string;
     // headcount dashboard internals (Phase 1)
@@ -116,6 +116,10 @@ export type TemporalSelectors = {
     transferReason?: string;
     transferReassign?: string;
     transferConfirm?: string;
+    transfersTitle: string;
+    transferList: string;
+    transferItem: string;
+    transferEmptyState: string;
   };
   widgets?: {
     combobox?: {
@@ -192,6 +196,7 @@ export const temporalEntitySelectors: TemporalSelectors = {
     treeRetryButton: 'temporal-organization-tree-retry-button',
   },
   position: {
+    table: 'temporal-position-table',
     dashboard: 'temporal-position-dashboard',
     mockBanner: 'temporal-position-dashboard-mock-banner',
     errorBox: 'temporal-position-dashboard-error',
@@ -232,6 +237,10 @@ export const temporalEntitySelectors: TemporalSelectors = {
     transferReason: 'temporal-position-transfer-reason',
     transferReassign: 'temporal-position-transfer-reassign-checkbox',
     transferConfirm: 'temporal-position-transfer-confirm',
+    transfersTitle: 'temporal-position-transfers-title',
+    transferList: 'temporal-position-transfer-list',
+    transferItem: 'temporal-position-transfer-item',
+    transferEmptyState: 'temporal-position-transfer-empty',
   },
   widgets: {
     combobox: {

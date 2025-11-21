@@ -19,11 +19,11 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren, A
     this.state = { hasError: false, error: undefined }
   }
 
-  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+  static override getDerivedStateFromError(error: Error): AppErrorBoundaryState {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, _info: React.ErrorInfo) {
+  override componentDidCatch(error: Error, _info: React.ErrorInfo) {
     // 仅记录到控制台；项目已有 logger 体系覆盖数据请求错误
     // 这里捕获的是渲染/模块评估异常（如动态导入失败）
     // eslint-disable-next-line no-console
@@ -42,7 +42,7 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren, A
     }
   }
 
-  render(): React.ReactNode {
+  override render(): React.ReactNode {
     if (!this.state.hasError) {
       return this.props.children
     }
@@ -75,4 +75,3 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren, A
 }
 
 export default AppErrorBoundary
-

@@ -96,3 +96,9 @@
 - 新增 `scripts/ci/workflows/run-actionlint.sh`、`make workflow-lint` 目标与 `reports/workflows/.gitkeep`/`.gitignore`，Agents Compliance workflow 在 checkout 后运行 actionlint 并上传 `workflow-lint-<run_id>` artifact；本地验证记录：`reports/workflows/actionlint-20251121T103910Z.txt`（Plan 270）。  
 - Plan 264/265/CI 指南已纳入 workflow lint 要求，Runbook 需在 Required checks 变更时记录 actionlint 报告路径；Plan 265 示例条目：`2025-11-21 10:39Z / make workflow-lint / reports/workflows/actionlint-20251121T103910Z.txt`。  
 - `.github/actions/paths-filter` 增补 `docs_only`/`ci_only` 输出定义，`api-compliance.yml` 移除恒 false 的自托管准备 step，确保 actionlint 对现有 workflow 全量通过。
+
+## 9. 待办与阻塞
+
+- `contract-testing.yml` 的 `performance-impact-analysis` job 在 `workflow_dispatch` Run `19568443094` 中因前端 TypeScript 错误失败（`PositionDetailView.tsx` tabId、`StatusBadge.tsx` 颜色属性、`temporalMasterDetailApi.ts` 缺少 unified client 等），需先修复前端类型问题（Plan 263 范畴）方可加入 Required checks。
+- `iig-guardian.yml`（Run `19568402680`）与 `e2e-smoke.yml`（Run `19568978952`）的 `self-hosted,cubecastle,wsl` 矩阵长期 `queued`，显示 WSL Runner 不可用；需按 Plan 269/265 恢复 WSL runner 后重新收集成功 run 作为验收证据。
+- `e2e-smoke` Ubuntu 变体已通过 docs-only 快速通道并上传 `e2e-smoke-outputs`，但尚未执行真实 E2E（WSL 环境未恢复）；待 WSL runner 可用后需重新触发完整栈并记录 `e2e-test-output.txt`/`backend-compose.log` 等工件。

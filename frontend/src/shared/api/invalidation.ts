@@ -40,7 +40,7 @@ export const invalidateTemporalDetail = (
     // 组织：预留（落地 241/244 后补全）；此处仅示意 entity 维度键失效
     if (code) {
       client.invalidateQueries({ queryKey: temporalEntityDetailQueryKey('organization', code, {}), exact: false });
-      client.invalidateQueries({ queryKey: temporalEntityDetailQueryKey('organization', code, { asOfDate: null }), exact: false });
+      client.invalidateQueries({ queryKey: temporalEntityDetailQueryKey('organization', code, { asOfDate: undefined }), exact: false });
     }
     return;
   }
@@ -49,4 +49,3 @@ export const invalidateTemporalDetail = (
 export default {
   invalidateTemporalDetail,
 };
-

@@ -1,11 +1,9 @@
-import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import TemporalEntityPage from '../TemporalEntityPage'
 import type { TemporalEntityRouteConfig } from '../TemporalEntityPage'
 import * as positions from '@/shared/hooks/useEnterprisePositions'
-import { vi } from 'vitest'
 
 // 提前 mock queryClient 模块，注入可监控的 cancelQueries
 const hoisted = vi.hoisted(() => {
