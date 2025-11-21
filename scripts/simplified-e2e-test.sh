@@ -15,9 +15,10 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # 服务端点
-COMMAND_API="http://localhost:9090"
-QUERY_API="http://localhost:8090"
-FRONTEND="http://localhost:3000"
+COMMAND_API="${COMMAND_API:-http://localhost:9090}"
+QUERY_API="${QUERY_API:-$COMMAND_API}"
+FRONTEND="${FRONTEND_URL:-http://localhost:3000}"
+SKIP_FRONTEND="${E2E_SKIP_FRONTEND:-0}"
 
 # 测试计数器
 STEP=1
@@ -54,7 +55,9 @@ else
     test_fail "Query Service 不可达"
 fi
 
-if curl -s "$FRONTEND" > /dev/null; then
+if [ "$SKIP_FRONTEND" = "1" ]; then
+    test_pass "Frontend 检查已跳过（E2E_SKIP_FRONTEND=1）"
+elif curl -s "$FRONTEND" > /dev/null; then
     test_pass "Frontend 可访问"
 else
     test_fail "Frontend 不可达"

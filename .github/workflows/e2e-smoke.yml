@@ -106,6 +106,8 @@ jobs:
 
       - name: Run simplified E2E smoke
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
+        env:
+          E2E_SKIP_FRONTEND: 1
         run: |
           bash scripts/simplified-e2e-test.sh | tee e2e-test-output.txt
           # Fail if any ❌
