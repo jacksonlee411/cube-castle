@@ -71,6 +71,11 @@ jobs:
           msg="${RUNNER_SKIP_REASON:-Self-hosted 变体在该触发场景下禁用}"
           echo "⏭️ $msg"
           echo "剩余步骤已跳过。"
+      - name: Checkout
+        if: steps.runner-gate.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Detect docs-only/ci-only changes
         if: steps.runner-gate.outputs.skip != 'true'
         id: changes
@@ -108,10 +113,6 @@ jobs:
           echo "Docs/CI-only changes detected. Skipping E2E Smoke."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: Checkout
-        if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
-        uses: actions/checkout@v4
-
       - name: Set up Node (Frontend tooling)
         if: steps.runner-gate.outputs.skip != 'true' && steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
