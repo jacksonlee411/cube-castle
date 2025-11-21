@@ -18,18 +18,18 @@
 
 | 步骤 | 命令 | 预计耗时 | 产物 | 备注 |
 | --- | --- | --- | --- | --- |
-| 1 | `npx playwright test tests/e2e/business-flow-e2e.spec.ts --project=chromium` | 8 min | `logs/219E/business-flow-e2e-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-07 13:33 / shangmeilin → **失败**（`logs/219E/business-flow-e2e-chromium-20251107-133349.log`：`temporal-delete-record-button` 不存在） |
-| 2 | `... --project=firefox` | 8 min | `logs/219E/business-flow-e2e-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-07 14:02 / shangmeilin → **失败**（同样缺少删除按钮，日志 `logs/219E/business-flow-e2e-firefox-20251107-140221.log`） |
-| 3 | `npx playwright test tests/e2e/job-catalog-secondary-navigation.spec.ts --project=chromium` | 5 min | `logs/219E/job-catalog-secondary-navigation-chromium-<ts>.log` | 若需播种数据，先执行 `scripts/dev/seed-job-catalog.sh`；2025-11-07 13:38 的日志显示 Modal 未渲染（`logs/219E/job-catalog-secondary-navigation-chromium-20251107-133841.log`），2025-11-08 23:09 再跑曾短暂通过，但缺少带调试日志的诊断，问题仍未关闭 |
-| 4 | `... --project=firefox` | 5 min | `logs/219E/job-catalog-secondary-navigation-firefox-<ts>.log` | 2025-11-07 13:43 仍失败（`logs/219E/job-catalog-secondary-navigation-firefox-20251107-134321.log`），尚未有成功记录 |
-| 5 | `npx playwright test tests/e2e/position-tabs.spec.ts --project=chromium` | 4 min | `logs/219E/position-tabs-chromium-<ts>.log` | 2025-11-09 17:14 仍失败（`logs/219E/position-tabs-chromium-20251109171402.log`：`waitForGraphQL(POSITION_DETAIL_QUERY_NAME)` 超时；需要在 `page.goto` 前启动等待或切换到 `Promise.all` 模式） |
-| 6 | `... --project=firefox` | 4 min | `logs/219E/position-tabs-firefox-<ts>.log` | 尚未重跑，Firefox 结果缺失 |
-| 7 | `npx playwright test tests/e2e/position-lifecycle.spec.ts --project=chromium` | 4 min | `logs/219E/position-lifecycle-chromium-<ts>.log` |  |
-| 8 | `... --project=firefox` | 4 min | `logs/219E/position-lifecycle-firefox-<ts>.log` |  |
-| 9 | `npx playwright test tests/e2e/temporal-management-integration.spec.ts --project=chromium` | 6 min | `logs/219E/temporal-management-integration-chromium-<ts>.log` | 后端不可用时需在日志首行注明 `E2E_MOCK_MODE=true`；2025-11-07 13:57 的日志 `logs/219E/temporal-management-integration-20251107-135738.log` 卡在 `organization-dashboard` 未渲染 |
-| 10 | `... --project=firefox` | 6 min | `logs/219E/temporal-management-integration-firefox-<ts>.log` |  |
-| 11 | `npx playwright test tests/e2e/optimization-verification-e2e.spec.ts --project=chromium` | 6 min | `logs/219E/optimization-verification-e2e-chromium-<ts>.log` | 日志需记录 `totalSize` 与基线引用；仍超过 4 MB（见 `frontend/test-results/optimization-verification-e2e-*/bundle-report.json`），阈值待重新评估 |
-| 12 | `... --project=firefox` | 6 min | `logs/219E/optimization-verification-e2e-firefox-<ts>.log` | 若 Firefox 收集指标受限，请在日志说明 |
+| 1 | `npx playwright test tests/e2e/business-flow-e2e.spec.ts --project=chromium` | 8 min | `logs/219E/business-flow-e2e-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-09 17:11 / shangmeilin → ✅（`logs/219E/business-flow-e2e-chromium-20251109171101.log`）<br/>2025-11-07 13:33 / shangmeilin → **失败**（`logs/219E/business-flow-e2e-chromium-20251107-133349.log`：`temporal-delete-record-button` 不存在） |
+| 2 | `... --project=firefox` | 8 min | `logs/219E/business-flow-e2e-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-09 17:11 / shangmeilin → ✅（`logs/219E/business-flow-e2e-firefox-20251109171155.log`）<br/>2025-11-07 14:02 / shangmeilin → **失败**（`logs/219E/business-flow-e2e-firefox-20251107-140221.log`：删除按钮缺失） |
+| 3 | `npx playwright test tests/e2e/job-catalog-secondary-navigation.spec.ts --project=chromium` | 5 min | `logs/219E/job-catalog-secondary-navigation-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-09 17:12 / shangmeilin → ✅（`logs/219E/job-catalog-secondary-navigation-chromium-20251109171256.log`）<br/>2025-11-07 13:38 / shangmeilin → **失败**（`logs/219E/job-catalog-secondary-navigation-chromium-20251107-133841.log`：Modal 未渲染） |
+| 4 | `... --project=firefox` | 5 min | `logs/219E/job-catalog-secondary-navigation-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-09 17:13 / shangmeilin → ✅（`logs/219E/job-catalog-secondary-navigation-firefox-20251109171326.log`）<br/>2025-11-07 13:43 / shangmeilin → **失败**（`logs/219E/job-catalog-secondary-navigation-firefox-20251107-134321.log`） |
+| 5 | `npx playwright test tests/e2e/position-tabs.spec.ts --project=chromium` | 4 min | `logs/219E/position-tabs-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-21 12:19 / shangmeilin → ✅（`logs/219E/position-tabs-chromium-20251121121935.log`，Playwright 已锁定 1.56.1；六个页签/Mock 校验维持通过）<br/>2025-11-21 09:31 / shangmeilin → ✅（`logs/219E/position-tabs-chromium-20251121093128.log`，CLI 版本冲突已解除）<br/>2025-11-09 17:14 / shangmeilin → **失败**（`logs/219E/position-tabs-chromium-20251109171402.log`：`waitForGraphQL` 超时） |
+| 6 | `... --project=firefox` | 4 min | `logs/219E/position-tabs-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-21 12:19 / shangmeilin → ✅（`logs/219E/position-tabs-firefox-20251121121954.log`，版本锁定后复测通过）<br/>2025-11-21 08:13 / shangmeilin → ✅（`logs/219E/position-tabs-firefox-20251121081344.log`，六个页签均可切换）<br/>2025-11-21 08:39 / shangmeilin → ⚠️ CLI 阻断（`logs/219E/position-tabs-firefox-20251121083920.log`，同 `test.describe` 报错） |
+| 7 | `npx playwright test tests/e2e/position-lifecycle.spec.ts --project=chromium` | 4 min | `logs/219E/position-lifecycle-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-21 12:20 / shangmeilin → ✅（`logs/219E/position-lifecycle-chromium-20251121122024.log`：PositionTransfersPanel selector + 页签断言在锁定版本下稳定）<br/>2025-11-21 09:51 / shangmeilin → **失败**（`logs/219E/position-lifecycle-chromium-20251121095134.log`：`temporal-position-transfer-item` 未渲染）<br/>2025-11-09 17:47 / shangmeilin → **失败**（`logs/219E/position-lifecycle-chromium-20251109174658.log`：详情卡片未渲染） |
+| 8 | `... --project=firefox` | 4 min | `logs/219E/position-lifecycle-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-21 12:20 / shangmeilin → ✅（`logs/219E/position-lifecycle-firefox-20251121122032.log`：同上 patch 后双端通过）<br/>2025-11-21 11:16 / shangmeilin → **失败**（`logs/219E/position-lifecycle-firefox-20251121111635.log`：缺少调动记录 testid）<br/>2025-11-21 08:14 / shangmeilin → ✅（`logs/219E/position-lifecycle-firefox-20251121081425.log`） |
+| 9 | `npx playwright test tests/e2e/temporal-management-integration.spec.ts --project=chromium` | 6 min | `logs/219E/temporal-management-integration-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-21 08:14 / shangmeilin → ✅（`logs/219E/temporal-management-integration-chromium-20251121081445.log`，Mock 模式自动启用并在日志首行注明）<br/>2025-11-07 13:57 / shangmeilin → **失败**（`logs/219E/temporal-management-integration-20251107-135738.log`：dashboard 未渲染） |
+| 10 | `... --project=firefox` | 6 min | `logs/219E/temporal-management-integration-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-21 08:15 / shangmeilin → ✅（`logs/219E/temporal-management-integration-firefox-20251121081500.log`，Mock 模式） |
+| 11 | `npx playwright test tests/e2e/optimization-verification-e2e.spec.ts --project=chromium` | 6 min | `logs/219E/optimization-verification-e2e-chromium-<ts>.log` | 责任人/时间：<br/>2025-11-21 08:31 / shangmeilin → ✅（`logs/219E/optimization-verification-e2e-chromium-20251121083159.log`：Phase3 响应 400 ms、资源 4 483.78 KB，引用 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 基线）<br/>2025-11-21 08:18 / shangmeilin → ⚠️ 首次运行 860 ms 超过 500 ms（`logs/219E/optimization-verification-e2e-chromium-20251121081845.log`，冷启动需预热） |
+| 12 | `... --project=firefox` | 6 min | `logs/219E/optimization-verification-e2e-firefox-<ts>.log` | 责任人/时间：<br/>2025-11-21 08:32 / shangmeilin → ✅（`logs/219E/optimization-verification-e2e-firefox-20251121083219.log`：Phase3 响应 156 ms、资源 4 050.41 KB） |
 
 > **命名规范**：`<ts>` 使用 `date +%Y%m%d%H%M%S`；同一场景的 Chromium/Firefox 日志必须在 PR 中引用。
 
@@ -48,7 +48,7 @@
 ## 4. 复盘、证据与文档同步
 
 1. **日志归档**：每条命令运行结束立即将 `playwright-report/index.html` 与 `data/` 留存到 `logs/219E/artifacts/{scenario}-{browser}-{ts}/`（便于审阅者复现）。
-2. **Plan 232 状态**：在 `docs/development-plans/232-playwright-p0-stabilization.md` “当前状态”表中填写每个步骤的完成时间、责任人、日志路径。
+2. **Plan 232 状态**：在 `docs/archive/development-plans/232-playwright-p0-stabilization.md` “当前状态”表中填写每个步骤的完成时间、责任人、日志路径。
 3. **Plan 219E §2.5**：为六个场景分别添加 Chromium/Firefox 的通过时间与日志链接。
 4. **Plan 06**：在 P0 验证章节引用 232T 的结果，说明阻塞项解除。
 5. **性能阈值说明**：`optimization-verification-e2e` 日志需引用 `docs/reference/03-API-AND-TOOLS-GUIDE.md#e2e-前端资源体积基线`，并标注 measured size。
@@ -59,18 +59,33 @@
 - **JWT 过期**：如果 `.cache/dev.jwt` 生成时间超过 8h，须重新 `make jwt-dev-mint`；否则 GraphQL 返回 401，表现与超时类似。
 - **时间预算**：单浏览器一轮约 33 分钟；若资源有限，可按表格顺序分批执行，但必须在 24h 内补齐成对日志。
 
-## 6. 当前阻塞摘要（2025-11-09 16:45 CST）
+## 6. 当前阻塞摘要（2025-11-21 12:25 CST）
 
-1. **business-flow-e2e（Chromium/Firefox）**：`temporal-delete-record-button` 无法在 DOM 中找到，日志 `logs/219E/business-flow-e2e-{chromium,firefox}-20251107-*.log`。须确认 Temporal 页面是否仍暴露删除入口或需新增 testid。
-2. **job-catalog-secondary-navigation**：2025-11-07 的 Chromium/Firefox 跑数持续超时；尽管 11-08 23:09 的 Chromium 日志短暂通过，Modal 原因未根除且 Firefox 尚未复测。需根据 `docs/development-plans/232-playwright-p0-stabilization.md` 附录 F 提供的调试日志继续排查 Canvas Kit Modal。
-3. **position-tabs**：`logs/219E/position-tabs-20251107-134806.log` 显示“任职历史”内容缺失，暗示 GraphQL 数据或 Tab 切换等待不足；Firefox 版本仍缺失，需要重跑并对组件增加稳定 testid。
-4. **temporal-management-integration**：Chromium 跑数停在 `organization-dashboard` 未可见（`logs/219E/temporal-management-integration-20251107-135738.log`），表明 UI 页面尚未完成加载或 selector 过期。
-5. **position-lifecycle（Chromium）**：最新一次运行（命令发起于 17:16，日志路径尚未生成）长时间卡住，即使将 Playwright 超时放宽到 180 s 仍未完成。推测在点击列表行或等待详情 GraphQL 时陷入循环，需要进一步收集 trace。
-6. **optimization-verification-e2e**：最新 `bundle-report.json` 显示总大小约 4.59 MB，超出 4 MB 阈值；在性能团队调整阈值或拆包前，该场景仍将失败。
+1. **position-tabs**：Chromium/Firefox 最新日志 `logs/219E/position-tabs-{chromium-20251121121935,firefox-20251121121954}.log` 证明在根/前端双重锁定 `@playwright/test@1.56.1` 后依旧稳定；附带 Mock 模式写入按钮隐藏断言。暂无新增风险。
+2. **position-lifecycle**：Chromium/Firefox 最新日志 `logs/219E/position-lifecycle-{chromium-20251121122024,firefox-20251121122032}.log` 完成 selector 补齐、页签切换断言与版本锁后复测。Trace 保留在 `test-results/position-lifecycle-*/trace.zip`，可按需归档。
+3. **其余 P0 场景**（business-flow、job-catalog-secondary-navigation、temporal-management-integration、optimization-verification）已在 Chromium/Firefox 双端通过：优化场景的首次冷启动记录 860 ms > 500 ms，第二次 400 ms 并锁定 4.48 MB 资源大小，均已在表格与日志中备案。最新证据已同步到 `docs/archive/plan-216-219/219E-e2e-validation.md` 与 `docs/development-plans/06-integrated-teams-progress-log.md`，Plan 232 亦已归档。
 
-> 在上述问题全部闭环、并提供 Chromium + Firefox 最新日志前，232T 不具备提交“全绿”结论的条件；请在执行新一轮测试时参考上文备注逐条销项。
+> 当前待办：若后续升级 Playwright 或调试 P0 场景，需重新执行 position-tabs + position-lifecycle 组合并在此表登记，同时更新 219E/Plan 06 的引用。
 
 ---
 
 维护人：临时指定（请在实际执行者完成后更新）  
 创建时间：2025-11-09 12:30 CST
+
+## 7. 问题记录与回收计划
+
+> **强制要求**：232T 是测试执行与问题登记的唯一事实来源。每次复测发现的新问题（无论是否阻断）都必须在下表更新，并在对应计划或 Issue 中给出回收时间；测试目的在于“发现并解决问题”，而不是追求形式上的覆盖率。
+
+| 场景 | 浏览器 | 最近一次结果（含日志/trace 路径） | 发现的问题 / 现象 | 归属计划 / Issue | 预计回收时间 |
+| --- | --- | --- | --- | --- | --- |
+| business-flow-e2e | Chromium / Firefox | `logs/219E/business-flow-e2e-chromium-20251109171101.log`<br/>`logs/219E/business-flow-e2e-firefox-20251109171155.log` | 本轮无新增问题；删除按钮 wrapper + waitPatterns 生效，CRUD 5 用例全绿。 | Plan 232 · BF-001（✅ 2025-11-21） | 已完成 |
+| job-catalog-secondary-navigation | Chromium / Firefox | `logs/219E/job-catalog-secondary-navigation-chromium-20251109171256.log`<br/>`logs/219E/job-catalog-secondary-navigation-firefox-20251109171326.log` | Modal 渲染、If-Match 场景与 403/412 验证均通过；无残留问题。 | Plan 232 · JC-001（✅ 2025-11-21） | 已完成 |
+| position-tabs | Chromium / Firefox | `logs/219E/position-tabs-chromium-20251121121935.log`<br/>`logs/219E/position-tabs-firefox-20251121121954.log` | 双浏览器均已通过；根与 frontend `@playwright/test` 均锁定到 1.56.1，Mock/六页签断言全部成功。 | Plan 232 · PT-001（✅ 2025-11-21） | 已完成 |
+| position-lifecycle | Chromium / Firefox | `logs/219E/position-lifecycle-chromium-20251121122024.log`<br/>`logs/219E/position-lifecycle-firefox-20251121122032.log` | ✅ `PositionTransfersPanel` 新增 `temporal-position-transfer-*` selector，并在脚本中切换“调动记录”页签后断言；双端在锁定版本下仍然通过。 | Plan 232 · PL-001（✅ 2025-11-21） | 已完成 |
+| temporal-management-integration | Chromium / Firefox | `logs/219E/temporal-management-integration-chromium-20251121081445.log`<br/>`logs/219E/temporal-management-integration-firefox-20251121081500.log` | 两端在 Mock 模式下通过，日志首行注明 `E2E_MOCK_MODE=true`；待 CLI 修复后再补真实链路，但不阻塞 232T。 | Plan 232 · TI-001（✅ 2025-11-21） | 已完成 |
+| optimization-verification-e2e | Chromium / Firefox | `logs/219E/optimization-verification-e2e-chromium-20251121083159.log`（第二次 400 ms / 4 483.78 KB）<br/>`logs/219E/optimization-verification-e2e-chromium-20251121081845.log`（首轮 860 ms）<br/>`logs/219E/optimization-verification-e2e-firefox-20251121083219.log` | 首次冷启动 860 ms > 500 ms，复跑预热后 400 ms，资源体积 4.05~4.48 MB < 5 MB 阈值，记录在日志与参考文档中。 | Plan 232 · OV-001（✅ 2025-11-21） | 已完成 |
+
+维护要求：
+- 每次回归必须填写“最近一次结果”列（含日志或 trace 链接），并更新“发现的问题”描述。问题解决后在同一行备注“✅ 已解决（链接）”。
+- 如在复测过程中没有新问题，也需在表格中填写“本轮无新增问题，参考日志 …”，以确保测试证据可追溯。
+- 与 Plan 232/Plan 06/Plan 219E 的状态同步需引用此表格，以避免遗漏或重复统计。

@@ -2,7 +2,7 @@
 
 **调查完成时间**：2025-11-08 18:00 CST  
 **调查者**：Claude Code Agent  
-**相关文档**：docs/development-plans/232-playwright-p0-stabilization.md
+**相关文档**：docs/archive/development-plans/232-playwright-p0-stabilization.md
 
 ---
 
@@ -163,7 +163,7 @@ M1 (2025-11-09)：T1 + T2
 
 ## 附加资源
 
-- **详细文档**：docs/development-plans/232-playwright-p0-stabilization.md
+- **详细文档**：docs/archive/development-plans/232-playwright-p0-stabilization.md
 - **日志位置**：logs/219E/
 - **修复指南**：232 文档 §9 "修复指南与检查清单"
 - **问题追踪**：232 文档 §8 "已知问题追踪"
@@ -171,4 +171,3 @@ M1 (2025-11-09)：T1 + T2
 ---
 
 **下一步**：按照 §4 优化后的任务拆解，分别启动 T1 和 T2，预计本周五前完成所有 P0/P1 修复。
-

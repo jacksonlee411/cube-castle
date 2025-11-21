@@ -3,9 +3,10 @@
 归档时间: 2025-11-15  
 归档说明: 本文件已归档，仅保留历史记录，不再作为唯一事实来源（SSoT）。  
 现行来源：
-- P0 用例清单与门禁：`docs/development-plans/232-playwright-p0-stabilization.md`、`docs/development-plans/232t-test-checklist.md`
+- P0 用例清单与门禁：`docs/archive/development-plans/232-playwright-p0-stabilization.md`、`docs/development-plans/232t-test-checklist.md`
 - 执行/进度汇总：`docs/development-plans/215-phase2-execution-log.md`
 - 职位域回归与运行手册：`docs/development-plans/240E-position-regression-and-runbook.md`
+- 2025-11-21 更新：Plan 232 已在 Chromium/Firefox 双端复测并锁定 `@playwright/test@1.56.1`，最新日志保存在 `logs/219E/position-tabs-{chromium-20251121121935,firefox-20251121121954}.log`、`logs/219E/position-lifecycle-{chromium-20251121122024,firefox-20251121122032}.log` 中；请以上述现行来源为准。
 
 ---
 
@@ -19,6 +20,7 @@
 - `make jwt-dev-mint` 更新 `.cache/dev.jwt`，所有 Playwright/脚本通过 `PW_JWT`、`PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9` 注入。
 
 ## 2. 已执行验证
+> 2025-11-21 提示：下表保留 11 月 7 日的历史结论，最新回归结果与日志路径已汇总到 `docs/development-plans/232t-test-checklist.md`。
 | 步骤 | 结果 | 证据 |
 | --- | --- | --- |
 | `npm run test:e2e -- --project=chromium tests/e2e/business-flow-e2e.spec.ts` | ❌ 删除阶段 `temporal-delete-record-button` 未出现 | `logs/219E/business-flow-e2e-chromium-20251107-133349.log` |
@@ -39,4 +41,3 @@
 
 ## 3. 当前阻塞
 （略；归档原文保持不变）
-

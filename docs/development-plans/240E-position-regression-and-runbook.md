@@ -49,7 +49,7 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 ---
 
 ## 回归套件与执行矩阵（T1）
-- 权威来源：以 `docs/development-plans/232-playwright-p0-stabilization.md` 中标记为 P0 的“职位域”用例集合为准（含职位详情/生命周期/观测与相关集成路径）。  
+- 权威来源：以 `docs/archive/development-plans/232-playwright-p0-stabilization.md` 中标记为 P0 的“职位域”用例集合为准（含职位详情/生命周期/观测与相关集成路径）。  
 - 过滤规则（客观标准）：优先以 232 文档中的标签/清单为准；如临时缺失，则兜底集合为 `frontend/tests/e2e/position-*` 与 `frontend/tests/e2e/temporal-management-integration.spec.ts`，最终仍以 232 文档为事实来源。  
 - 本地示例（非权威，仅便于手工复核）：`position-*` 与 `temporal-management-integration` 等规格（以 232 为准）。
 

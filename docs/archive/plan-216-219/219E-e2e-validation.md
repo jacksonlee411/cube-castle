@@ -48,25 +48,25 @@
 
 | 任务 | 优先级 | 状态 | 说明与负责人 | 证据 |
 |------|--------|------|--------------|------|
-| Playwright P0 场景修复（business-flow、job-catalog、position-tabs、temporal-management） | P0 | 进行中 | 前端团队补齐缺失 data-testid、UI 文案与 GraphQL 数据，Chromium/Firefox 均需通过 | `logs/219E/business-flow-e2e-*.log`、`logs/219E/job-catalog-secondary-navigation-*.log`、`docs/development-plans/06-integrated-teams-progress-log.md:8-34` |
+| Playwright P0 场景修复（business-flow、job-catalog、position-tabs、temporal-management） | P0 | ✅ 完成（2025-11-21） | Plan 232 T1/T2/T5 已补齐 selector + waitPatterns，并在 Chromium/Firefox 双端复测；`@playwright/test` 已在根与 frontend 均锁定 `1.56.1` | `logs/219E/business-flow-e2e-{chromium,firefox}-2025110917110*.log`、`logs/219E/job-catalog-secondary-navigation-{chromium,firefox}-202511091712*.log`、`logs/219E/position-tabs-{chromium-20251121121935,firefox-20251121121954}.log`、`logs/219E/temporal-management-integration-{chromium,firefox}-20251121081*.log`、`docs/development-plans/232t-test-checklist.md` |
 | Position + Assignment 数据链路恢复 | P0 | ✅ 完成 | 230B/C/D + 230F 产物（`scripts/dev/seed-position-crud.sh`、`logs/230/position-env-check-20251108T095108.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`）确认 Job Catalog、Position CRUD、功能→测试映射均可用，已作为 219E 重新开启 Position 场景的事实来源 | `logs/230/job-catalog-check-20251108T093645.log`、`logs/230/position-module-readiness.md`、`logs/230/position-crud-playwright-20251108T102815.log`、`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` |
 | 性能与 REST 基准回填 | P1 | 待记录 | `scripts/perf/rest-benchmark.sh` Node 驱动日志已生成，需将 P50/P95/P99 摘要写入 `docs/reference/03-API-AND-TOOLS-GUIDE.md` 并与旧基线对比 | `logs/219E/rest-benchmark-20251107-140709.log`、`docs/development-plans/219T-e2e-validation-report.md:21-33` |
 | 回退演练计划 | P1 | 待安排 | 参考 219D1/219D5 回退指引，补充演练脚本与记录，确保 219E 验收可复用 | `logs/219D4/FAULT-INJECTION-2025-11-06.md`、`docs/development-plans/219D5-scheduler-docs.md` |
 | Outbox/Dispatcher 指标验证 | P2 | ✅ 完成 | 2025-11-08 13:11 CST 复测 Runbook O1-O6：`./scripts/219C3-rest-self-test.sh` 触发 Position/Assignment/JobLevel 命令，`outbox_events` 成功写入并由 dispatcher 发布，Prometheus `outbox_dispatch_total{result=\"success\"}` 出现 `assignment.closed/assignment.filled/position.created/jobLevel.versionCreated`，GraphQL 读模型展现最新 `assignmentHistory`。Plan 231 已据此关闭。 | `../development-plans/231-outbox-dispatcher-gap.md`、`logs/219E/outbox-dispatcher-events-20251108T050948Z.log`、`logs/219E/outbox-dispatcher-sql-20251108T050948Z.log`、`logs/219E/outbox-dispatcher-metrics-20251108T051005Z.log`、`logs/219E/outbox-dispatcher-run-20251108T051024Z.log`、`logs/219E/position-gql-outbox-20251108T051126Z.log` |
 
-### 2.5 Playwright 阻塞明细（2025-11-07）
+### 2.5 Playwright 场景状态（2025-11-21）
 
-| 场景 | 失败表现 | 推测原因/需修复内容 | Owner | 证据 |
-| --- | --- | --- | --- | --- |
-| business-flow-e2e | `locator.getByTestId('temporal-delete-record-button')` 超时，删除阶段无法完成 | Temporal UI 已移除按钮或 data-testid；需补充 timeline 等待并对齐新按钮命名 | 前端 + Temporal/QA | `logs/219E/business-flow-e2e-chromium-20251107-133349.log`、`...-firefox-20251107-140221.log` |
-| job-catalog-secondary-navigation | 点击“编辑当前版本”后标题 `编辑职类信息` 未渲染 | Modal 标题/组件重命名或 GraphQL 数据缺失；需同步 UI 结构并确保 job catalog fixture 就绪 | 前端（Job Catalog） | `logs/219E/job-catalog-secondary-navigation-chromium-20251107-133841.log`、`...firefox-20251107-134321.log` |
-| position-tabs | `getByTestId('position-temporal-page')` 不可见，多个 tab 缺失 | 230D 复跑（`logs/230/position-crud-playwright-20251108T102815.log`）已证明 `position-temporal-page` 恢复，需要重新执行 `tests/e2e/position-tabs.spec.ts` 更新日志 | 前端（Position） + QA | `logs/219E/position-tabs-20251107-134806.log`、`logs/230/position-crud-playwright-20251108T102815.log` |
-| position-lifecycle | 标题 `职位管理（Stage 1 数据接入）` 未找到 | 缺失已由 Plan 230 修复，`frontend/test-results/position-crud-full-lifecyc-5b6e484b-chromium/` 可见完整 CRUD；需重新跑 `tests/e2e/position-lifecycle.spec.ts` 获取最新证据 | 同上 | `logs/230/position-crud-playwright-20251108T102815.log` |
-| temporal-management-integration | 搜索输入 placeholder 不匹配/页面未渲染 | UI 文案变更 + 组织列表加载慢；需统一 locator 并等待 GraphQL 返回 | 前端（Temporal Dashboard） | `logs/219E/temporal-management-integration-20251107-135738.log` |
-| name-validation-parentheses | ✅ 2025-11-08 复测通过（REST/GraphQL 均返回 200） | 已在 `tests/e2e/name-validation-parentheses.spec.ts` 中补齐 JWT + `X-Tenant-ID` 请求头，并使用 `BASE_URL=http://localhost:9090` 实测成功 | 前端 + API 契约 | `logs/219E/name-validation-parentheses-20251108T052717Z.log` |
-| optimization-verification-e2e | bundle size 4.59 MB 超出 4MB 阈值 | 构建体积目标需重新评估或优化 JS chunk | 前端 Perf | `frontend/test-results/optimization-verification-e2e-*/trace.zip`（日志同目录） |
+| 场景 | 当前状态 | Owner | 证据 |
+| --- | --- | --- | --- |
+| business-flow-e2e | ✅ 删除阶段按钮补齐 wrapper + waitPatterns，Chromium/Firefox 均已在 2025-11-09 通过 | 前端 + Temporal/QA | `logs/219E/business-flow-e2e-chromium-20251109171101.log`、`logs/219E/business-flow-e2e-firefox-20251109171155.log` |
+| job-catalog-secondary-navigation | ✅ `CatalogForm`/`CatalogVersionForm` 新增 `cardTestId` 后，编辑弹窗在双端渲染，如 2025-11-09 日志所示 | Job Catalog 前端 | `logs/219E/job-catalog-secondary-navigation-{chromium,firefox}-202511091712*.log` |
+| position-tabs | ✅ `temporal-position-tab-*` testid + waitPatterns 固化；Playwright 版本锁定至 1.56.1 后于 2025-11-21 再次通过 | Position 前端 + QA | `logs/219E/position-tabs-chromium-20251121121935.log`、`logs/219E/position-tabs-firefox-20251121121954.log` |
+| position-lifecycle | ✅ `PositionTransfersPanel` 新增 `temporal-position-transfer-*` selector，并在用例中切换“调动记录”页签后断言；Chromium/Firefox 均于 2025-11-21 通过 | 同上 | `logs/219E/position-lifecycle-chromium-20251121122024.log`、`logs/219E/position-lifecycle-firefox-20251121122032.log` |
+| temporal-management-integration | ✅ Mock 模式下已在 2025-11-21 日志完成，待 CLI 修复后可重跑真实链路 | Temporal Dashboard | `logs/219E/temporal-management-integration-{chromium,firefox}-20251121081*.log` |
+| name-validation-parentheses | ✅ 2025-11-08 复测通过（补齐 JWT/租户头） | 前端 + API 契约 | `logs/219E/name-validation-parentheses-20251108T052717Z.log` |
+| optimization-verification-e2e | ⚠️ 首次冷启动 860 ms > 500 ms，但预热后 400 ms、资源 4.48 MB < 5 MB；需持续监控 | 前端 Perf | `logs/219E/optimization-verification-e2e-chromium-20251121083159.log`、`logs/219E/optimization-verification-e2e-firefox-20251121083219.log` |
 
-> 以上条目需在前端仓库与测试固化前同步更新 data-testid registry、契约与 Job Catalog 基础数据；完成后将新日志、trace/video 回填至 `logs/219E/` 与 `frontend/test-results/`。
+> 以上证据已同步至 `docs/development-plans/232t-test-checklist.md`，为 Plan 219E §2.5 的唯一事实来源；若后续升级 Playwright 版本，需重新执行 `position-tabs` + `position-lifecycle` 套件并回填日志。
 
 ### 2.6 Position + Assignment 数据恢复计划
 

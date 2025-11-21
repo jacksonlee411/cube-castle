@@ -102,7 +102,7 @@
 1. **硬依赖**  
    - Plan 242 命名抽象：已完成（解锁）。  
    - Plan 244 Timeline/Status 抽象：已完成（解锁）。  
-   - Plan 232 的 P0 场景日志需与 240 同步推进，重构阶段必须提供最新 Chromium/Firefox 报告才能关闭（docs/development-plans/232-playwright-p0-stabilization.md:300-310）。  
+   - Plan 232 的 P0 场景日志需与 240 同步推进，重构阶段必须提供最新 Chromium/Firefox 报告才能关闭（docs/archive/development-plans/232-playwright-p0-stabilization.md:300-310）。  
    - 职位后端契约禁止修改（OpenAPI/GraphQL 以 80/86/107 为唯一事实来源）。若需新增字段，必须先更新契约并跑 `node scripts/generate-implementation-inventory.js`。  
 2. **软依赖**  
    - Plan 06 可复用本计划输出的 E2E 结果，故需在每轮迭代后同步日志路径。  
