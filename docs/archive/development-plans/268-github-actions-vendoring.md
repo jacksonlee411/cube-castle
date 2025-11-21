@@ -2,16 +2,9 @@
 
 **文档编号**: 268  
 **创建日期**: 2025-11-19  
-**关联计划**: Plan 262/265（自托管 Runner）、Plan 266（执行追踪）  
-**状态**: ⚠️ 搁置（2025-11-20）——自托管 runner 网络未稳定前，Actions vendoring 无法完整验证，待 Plan 265/267 恢复后再继续。
+**关联计划**: Plan 262/265（自托管 Runner）、Plan 266（执行追踪）
 
 ---
-
-
-## 📌 搁置结论
-
-- Actions vendoring 需要依赖自托管 runner 验证（document-sync/api-compliance 等），当前 WSL runner 尚未稳定，无法验证本地 actions 与 workflow dispatch。
-- Plan 268 相关脚本/文档保持现状，待 Plan 265/267 恢复后再继续推广。
 
 ## 1. 背景与目标
 

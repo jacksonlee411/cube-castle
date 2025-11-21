@@ -2,8 +2,7 @@
 
 **文档编号**: 269  
 **创建日期**: 2025-11-20  
-**关联计划**: Plan 262（自托管 Runner 基建）、Plan 265（Required Checks）、Plan 267（网络稳定化）  
-**状态**: ⚠️ 搁置（2025-11-20）——WSL Runner 需等待 Plan 267 网络方案落地，现阶段仅保留 `ci-selfhosted-smoke` 作为健康验证，其余验收项暂缓。
+**关联计划**: Plan 262（自托管 Runner 基建）、Plan 265（Required Checks）、Plan 267（网络稳定化）
 
 ---
 
@@ -14,12 +13,6 @@
 - Plan 269 旨在评估并落地“在 WSL 内直接部署 Runner（Systemd service 或 CLI 模式）”的可行性，对照历史容器方案的优缺点，形成部署步骤、回滚方式、CI workflow 更新以及与仓库原则的兼容性说明，最终决定以 WSL Runner 作为唯一的自托管路径。
 
 ---
-
-
-## 📌 搁置结论
-
-- 当前仅保留 `ci-selfhosted-smoke` 在 WSL Runner 上运行，用于验证 runner 是否在线。
-- `document-sync` / `api-compliance` / `consistency-guard` 等 WSL job 暂未取得成功 run，Plan 269 的推广/对比分析暂停，待网络与 Runner 稳定后再恢复。
 
 ## 2. 范围与交付物
 

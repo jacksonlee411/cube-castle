@@ -4,8 +4,7 @@
 **标题**: GitHub Actions 工作流盘点与激活策略  
 **版本**: v0.1  
 **创建日期**: 2025-11-18  
-**关联计划**: Plan 215（Phase2 日志）、Plan 255（本地 pre-push 守卫）、Plan 257（Facade Coverage）、Plan 258（Contract Drift Gate）  
-**状态**: ✅ 已完成（2025-11-20，11/11 Required checks 绿灯，证据见 §7）
+**关联计划**: Plan 215（Phase2 日志）、Plan 255（本地 pre-push 守卫）、Plan 257（Facade Coverage）、Plan 258（Contract Drift Gate）
 
 ---
 
@@ -56,6 +55,11 @@
 
 4. **Plan 263 依赖**  
    - “契约测试自动化验证” workflow 中的 “性能影响分析” job 将在 Plan 263 完成 TS 修复后设为 Required。届时需在 Branch Protection -> Required status checks 中新增该 job 名，并在本计划里记录切换时间与回滚路径。
+
+5. **Workflow YAML 守卫（Plan 270 新增）**  
+   - 新增命令 `make workflow-lint`（封装 `scripts/ci/workflows/run-actionlint.sh`）以及 `reports/workflows/actionlint-<timestamp>.txt` 产物路径，所有 PR 在推送前都需本地执行一次；命令失败即视为 Required checks 不完整。  
+   - Agents Compliance workflow 在 checkout 后自动运行该命令并上传 `workflow-lint-<run_id>` artifact，通过 actionlint 阻断“0s failure / workflow file issue”。`ACTIONLINT_ARGS` 可用于传递附加参数（例如 `--color`），便于本地调试。  
+   - 运行结果需登记到 Plan 265 的 Runbook（记录命令、commit、report 路径），并作为 Required checks 变更的附属证据。
 
 ## 4. 验收标准
 
