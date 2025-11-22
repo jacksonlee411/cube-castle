@@ -87,7 +87,7 @@
 ## 7. 资料与跟进
 
 - Plan 265 Runbook：`docs/development-plans/265-selfhosted-required-checks.md`（Run ID 表格）
-- Plan 270 Runbook：`docs/development-plans/270-workflow-contract-guardian-remediation.md`
+- Plan 270 Runbook：`../archive/development-plans/270-workflow-contract-guardian-remediation.md`
 - Plan 269 WSL Runner 指南：`docs/archive/development-plans/269-wsl-runner-deployment.md`
 - 进度同步：Plan 06 日志 + `docs/development-plans/06-integrated-teams-progress-log.md`  
 - 所有命令/证据需落在 `logs/plan272/**`、`reports/workflows/**`

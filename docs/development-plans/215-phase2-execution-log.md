@@ -1078,6 +1078,34 @@ make test-db-down
 
 ---
 
+### 行动项 2.11 - Plan 263 性能影响分析 Required 门禁（新增）
+
+**对应计划**: **Plan 263 - 前端性能影响分析门禁**
+
+**计划行动**:
+- [x] 去重 `quality:preflight` 并固化守卫链（document-sync → selectors-246 → 前端 lint → guard:fields → architecture-validator(frontend cqrs/ports/forbidden) → lint:docs）
+- [x] 将 `frontend/vite.config.ts` `build.logLevel` 设置为 `error`，阻断 warning
+- [x] 首次执行 `npm run build:verify` 并落盘零-warning 证据
+- [x] 生成 Required check Runbook：`scripts/ci/workflows/toggle-performance-gate.sh`
+- [x] 统计最近 3 次 `performance-impact-analysis` 成功 run，写入 `reports/plan263/plan263-green-runs.json`（2025-11-22：Run `19592020144`、`19589480271`、`19573102399` 对应 job 均为 `success`）
+- [x] 将 Required check 加入 `feat/shared-dev` 规则集并记录切换时间（2025-11-22 17:02 UTC，快照 `reports/plan263/plan263-branch-protection-20251122T1703.json`，操作日志 `logs/plan263/plan263-gate-toggle-20251122T170252.log`）
+
+**阶段进度（2025-11-22）**:
+- `node scripts/dev/plan263-merge-quality-preflight.js` → `logs/plan263/plan263-quality-preflight-20251122T082954.log`
+- `cd frontend && npm run build:verify | tee ../logs/plan263/plan263-build-verify-20251122T163236.log`（构建/类型零 warning）
+- `scripts/ci/workflows/toggle-performance-gate.sh --mode enable --reason "dry-run check" --dry-run` 验证 Ruleset API（日志：`logs/plan263/plan263-gate-toggle-20251122T163159.log`）
+- Branch Protection/Ruleset 快照：`reports/plan263/plan263-branch-protection-20251122.json`（初始快照）与 `reports/plan263/plan263-branch-protection-20251122T1703.json`（Required check 启用后）
+- Contract-testing workflow run 列表：`reports/plan263/plan263-green-runs.json`（已筛出 3 次 job 成功 run：`19592020144`、`19589480271`、`19573102399`）
+
+**后续动作**:
+- 持续监控最新 PR run，出现连续失败（24h ≥2 次）时执行 `scripts/ci/workflows/toggle-performance-gate.sh --mode disable --reason "<failure summary>"` 并在 Plan 263/264/215 中同步日志路径与回滚时间点
+
+**状态**: ✅ 已完成（2025-11-22，Required check 已启用且证据落盘）
+
+**详细 Runbook**: 见 `docs/development-plans/263-frontend-performance-required-check.md` 与 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md#plan-263-性能影响分析门禁-runbook`
+
+---
+
 ## 关键检查点
 
 ### 基础设施质量检查点

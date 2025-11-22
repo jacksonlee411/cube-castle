@@ -1,0 +1,50 @@
+{
+  "verifiedAt": "2025-11-22T09:07:46.866772Z",
+  "runs": [
+    {
+      "runId": 19592020144,
+      "event": "pull_request",
+      "workflowName": "契约测试自动化验证",
+      "displayTitle": "chore: close plan 272 guards",
+      "headBranch": "feat/shared-dev",
+      "headSha": "035e58ee5a3411070ad270eaa3a369ed5fad2e79",
+      "job": {
+        "name": "性能影响分析",
+        "databaseId": 56111519344,
+        "conclusion": "success",
+        "completedAt": "2025-11-22T07:05:50Z",
+        "url": "https://github.com/jacksonlee411/cube-castle/actions/runs/19592020144/job/56111519344"
+      }
+    },
+    {
+      "runId": 19589480271,
+      "event": "pull_request",
+      "workflowName": "契约测试自动化验证",
+      "displayTitle": "chore: migrate required gates to ubuntu runners",
+      "headBranch": "feat/shared-dev",
+      "headSha": "d533462011a4cab1cefce31e2cb3ac4a4a3ece76",
+      "job": {
+        "name": "性能影响分析",
+        "databaseId": 56105142119,
+        "conclusion": "success",
+        "completedAt": "2025-11-22T03:19:41Z",
+        "url": "https://github.com/jacksonlee411/cube-castle/actions/runs/19589480271/job/56105142119"
+      }
+    },
+    {
+      "runId": 19573102399,
+      "event": "workflow_dispatch",
+      "workflowName": "契约测试自动化验证",
+      "displayTitle": "契约测试自动化验证",
+      "headBranch": "feat/shared-dev",
+      "headSha": "37f9bbd667558cbefeeb011280b47cddd7c86786",
+      "job": {
+        "name": "性能影响分析",
+        "databaseId": 56051265327,
+        "conclusion": "success",
+        "completedAt": "2025-11-21T14:11:50Z",
+        "url": "https://github.com/jacksonlee411/cube-castle/actions/runs/19573102399/job/56051265327"
+      }
+    }
+  ]
+}

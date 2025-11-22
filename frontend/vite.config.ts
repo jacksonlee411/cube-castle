@@ -109,6 +109,7 @@ export default defineConfig(({ mode }) => {
   
   // 大型应用性能优化
   build: {
+    logLevel: 'error',
     target: 'es2015',
     rollupOptions: {
       output: {

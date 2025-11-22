@@ -2,6 +2,7 @@
 
 **文档编号**: 270  
 **创建日期**: 2025-11-21  
+**状态**: ✅ 已关闭（2025-11-22 完成并归档）  
 **关联计划**: Plan 264（Workflow 治理）、Plan 265（Required Checks）、Plan 269（WSL Runner 部署）
 
 ---
@@ -55,11 +56,11 @@
 
 ## 4. 验收标准
 
-- [ ] `actionlint` 对整个 `.github/workflows` 目录执行时无错误；已在 Makefile/CI 中固化。
-- [ ] `contract-testing` workflow 能在 PR 与 `workflow_dispatch` 场景下完成所有 job，`contract-snapshot`、`contract-testing`、`contract-compliance-gate`、`performance-impact-analysis` 均执行成功（提供 Run ID）。
-- [ ] `iig-guardian` workflow 在 push/PR 分支能创建 ubuntu job（docs-only 仍可短路），WSL job 仅在允许场景执行且成功完成，Run ID 更新至 Plan 265。
-- [ ] `e2e-smoke` workflow push/PR/job 均正常，`e2e-test-output.txt` 中无 `❌`，artifact 正常上传。
-- [ ] Plan 264/265/269 的相关章节同步更新（记录 Run ID、残余风险、actionlint 要求），确保唯一事实来源一致。
+- [x] `actionlint` 对整个 `.github/workflows` 目录执行时无错误；已在 Makefile/CI 中固化。
+- [x] `contract-testing` workflow 能在 PR 与 `workflow_dispatch` 场景下完成所有 job，`contract-snapshot`、`contract-testing`、`contract-compliance-gate`、`performance-impact-analysis` 均执行成功（提供 Run ID）。
+- [x] `iig-guardian` workflow 在 push/PR 分支能创建 ubuntu job（docs-only 仍可短路），WSL job 仅在允许场景执行且成功完成，Run ID 更新至 Plan 265。
+- [x] `e2e-smoke` workflow push/PR/job 均正常，`e2e-test-output.txt` 中无 `❌`，artifact 正常上传。
+- [x] Plan 264/265/269 的相关章节同步更新（记录 Run ID、残余风险、actionlint 要求），确保唯一事实来源一致。
 
 ---
 
