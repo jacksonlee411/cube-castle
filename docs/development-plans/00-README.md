@@ -63,7 +63,6 @@
 
 #### **最近新增归档（2025-11-23）**
 - `../archive/development-plans/222-organization-verification.md` - Plan 222 最终验收文档；Phase2 验收已完成并关单，后续测试覆盖/契约/性能补位改由 Plan 222A-D 与 Plan 255/256 承接。
-
 #### **最近新增归档（2025-11-22）**
 - `../archive/development-plans/270-workflow-contract-guardian-remediation.md` - Workflow 契约与守卫门禁修复（Plan 270 已关闭，actionlint 守卫与 Required workflows 全量恢复）
 - `../archive/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md` - 自托管 Runner 使用手册（Plan 269 决议生效后停用，仅保留历史记录，当前所有工作流统一使用 GitHub 平台 runner）
