@@ -62,13 +62,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'medium
       gap={styles.gap}
       style={{
         padding: styles.padding,
-        backgroundColor: config.backgroundColor,
-        border: `1px solid ${config.borderColor}`,
+        backgroundColor: config.background,
+        border: `1px solid ${config.border}`,
         borderRadius: '4px',
         display: 'inline-flex'
       }}
     >
-      {showIcon && (
+      {showIcon && config.icon && (
         <SystemIcon
           icon={config.icon}
           size={styles.iconSize}

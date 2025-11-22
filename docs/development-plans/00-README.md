@@ -7,11 +7,12 @@
 
 ## 📌 目录边界声明与交叉链接
 
-- 本目录仅承载“计划/路线/进展/阶段报告”等时效性内容；完成项请移入 `../archive/development-plans/`。
+- 本目录仅承载“计划/路线/进展/阶段报告”等时效性内容；完成项必须在验收后立即迁移至 `../archive/development-plans/`，并从本目录移除（仅保留索引条目指向归档路径）。
 - 规范性、长期稳定的参考资料（快速参考、实现清单、API 使用与质量手册）放在 `../reference/`，避免混淆权威参考与计划。
+- 自 2025-11-21 起启用 **Plan 271 Guard**：所有 PR、push、workflow dispatch 必须通过 `npm run lint:docs`（Agents Compliance 自动执行），若检测到 `docs/development-plans/` 与 `../archive/development-plans/` 存在同名文件即视为违反唯一事实来源并阻断合并；本地归档操作完成后 30 分钟内需 push 并更新 `ARCHIVE-RECORDS`。
 - 建议流程：
   - 开始新功能前 → 先查 [实现清单](../reference/02-IMPLEMENTATION-INVENTORY.md) 与 [API与质量工具指南](../reference/03-API-AND-TOOLS-GUIDE.md)
-  - 确认需要新增能力 → 在本目录新增/更新对应计划，并按阶段完成后归档到 `../archive/development-plans/`。
+  - 确认需要新增能力 → 在本目录新增/更新对应计划，验收完成后务必迁移到 `../archive/development-plans/` 并从当前目录删除，只在索引中记录链接。
 
 ## 📁 文档结构
 
@@ -46,6 +47,9 @@
 - `204-HRMS-Implementation-Roadmap.md` - HRMS 系统实施路线图与时间表
 - `206-Alignment-With-200-201.md` - HRMS 计划与 200、201 文档的对齐分析
 - `HRMS-DOCUMENTATION-INDEX.md` - HRMS 文档体系索引与快速导航
+
+#### **271 - 文档归档一致性守卫**
+- `271-archive-integrity-guard.md` - Plan 264-269 复现事件复盘、归档流程守卫与 CI 自动化方案（Plan 271）
 
 #### **205 - HRMS 系统过渡方案（已归档）** 📁
 - `../archive/development-plans/205-HRMS-Transition-Plan.md` - HRMS 系统过渡方案详解（2025-11-04 归档）

@@ -601,6 +601,9 @@ const TabsNavigation: React.FC<{ activeTab: DetailTab; onTabChange: (tab: Detail
           onTabChange(tab.key)
         }
       }
+      const tabId =
+        temporalEntitySelectors.position.tabId?.(tab.key) ??
+        `temporal-position-tab-${tab.key}`
       return (
         <Box
           key={tab.key}
@@ -615,9 +618,9 @@ const TabsNavigation: React.FC<{ activeTab: DetailTab; onTabChange: (tab: Detail
           role="tab"
           tabIndex={isActive ? 0 : -1}
           aria-selected={isActive}
-          aria-controls={temporalEntitySelectors.position.tabId(`${tab.key}`)}
+          aria-controls={tabId}
           onKeyDown={onKeyDown}
-          data-testid={temporalEntitySelectors.position.tabId(`${tab.key}`)}
+          data-testid={tabId}
         >
           <Text
             typeLevel="body.medium"

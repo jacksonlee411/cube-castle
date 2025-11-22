@@ -107,6 +107,21 @@
 
 ---
 
+## 追加归档（2025-11-21 · Plan 271 守卫）
+
+| 计划 | 路径 | 说明 |
+|------|------|------|
+| 264 | `docs/archive/development-plans/264-workflow-governance.md` | 2025-11-20 已完成并归档，因 2025-11-21 合并误将活跃副本带回，现依据 Plan 271 再次确认仅保留归档版本 |
+| 265 | `docs/archive/development-plans/265-selfhosted-required-checks.md` | 同上，归档内容保留、活跃副本移除 |
+| 266 | `docs/archive/development-plans/266-selfhosted-tracking.md` | 同上 |
+| 267 | `docs/archive/development-plans/267-docker-network-stability.md` | 同上 |
+| 268 | `docs/archive/development-plans/268-github-actions-vendoring.md` | 同上 |
+| 269 | `docs/archive/development-plans/269-wsl-runner-deployment.md` | 同上 |
+
+> 备注：本次追加归档由 Plan 271 文档治理守卫发起，记录了资源唯一性违规的调查与整改。归档动作在 30 分钟内完成 push，并通过 `npm run lint:docs` 自检；Agents Compliance workflow 已新增 Plan 271 Guard 作为门禁。
+
+---
+
 ## 后续工作方向
 
 ### 203号HRMS系统模块化演进计划作为新工作焦点

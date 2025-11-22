@@ -253,11 +253,13 @@ jobs:
     - name: 检测Schema变更
       id: schema-changes
       run: |
-        if git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -q "docs/api/schema.graphql"; then
-          echo "schema-changed=true" >> $GITHUB_OUTPUT
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        if git diff --name-only "$BASE_SHA..$HEAD_SHA" | grep -q -- "docs/api/schema.graphql"; then
+          printf 'schema-changed=true\n' >>"$GITHUB_OUTPUT"
           echo "📋 检测到GraphQL Schema变更"
         else
-          echo "schema-changed=false" >> $GITHUB_OUTPUT
+          printf 'schema-changed=false\n' >>"$GITHUB_OUTPUT"
         fi
         
     - name: Schema向后兼容性检查
@@ -299,33 +301,13 @@ jobs:
 
   performance-impact-analysis:
     name: 性能影响分析
-    if: github.event_name == 'pull_request'
-    strategy:
-      matrix:
-        runner: [ubuntu, selfhosted-wsl]
-        include:
-          - runner: ubuntu
-            labels: ubuntu-latest
-            prepare: false
-          - runner: selfhosted-wsl
-            labels:
-              - self-hosted
-              - cubecastle
-              - wsl
-            prepare: true
-            wsl_only: true
-    runs-on: ${{ matrix.labels }}
-    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (matrix.wsl_only != true || github.event_name == 'workflow_dispatch') }}
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout代码
       uses: actions/checkout@v4
       
-    - name: 自托管环境准备
-      if: matrix.prepare == true
-      shell: bash
-      run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis
-
     - name: 设置Node.js环境
       uses: actions/setup-node@v4
       with:
@@ -354,8 +336,3 @@ jobs:
         cd frontend
         time npm run test:contract
         echo "契约测试执行时间已记录"
-
-    - name: 自托管环境清理
-      if: matrix.prepare == true
-      shell: bash
-      run: bash scripts/ci/workflows/prepare-selfhosted.sh performance-impact-analysis --teardown

@@ -4,17 +4,9 @@
 **标题**: 自托管 Runner 门禁扩展（Plan 263/264 衔接）  
 **版本**: v0.1  
 **创建日期**: 2025-11-19  
-**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）  
-**状态**: ⚠️ 搁置（2025-11-20）——受限于 WSL Runner 网络/调度，暂无法满足自托管门禁运行要求；待 Plan 267/269 网络与 Runner 稳定后重新评估。
+**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）
 
 ---
-
-
-## 📌 搁置结论
-
-- 因 WSL Runner 网络/调度未恢复，Plan 265 所要求的自托管门禁跑通无法完成。
-- 2025-11-20 起暂停执行自托管扩展，唯一保留的作业为 `ci-selfhosted-smoke`（runner 健康检查）。
-- 需待 Plan 267/269 网络治理完成并重新触发 document-sync/api-compliance/consistency-guard 等 job 后，再恢复本计划。
 
 ## 1. 背景与目标
 
@@ -89,9 +81,12 @@
    - 每个 workflow 在 YAML 内保留注释说明如何回退到 `runs-on: ubuntu-latest`；  
    - 若自托管 runner 故障，可通过 `workflow_dispatch` 触发 ubuntu-only job 并在 Branch Protection 暂时移除 self-hosted 项；Plan 265 文档需记录回滚时间/原因。
 
-## 4. 验收标准（已搁置）
+7. **Workflow 契约守卫（Plan 270）**  
+   - 新增 `make workflow-lint`（封装 `scripts/ci/workflows/run-actionlint.sh`），统一在本地/CI 执行 actionlint，输出统一落在 `reports/workflows/actionlint-<timestamp>.txt`；Agents Compliance workflow 已增加对应步骤并上传 `workflow-lint-<run_id>` artifact。  
+   - Runbook 需记录最近一次执行（命令、commit、报告路径、artifact 链接），并在 Required checks 变更后更新表格。  
+   - 若 actionlint 失败视为 Required checks 未通过，禁止合并；如需传递额外参数，可通过 `ACTIONLINT_ARGS='--color' make workflow-lint` 复现 CI 输出。
 
-> **搁置说明（2025-11-20）**：由于 WSL Runner 网络与调度仍不稳定（参考 Plan 266/267），`document-sync`、`api-compliance`、`consistency-guard` 等自托管 job 暂无法获取成功 run。以下验收项保持原描述，待 Runner 可用且网络恢复后再恢复执行：
+## 4. 验收标准
 
 - [ ] `contract-testing.yml` 中 `performance-impact-analysis` job 在 self-hosted runner 上 0 error，通过至少 3 次 PR run，并列入 Branch Protection Required 列表。  
 - [ ] `frontend-quality-gate.yml`、`frontend-e2e.yml`、`document-sync.yml`、`consistency-guard.yml`、`plan-254-gates.yml`、`api-compliance.yml`、`iig-guardian.yml` 均已启用，且最新 push 在 self-hosted runner 上成功运行（含 run ID 记录）。  
@@ -135,3 +130,13 @@
 
 - 2025-11-19：v0.1 草拟，定义范围、步骤与验收标准。 (BY: Codex)
 - 2025-11-20：补充 Plan 269 批准的 WSL Runner 例外、运行记录与风险条目；统一 `runs-on` 标签为 `[self-hosted,cubecastle,wsl]` 并扩展验收要求。
+
+## 9. Runbook（Plan 270 守卫记录）
+
+| 时间 (UTC) | 命令 / 场景 | 产物 / Run ID | 备注 |
+|-----------|-------------|---------------|------|
+| 2025-11-21 10:39 | `make workflow-lint`（本地） | `reports/workflows/actionlint-20251121T103910Z.txt` | 首次 actionlint 记录，Agents Compliance 会在 CI 中继续上传 `workflow-lint-<run_id>` |
+| 2025-11-21 11:02 | push 触发契约测试 (`contract-testing.yml`) | Run `19568402684` | ubuntu jobs 完成，逻辑符合 docs-only fast pass；`performance-impact-analysis` 仍依赖 workflow_dispatch 执行 |
+| 2025-11-21 11:04 | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19568443094` | `performance-impact-analysis` 进入构建阶段但被现有 TS 编译错误阻塞（Plan 263 需处理）；WSL job 被 workflow 矩阵跳过 |
+| 2025-11-21 11:05 | push 触发 IIG Guardian (`iig-guardian.yml`) | Run `19568402680` | WSL Runner 无可用 slot，job 长时间 `queued` 后被人工取消，需配合 Plan 269 恢复 WSL 节点 |
+| 2025-11-21 11:24 | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | Run `19568978952` + artifact `e2e-smoke-outputs` | ubuntu 变体通过 docs-only 快速通道（`paths-filter` 修复生效），WSL job 因 runner 不可用持续 `queued`，最终人工取消；artifact 仅包含 diag 输出 |

@@ -33,6 +33,7 @@ import type {
   PositionRecord,
   PositionAssignmentRecord,
   PositionTransferRecord,
+  PositionTimelineEvent,
 } from '@/shared/types/positions';
 
 // GraphQL 文档与类型（直接复用 useEnterpriseOrganizations 的逻辑）

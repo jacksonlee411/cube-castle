@@ -4,6 +4,7 @@
 **上级计划**: Plan 219E / Plan 06  
 **创建时间**: 2025-11-08 14:45 CST  
 **负责人**: 前端团队 + QA（Playwright）  
+**状态**: ✅ 已完成（2025-11-21 12:30 CST）— 结果已归档，持续维护请参考 `docs/archive/development-plans/232t-test-checklist.md` 与 `docs/archive/plan-216-219/219E-e2e-validation.md`。
 
 ---
 
@@ -292,22 +293,22 @@ if (!hasPermission) {
 
 > **文档维护说明**：本计划为 Plan 232 唯一事实来源，所有脚本改动、日志、决策在本文档登记前生效。每日 sync 时更新 "当前状态" 章节（见下），月末或任务完成时提交 PR 至主分支。
 
-## 当前状态（2025-11-08 14:30 CST）
+## 当前状态（2025-11-21 12:15 CST）
 
 **计划创建时间**：2025-11-08 14:45  
-**上次更新**：2025-11-09 11:30（T1/T2/T7 完成，脚本修复提交中）  
-**下次同步**：2025-11-09 17:00
+**上次更新**：2025-11-21 12:15（T5 调动记录 selector 补齐，P0 场景全绿）  
+**下次同步**：2025-11-22 10:00
 
 | 任务 | 状态 | Owner | 备注 |
 | --- | --- | --- | --- |
 | T1 | ✅ 已完成（2025-11-09） | 前端 | `FormActions/CatalogVersionForm/PositionTemporalPage/OrganizationDashboard` 已新增 testid |
 | T2 | ✅ 已完成（2025-11-09） | QA/前端 | `frontend/tests/e2e/utils/waitPatterns.ts` 可复用，已在 business-flow、job-catalog、position、temporal 场景落地 |
-| T3 | 🛠️ 进行中 | Temporal | business-flow 脚本已补强等待链路与删除按钮 wrapper，待收集 Chromium/Firefox 日志 |
+| T3 | ✅ 已完成（2025-11-21） | Temporal | Chromium/Firefox 日志：`logs/219E/business-flow-e2e-{chromium,firefox}-2025110917110*.log`；CRUD+删除路径绿灯 |
 | T4 | ✅ 已完成（2025-11-08） | Job Catalog | `CatalogForm` + `CatalogVersionForm` 修复已通过 Chromium/Firefox 复测（日志：`logs/219E/job-catalog-secondary-navigation-{chromium,firefox}-20251108*.log`） |
-| T5 | 🛠️ 进行中 | Position | position-tabs / lifecycle 脚本已改用 waitPatterns，待运行双浏览器验证 |
-| T6 | 🛠️ 进行中 | Temporal Dashboard | temporal-management-integration 脚本已添加 GraphQL 等待与 dashboard wrapper，待健康集群日志 |
+| T5 | ✅ 已完成（2025-11-21） | Position | `PositionTransfersPanel` 补充 `temporal-position-transfer-*` selector，`position-lifecycle` 用例切换“调动记录”页签后断言；根与 frontend 均已锁定 `@playwright/test@1.56.1` 并通过 `logs/219E/position-{tabs,lifecycle}-{chromium,firefox}-20251121122*.log` 复测 |
+| T6 | ✅ 已完成（2025-11-21） | Temporal Dashboard | Mock 模式下 Chromium/Firefox 日志：`logs/219E/temporal-management-integration-{chromium,firefox}-20251121081*.log`，等待链路均通过；真实后端验证与 CLI 修复关联 |
 | T7 | ✅ 已完成（2025-11-09） | Perf | Bundle 阈值提升至 5 MB，并在 reference 文档记录 4.59 MB 基线 |
-| T8 | ⏳ 待启动 | QA | 依赖 T3-T7 全量验证日志后同步 219E/Plan 06 |
+| T8 | ✅ 已完成（2025-11-21） | QA | 已将 P0 场景最新日志与锁定版本结论同步至 `docs/archive/plan-216-219/219E-e2e-validation.md`（§2.4/2.5）与 `docs/archive/development-plans/06-integrated-teams-progress-log.md` 顶部提示；Plan 06/219E 现指向本计划与 232t checklist 作为唯一来源 |
 
 ---
 
@@ -723,7 +724,7 @@ npx playwright show-trace frontend/test-results/job-catalog-secondary-navi-af1dd
 | 修复代码 | JobFamilyGroupDetail.tsx + CatalogForm.tsx | 232T Modal 竞态修复（已移除临时日志） |
 | Chromium 证据 | `frontend/test-results/.../test-failed-1.png` | 页面快照 |
 | Playwright 追踪 | `frontend/test-results/.../trace.zip` | 完整事件日志 |
-| 本计划更新 | `docs/development-plans/232-playwright-p0-stabilization.md` | 附录 E（本节） |
+| 本计划更新 | `docs/archive/development-plans/232-playwright-p0-stabilization.md` | 附录 E（本节） |
 
 ---
 
@@ -973,7 +974,7 @@ npx playwright show-trace frontend/test-results/job-catalog-secondary-navi-af1dd
 |------|------|------|---------|
 | **最终分析报告** | `logs/219E/232-FINAL-ANALYSIS-20251108.md` | 详细技术分析 + 诊断步骤 | 已完成 |
 | **完整执行反馈** | `logs/219E/232-T1-T2-complete-feedback-20251108.md` | 执行过程全记录 | 已完成 |
-| **Plan 232 文档** | `docs/development-plans/232-playwright-p0-stabilization.md` | 附录 A-F 完整更新 | 持续更新 |
+| **Plan 232 文档** | `docs/archive/development-plans/232-playwright-p0-stabilization.md` | 附录 A-F 完整更新 | 持续更新 |
 | **Chromium 证据** | `frontend/test-results/.../test-failed-1.png` | 失败时页面快照 | 已完成 |
 | **完整 Trace** | `frontend/test-results/.../trace.zip` | Playwright 追踪数据 | 已完成 |
 | **调试版代码** | JobFamilyGroupDetail.tsx + CatalogForm.tsx | 包含 console.log 诊断日志 | 已完成 |

@@ -122,9 +122,9 @@
 - 231：Outbox Dispatcher 接入差距分析
   - 文件: `../archive/development-plans/231-outbox-dispatcher-gap.md`（状态：已完成（验收通过 · 2025-11-08）；Outbox→Dispatcher→Query 链路 Runbook 证据已落盘）
 - 232：Playwright P0 稳定专项
-  - 文件: `232-playwright-p0-stabilization.md`（状态：进行中）
+  - 文件: `../archive/development-plans/232-playwright-p0-stabilization.md`（状态：进行中）
 - 232T：Playwright P0 测试清单
-  - 文件: `232t-test-checklist.md`（状态：清单/滚动维护）
+  - 文件: `../archive/development-plans/232t-test-checklist.md`（状态：清单/滚动维护）
 - 233：审计历史页签失败调查
   - 文件: `../archive/development-plans/233-audit-history-tab-failure.md`（状态：已完成（验收通过 · 2025-11-09）；GraphQL/命令服务回归与数据校正就绪）
 - 234：触发器清理评估与验证

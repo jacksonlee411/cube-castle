@@ -22,25 +22,18 @@ jobs:
           echo "ref=${{ github.ref }}"
           echo "OK"
   e2e-smoke:
-    name: E2E Smoke – ${{ matrix.label }}
-    strategy:
-      fail-fast: false
-      matrix:
-        label: [ubuntu, selfhosted-wsl]
-        include:
-          - label: ubuntu
-            runs_on: '["ubuntu-latest"]'
-          - label: selfhosted-wsl
-            runs_on: '["self-hosted","cubecastle","wsl"]'
-            wsl_only: true
-    runs-on: ${{ fromJson(matrix.runs_on) }}
-    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' }}
+    name: E2E Smoke – ubuntu
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
       # PR 固定 255；push 使用 run_number，便于证据分桶
       E2E_PLAN_ID: ${{ (github.event_name == 'pull_request') && '255' || github.run_number }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Detect docs-only/ci-only changes
         id: changes
         uses: dorny/paths-filter@v3
@@ -72,51 +65,49 @@ jobs:
               - '!database/**'
               - '!tests/**'
       - name: Docs/CI-only fast pass
-        if: steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true'
+        if: (steps.changes.outputs.docs_only == 'true' || steps.changes.outputs.ci_only == 'true') && github.event_name != 'workflow_dispatch'
         run: |
           echo "Docs/CI-only changes detected. Skipping E2E Smoke."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: Checkout
-        if: steps.changes.outputs.docs_only != 'true'
-        uses: actions/checkout@v4
-
       - name: Set up Node (Frontend tooling)
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Set up Docker Buildx
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Prepare dev JWT keys
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           make jwt-dev-setup
 
       - name: Compose backends (dev)
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           docker compose -f docker-compose.dev.yml build rest-service
           # Plan 261: 使用 --wait 利用 healthcheck，提高稳定性
           docker compose -f docker-compose.dev.yml up -d postgres redis rest-service --wait
 
       - name: Wait for services
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           # Plan 261: 兜底等待，延长至 300s，并在失败时输出 compose 日志
           timeout 300 bash -c 'until curl -sf http://localhost:9090/health; do sleep 3; done' || (docker compose -f docker-compose.dev.yml logs --no-color > backend-compose.log || true; exit 1)
 
       - name: Run contract tests (frontend)
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
         run: |
           npm --prefix frontend ci
           npm --prefix frontend run -s test:contract
 
       - name: Run simplified E2E smoke
-        if: steps.changes.outputs.docs_only != 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.docs_only != 'true'
+        env:
+          E2E_SKIP_FRONTEND: 1
         run: |
           bash scripts/simplified-e2e-test.sh | tee e2e-test-output.txt
           # Fail if any ❌

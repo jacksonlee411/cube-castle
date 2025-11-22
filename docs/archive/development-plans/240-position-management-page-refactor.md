@@ -76,7 +76,7 @@
 
 ## 1. 背景与动因
 
-1. `position-tabs`、`position-lifecycle` 场景在 232T 复测中持续失败，暴露 GraphQL 等待链路、Tab 渲染与 DOM 标识缺口，Firefox 甚至尚未补跑（docs/development-plans/232t-test-checklist.md:25-69）。  
+1. `position-tabs`、`position-lifecycle` 场景在 232T 复测中持续失败，暴露 GraphQL 等待链路、Tab 渲染与 DOM 标识缺口，Firefox 甚至尚未补跑（docs/archive/development-plans/232t-test-checklist.md:25-69）。  
 2. Plan 06 最新纪要同样记录职位模块 P0 用例在 `任职历史`、`position-detail-card` 等关键元素上无法渲染，说明问题已影响集成回归（docs/development-plans/06-integrated-teams-progress-log.md:11-19）。  
 3. 80/86/107 号计划虽宣告职位管理功能上线，但当前 UI 结构沿袭 Stage 2 的临时实现，缺乏统一的状态机、GraphQL 数据缓存与指标监控，导致一旦数据延迟或租户切换即出现“白屏/元素缺失”。  
 
@@ -102,7 +102,7 @@
 1. **硬依赖**  
    - Plan 242 命名抽象：已完成（解锁）。  
    - Plan 244 Timeline/Status 抽象：已完成（解锁）。  
-   - Plan 232 的 P0 场景日志需与 240 同步推进，重构阶段必须提供最新 Chromium/Firefox 报告才能关闭（docs/development-plans/232-playwright-p0-stabilization.md:300-310）。  
+   - Plan 232 的 P0 场景日志需与 240 同步推进，重构阶段必须提供最新 Chromium/Firefox 报告才能关闭（docs/archive/development-plans/232-playwright-p0-stabilization.md:300-310）。  
    - 职位后端契约禁止修改（OpenAPI/GraphQL 以 80/86/107 为唯一事实来源）。若需新增字段，必须先更新契约并跑 `node scripts/generate-implementation-inventory.js`。  
 2. **软依赖**  
    - Plan 06 可复用本计划输出的 E2E 结果，故需在每轮迭代后同步日志路径。  

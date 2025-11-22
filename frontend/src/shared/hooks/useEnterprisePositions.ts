@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { QueryFunctionContext, UseQueryResult } from '@tanstack/react-query';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { graphqlEnterpriseAdapter } from '../api/graphql-enterprise-adapter';
 import { createQueryError } from '../api/queryClient';
@@ -308,6 +308,14 @@ interface NormalizedPositionAssignmentsQueryParams {
   includeHistorical: boolean;
   includeActingOnly: boolean;
 }
+
+const DISABLED_ASSIGNMENT_QUERY_PARAMS: NormalizedPositionAssignmentsQueryParams = {
+  positionCode: '__disabled__',
+  page: 1,
+  pageSize: 1,
+  includeHistorical: false,
+  includeActingOnly: false,
+};
 
 export interface PositionAssignmentsQueryResult {
   data: PositionAssignmentRecord[];
@@ -1580,14 +1588,17 @@ export function usePositionAssignments(
     return normalizeAssignmentQueryParams(positionCode, params);
   }, [positionCode, params]);
 
-  const queryKey = normalizedParams
-    ? positionAssignmentsQueryKey(normalizedParams)
-    : ([...POSITION_ASSIGNMENTS_QUERY_ROOT_KEY, 'disabled'] as const);
+  const effectiveParams = normalizedParams ?? DISABLED_ASSIGNMENT_QUERY_PARAMS;
 
-  return useQuery<PositionAssignmentsQueryResult>({
-    queryKey: queryKey as unknown as PositionAssignmentsQueryKey,
+  return useQuery<
+    PositionAssignmentsQueryResult,
+    Error,
+    PositionAssignmentsQueryResult,
+    PositionAssignmentsQueryKey
+  >({
+    queryKey: positionAssignmentsQueryKey(effectiveParams),
     queryFn: positionAssignmentsQueryFn,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
     enabled: Boolean(normalizedParams),
   });

@@ -32,8 +32,8 @@ jobs:
       - name: Read matrix and switch variable if cleared
         id: read-matrix
         run: |
-          COUNT=$(jq -r '.restBusinessGetCount' reports/plan259/protocol-duplication-matrix.json)
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          COUNT="$(jq -r '.restBusinessGetCount' reports/plan259/protocol-duplication-matrix.json)"
+          printf 'count=%s\n' "$COUNT" >>"$GITHUB_OUTPUT"
       - name: Switch repository variable to 0
         if: steps.read-matrix.outputs.count == '0'
         env:

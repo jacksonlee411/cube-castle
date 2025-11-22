@@ -4,6 +4,7 @@ import {
   getOrganizationByCode,
   createOrganization as facadeCreateOrganization,
 } from '@/shared/api/facade/organization';
+import { unifiedGraphQLClient, unifiedRESTClient } from '@/shared/api/unified-client';
 import { env } from "@/shared/config/environment";
 import type { OrganizationRequest } from "@/shared/types/organization";
 import type { TemporalVersionPayload } from "@/shared/types/temporal";
@@ -177,7 +178,7 @@ export const deactivateOrganizationVersion = async (
   return timeline
     .map(mapTimelineItem)
     .sort(
-      (a, b) =>
+      (a: TimelineVersion, b: TimelineVersion) =>
         new Date(b.effectiveDate).getTime() -
         new Date(a.effectiveDate).getTime(),
     );

@@ -12,7 +12,8 @@
  * - 与 docs/api/schema.graphql、docs/api/openapi.yaml 命名统一（TemporalEntity*）
  */
 
-import type { OrganizationUnit, OrganizationStatus } from './organization';
+import type { OrganizationUnit } from './organization';
+import type { OrganizationStatus } from './contract_gen';
 import type { PositionRecord, PositionStatus } from './positions';
 import type { JsonValue } from './json';
 
@@ -62,4 +63,3 @@ export interface TemporalEntityDetail<TRecord extends TemporalEntityRecord = Tem
   versions?: TRecord[]; // 若消费端需要“版本列表”，保留可选
   timeline?: TemporalEntityTimelineEntry[];
 }
-

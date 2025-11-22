@@ -41,22 +41,7 @@ env:
 jobs:
   iig-guardian-check:
     name: guardian-iig    
-    strategy:
-      matrix:
-        runner: [ubuntu, selfhosted-wsl]
-        include:
-          - runner: ubuntu
-            labels: ubuntu-latest
-            prepare: false
-          - runner: selfhosted-wsl
-            labels:
-              - self-hosted
-              - cubecastle
-              - wsl
-            prepare: true
-            wsl_only: true
-    runs-on: ${{ matrix.labels }}
-    if: ${{ matrix.wsl_only != true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
@@ -97,10 +82,6 @@ jobs:
           echo "Docs-only changes detected. Skipping IIG guardian heavy checks."
           echo "TODO-TEMPORARY(2025-11-22): Remove docs-only short-circuit once base CI is green."
           exit 0
-      - name: 自托管环境准备
-        if: matrix.prepare == true && steps.changes.outputs.docs_only != 'true'
-        shell: bash
-        run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian
       - name: Setup Node.js runtime
         if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v4
@@ -139,9 +120,11 @@ jobs:
         run: |
           #              
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA..$HEAD_SHA")"
           else
-            CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
+            CHANGED_FILES="$(git diff --name-only HEAD~1..HEAD)"
           fi
           
           echo "      :"
@@ -161,7 +144,7 @@ jobs:
             FEATURE_TYPE="backend-service"
           fi
           
-          echo "DETECTED_FEATURE_TYPE=$FEATURE_TYPE" >> $GITHUB_ENV
+          printf 'DETECTED_FEATURE_TYPE=%s\n' "$FEATURE_TYPE" >>"$GITHUB_ENV"
           echo "         : $FEATURE_TYPE"
 
       - name: "Guardian:   IIG      "
@@ -174,7 +157,7 @@ jobs:
           #   IIG    
           node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard || exit_code=$?
           
-          echo "IIG_GUARDIAN_EXIT_CODE=${exit_code:-0}" >> $GITHUB_ENV
+          printf 'IIG_GUARDIAN_EXIT_CODE=%s\n' "${exit_code:-0}" >>"$GITHUB_ENV"
           
           #              
           if [ "${exit_code:-0}" -ne 0 ]; then
@@ -183,10 +166,10 @@ jobs:
               exit 1
             elif [ "$RISK_TOLERANCE" = "medium" ]; then
               echo "          : IIG            "
-              echo "IIG_GUARDIAN_WARNING=true" >> $GITHUB_ENV
+              printf 'IIG_GUARDIAN_WARNING=true\n' >>"$GITHUB_ENV"
             else
               echo "         : IIG          "
-              echo "IIG_GUARDIAN_INFO=true" >> $GITHUB_ENV
+              printf 'IIG_GUARDIAN_INFO=true\n' >>"$GITHUB_ENV"
             fi
           else
             echo "  IIG      "
@@ -215,11 +198,6 @@ jobs:
           
           echo "    IIG    ..."
           node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard
-
-      - name: 自托管环境清理
-        if: matrix.prepare == true && always()
-        shell: bash
-        run: bash scripts/ci/workflows/prepare-selfhosted.sh iig-guardian --teardown
 
       - name: "          "
         if: always()
