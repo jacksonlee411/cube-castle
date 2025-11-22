@@ -35,6 +35,7 @@
 - 在 `agents-compliance.yml` 新增 “Plan 271 Guard – Plan Archive Placement” 步骤，强制执行 `npm run lint:docs`。
 - 本文档建立事件记录，并向《00-README》同步 Plan 271 链接，提醒团队遵循新的归档守卫。
 - `2025-11-21 22:14 CST` 执行 `npm run lint:docs`（`scripts/quality/doc-archive-check.js`），输出 `✅ 文档计划目录检查通过：活跃/归档无重复文件`。
+- `2025-11-22 01:06 UTC` 触发 `Agents Compliance`（run `19587801827`），Plan 271 Guard 成功注入但 actionlint 报告现有 workflow shellcheck 问题（`contract-testing.yml`, `document-sync.yml`, `iig-guardian.yml`, `plan-254-gates.yml`, `plan-255-gates.yml`, `plan-259a-switch.yml`, `pr-body-policy.yml` 等待修复），Run ID 已记录作为守卫首轮运行证据。
 
 ## 5. 防范方案
 
