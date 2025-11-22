@@ -200,7 +200,6 @@ jobs:
             const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
             console.log(report.summary.conflicts === 0 && report.summary.errors === 0 ? 'true' : 'false');
           ")
-          printf 'sync_success=%s\n' "$SYNC_SUCCESS" >>"$GITHUB_OUTPUT"
           
           # 提取统计信息
           TOTAL_PAIRS=$(node -e "
@@ -217,15 +216,19 @@ jobs:
             const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
             console.log(report.summary.conflicts);
           ")
-          
-          printf 'total_pairs=%s\n' "$TOTAL_PAIRS" >>"$GITHUB_OUTPUT"
-          printf 'synced_pairs=%s\n' "$SYNCED_PAIRS" >>"$GITHUB_OUTPUT"
-          printf 'conflicts=%s\n' "$CONFLICTS" >>"$GITHUB_OUTPUT"
+          {
+            printf 'sync_success=%s\n' "$SYNC_SUCCESS"
+            printf 'total_pairs=%s\n' "$TOTAL_PAIRS"
+            printf 'synced_pairs=%s\n' "$SYNCED_PAIRS"
+            printf 'conflicts=%s\n' "$CONFLICTS"
+          } >>"$GITHUB_OUTPUT"
         else
-          printf 'sync_success=false\n' >>"$GITHUB_OUTPUT"
-          printf 'total_pairs=0\n' >>"$GITHUB_OUTPUT"
-          printf 'synced_pairs=0\n' >>"$GITHUB_OUTPUT"
-          printf 'conflicts=1\n' >>"$GITHUB_OUTPUT"
+          {
+            printf 'sync_success=false\n'
+            printf 'total_pairs=0\n'
+            printf 'synced_pairs=0\n'
+            printf 'conflicts=1\n'
+          } >>"$GITHUB_OUTPUT"
         fi
         
         # 如果有冲突且不是自动同步模式，则失败
