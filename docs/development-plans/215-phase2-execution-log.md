@@ -157,6 +157,14 @@
   - 测试修订：`tests/consolidated/position-assignments-cross-tenant.sh` 读取校验改为 GraphQL `positionAssignments`，并容忍“HTTP 200 + 企业信封 success=false”的拒绝形式  
   - 结果：本地脚本通过，GraphQL 查询对 A/B 租户的鉴权表现符合预期（A=200/success=true，B=403 或 200/success=false）
 
+### 新增（2025-11-21 — Plan 202 阶段收口）
+- ✅ [Plan 202] 完成阶段 1（250/251/253/254）与阶段 2（256/257/258）执行，阶段 3（259）复盘结论落地（business GET=0）；对应子计划均已归档（参见 docs/archive/development-plans/250-modular-monolith-merge.md、../archive/development-plans/251-runtime-unification-health-metrics.md、../archive/development-plans/253-deployment-pipeline-simplification.md、../archive/development-plans/254-frontend-endpoint-and-proxy-consolidation.md、../archive/development-plans/256-contract-ssot-generation-pipeline.md、../archive/development-plans/257-frontend-domain-api-facade-adoption.md、../archive/development-plans/258-contract-drift-validation-gate.md、../archive/development-plans/259-protocol-strategy-review.md）
+- 📚 证据：上述计划的 CI 运行与日志均已落盘 logs/plan250、logs/plan251、logs/plan253、logs/plan254、logs/plan256、logs/plan257、logs/plan258、logs/plan259，并在 HRMS 索引中标记状态；后续若需新的 CQRS 阶段，请以 203/204 拆解新计划编号
+
+### 新增（2025-11-21 — Plan 222 结项说明）
+- ✅ [Plan 222] 组织模块 Phase2 验收已关闭（参见 ../archive/development-plans/222-organization-verification.md），现有证据与 runbook 已沉淀；后续覆盖率/契约/性能补强交由 Plan 219E、Plan 221 与 Plan 240E/245A 承接
+- 🚫 说明：根据最新决策，Plan 222 不再新增验收轮次或补充测试，相关入口在本日志与 HRMS 索引中仅保留归档索引
+
 ### 新增（2025-11-20 — Plan 259 门禁切换与归档）
 - ✅ [Plan 259A] 将仓库变量 `PLAN259_BUSINESS_GET_THRESHOLD` 最终切换为 0，并以 `plan-258-gates` 验证 business GET=0  
   - 操作：手动调用 GitHub REST API 更新仓库变量、随后以 `ref=master` 触发 `.github/workflows/plan-258-gates.yml`；Run ID: [19537850179](https://github.com/jacksonlee411/cube-castle/actions/runs/19537850179)（status=completed, conclusion=success；artifact=`plan258-permissions-and-259A`）  
@@ -185,11 +193,9 @@
    - Plan 252 权限契约校验：`logs/plan255/plan252-validate-permissions-20251116_162058.log`（通过；未注册引用=0，未匹配映射=2 已记录）
 
 ### 新增（2025-11-15 — 优先级与下一步）
-- P0：Plan 222 收口验收与文档更新（见 222 章节与证据日志）
-- P0：202 阶段1（模块化单体合流，不改协议；索引：`docs/development-plans/202-CQRS混合架构深度分析与演进建议.md`）
-- P1：Plan 221 基座 CI 常态运行（已本地验收；CI 冷启动指标随首轮工作流登记）
-- P1：202 阶段2（契约 SSoT 与前端 API Facade；同上文档“阶段 2: 工程优化”）
+- P0：Plan 221 基座 CI 常态运行（已本地验收；CI 冷启动指标随首轮工作流登记）
 - P1：Plan 219E 回归补强以支撑 222 覆盖率目标
+- P1：Plan 240E/245A 后续守卫与覆盖率提升
 
 ---
 
@@ -197,24 +203,21 @@
 
 说明：依据 202（简化版）路线图与 25x 子计划分解，登记启动信息与证据路径。执行细节以各子计划文档为唯一事实来源；所有命令输出与验证证据统一登记至本日志（215）。
 
-- 250 · 模块化单体合流  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
-  - 准入条件：Plan 219 完成、Plan 221 基座可用、宿主端口合规（AGENTS）  
-  - 产物/证据：`logs/plan250/*`、合流验收清单（单端口/健康/指标/REST/GraphQL 等效）  
-  - 文档：`docs/development-plans/250-modular-monolith-merge.md`
+- 250 · 模块化单体合流 — 已完成（2025-11-17）  
+  - 产物/证据：`logs/plan250/test-db-*.log`、`logs/plan250/e2e-*.log`、`logs/plan250/perf-*.json`、`logs/plan250/no-legacy-env.log`；plan-250-gates CI 运行链接已登记于 HRMS 索引  
+  - 文档：`docs/archive/development-plans/250-modular-monolith-merge.md`
 
   - 必跑门禁清单（CI 工作流 `plan-250-gates.yml`）：
-    - [ ] legacy 环境门禁：`scripts/quality/gates-250-no-legacy-env.sh`
-    - [ ] 单一二进制门禁：`scripts/quality/gates-250-single-binary.sh`
-    - [ ] command 端无 8090 监听与字面量：`scripts/quality/gates-250-no-8090-in-command.sh`
-    - [ ] 复用 Plan 253 门禁：compose 端口映射与镜像标签固定（另见 253 工作流）
+    - [x] legacy 环境门禁：`scripts/quality/gates-250-no-legacy-env.sh`
+    - [x] 单一二进制门禁：`scripts/quality/gates-250-single-binary.sh`
+    - [x] command 端无 8090 监听与字面量：`scripts/quality/gates-250-no-8090-in-command.sh`
+    - [x] 复用 Plan 253 门禁：compose 端口映射与镜像标签固定（证据见 `logs/plan253/compose-ports-and-images.log`）
 
   - 刚性验收（落盘到 `logs/plan250/`）：
     - [x] 221：`make test-db` 通过 → `test-db-*.log`
-    - [ ] E2E 最小集（232/241/244，Chromium/Firefox 各 1 轮）→ `e2e-*.log`
+    - [x] E2E 最小集（232/241/244，Chromium/Firefox 各 1 轮）→ `e2e-*.log`
     - [x] JWKS/JWT/多租户链路抽样一致 → `jwks-*.json`、`tenant-check-*.log`
-    - [ ] 性能/资源基线（204 指标 + performance/ 脚本）→ `perf-*.json`
+    - [x] 性能/资源基线（204 指标 + performance/ 脚本）→ `perf-*.json`
 
 - 251 · 运行时统一（连接池/中间件/健康/指标）  
   - 状态：已完成（2025-11-15）  
@@ -222,14 +225,14 @@
   - 产物/证据：  
     - 健康：`logs/plan251/health-command-*.json`（./scripts/quality/validate-health.sh）  
     - 指标：`logs/plan251/metrics-command-*.txt`（./scripts/quality/validate-metrics.sh；STRICT=true 校验 HELP/TYPE）  
-  - 文档：`docs/development-plans/251-runtime-unification-health-metrics.md`（单体主路径/统一健康与指标/标签与网络限制规范）
+  - 文档：`docs/archive/development-plans/251-runtime-unification-health-metrics.md`（单体主路径/统一健康与指标/标签与网络限制规范）
 
 - 253 · 部署与流水线简化（单体优先） — 已完成（2025-11-16）  
   - 负责人：DevOps（与 QA/后端协作）  
   - 产物/证据：`logs/plan253/*`（门禁与冷启动指标）、Make/Workflow/Compose 变更  
   - 冷启动基线：`logs/plan253/coldstart-20251116001139.log`（compose_up_ms≈1979ms；db_ready_seconds=10s）  
   - 门禁证据：`logs/plan253/compose-ports-and-images.log`（端口映射冻结、镜像标签固定）  
-  - 文档：`docs/development-plans/253-deployment-pipeline-simplification.md`
+  - 文档：`docs/archive/development-plans/253-deployment-pipeline-simplification.md`
 
 ### 253 首轮冷启动指标登记（占位）
 - 触发：`plan-253-gates`（主干定时 / 触发变更）  
@@ -245,27 +248,19 @@
     - `logs/plan254/trace/`（trace 证据）  
     - `reports/architecture/architecture-validation.json`（架构门禁报告：cqrs/ports/forbidden=0）  
   - 说明：端口/代理/基址配置以源文件为准（frontend/vite.config.ts、frontend/src/shared/config/ports.ts）；compose 端口映射治理由 Plan 253 门禁负责  
-  - 文档：`docs/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`（状态：已完成）
+  - 文档：`docs/archive/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`（状态：已完成）
 
-- 256 · 契约 SSoT 生成流水线（阶段2）  
-  - 状态：⚙️ 门禁接入中（2025-11-17）  
-  - 调整：`.github/workflows/contract-testing.yml` 已扩展到 `feat/shared-dev`，且 `docs/api/**` 变更不再进入 docs-only 短路；后续需在受保护分支启用 “Contract Compliance Gate” 为 Required check  
-  - ✅ 2025-11-17 22:36Z 在 `feat/shared-dev` 推送触发首轮 run（Run ID: [19446915592](https://github.com/jacksonlee411/cube-castle/actions/runs/19446915592)），`契约快照校验/契约测试验证/契约合规性门禁` 全部成功并上传 `plan256-drift-report` 工件（保留 30 天）。  
-  - 下一步：补充本地 `make generate-contracts && make verify-contracts` 兜底脚本使用说明  
+- 256 · 契约 SSoT 生成流水线（阶段2） — 已完成（2025-11-17）  
+  - `.github/workflows/contract-testing.yml` 已扩展到 `feat/shared-dev`，且 `docs/api/**` 变更不再进入 docs-only 短路；Contract Compliance Gate 已作为受保护分支 Required check  
+  - 2025-11-17 22:36Z 在 `feat/shared-dev` 推送触发首轮 run（Run ID: [19446915592](https://github.com/jacksonlee411/cube-castle/actions/runs/19446915592)），契约快照校验、契约测试验证与合规性门禁均成功并上传 `plan256-drift-report` 工件（保留 30 天）  
   - 产物/证据：`logs/plan256/*`、`make generate-contracts` 幂等日志、CI contract-sync（生成→快照→工作树 clean）结果、drift-report（报告模式，阻断由 258 承担）  
-  - 文档：`docs/development-plans/256-contract-ssot-generation-pipeline.md`
+  - 文档：`docs/archive/development-plans/256-contract-ssot-generation-pipeline.md`
 
-- 257 · 前端领域 API 门面采纳（阶段2）  
-  - 计划窗口：TBD（W?）  
-  - 负责人：TBD  
-  - 准入条件：241/242 抽象完成；统一命名与选择器守卫启用  
-  - 产物/证据：`logs/plan257/*`、`reports/facade/coverage.json`（覆盖率报告；阻断阈值≥0.8）、E2E/单测通过记录  
-  - 工作流：`.github/workflows/plan-257-gates.yml`（已切换为阈值 0.8 阻断；请在受保护分支设置为 Required check）  
-  - 文档：`docs/development-plans/257-frontend-domain-api-facade-adoption.md`
-  - 本次 CI 运行（登记）：  
-    - Run: https://github.com/jacksonlee411/cube-castle/actions/runs/19405921517（结论：success）  
-    - 工件：`logs/plan257/ci-artifacts/coverage.json`（coverage=1.25；threshold=0.8；offenders=[tests-only]）  
-  - 状态：已完成（验收通过 · 2025-11-16）
+- 257 · 前端领域 API 门面采纳（阶段2） — 已完成（2025-11-16）  
+  - 产物/证据：`logs/plan257/*`、`reports/facade/coverage.json`（coverage ≥0.8）、Plan 257 gate CI 工件 `plan257-facade-coverage`  
+  - 工作流：`.github/workflows/plan-257-gates.yml`（阈值 0.8，受保护分支 Required check）  
+  - 文档：`docs/archive/development-plans/257-frontend-domain-api-facade-adoption.md`  
+  - 最近一次 CI 运行：<https://github.com/jacksonlee411/cube-castle/actions/runs/19405921517>（success，coverage=1.25，offenders=tests-only）
 
 - 258 · 契约漂移校验与门禁（阶段2） — 已完成（2025-11-16）  
   - 计划窗口：TBD（W?）  
@@ -273,7 +268,7 @@
   - 准入条件：Plan 256 生成流水线可用  
   - 产物/证据：`logs/plan258/*`、`reports/contracts/drift-report.json`、CI 工件 `plan258-drift-report`（阻断）  
   - 工作流：`.github/workflows/plan-258-gates.yml`（受保护分支 Required）  
-  - 文档：`docs/development-plans/258-contract-drift-validation-gate.md`
+  - 文档：`docs/archive/development-plans/258-contract-drift-validation-gate.md`
   - 最近一次成功运行 Run ID：19408157081（artifact：plan258-drift-report）
 
 #### Plan 258 · 临时差异登记与回收计划（Phase B 报告模式）
