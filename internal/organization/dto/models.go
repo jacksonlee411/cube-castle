@@ -58,10 +58,16 @@ func clampToInt32Ptr(src *int) *int32 {
 	return &val
 }
 
+// RecordId 返回组织记录 ID。
 func (o Organization) RecordId() string { return o.RecordIDField }
-func (o Organization) TenantId() string { return o.TenantIDField }
-func (o Organization) Code() string     { return o.CodeField }
 
+// TenantId 返回所属租户 ID。
+func (o Organization) TenantId() string { return o.TenantIDField }
+
+// Code 返回组织编码。
+func (o Organization) Code() string { return o.CodeField }
+
+// ParentCode 返回父组织编码，若为空则返回"0"。
 func (o Organization) ParentCode() string {
 	if o.ParentCodeField == nil {
 		return "0"
@@ -69,10 +75,19 @@ func (o Organization) ParentCode() string {
 	return *o.ParentCodeField
 }
 
-func (o Organization) Name() string     { return o.NameField }
+// Name 返回组织名称。
+func (o Organization) Name() string { return o.NameField }
+
+// UnitType 返回组织类型。
 func (o Organization) UnitType() string { return o.UnitTypeField }
-func (o Organization) Status() string   { return o.StatusField }
-func (o Organization) Level() int32     { return clampToInt32(o.LevelField) }
+
+// Status 返回组织状态。
+func (o Organization) Status() string { return o.StatusField }
+
+// Level 返回组织层级。
+func (o Organization) Level() int32 { return clampToInt32(o.LevelField) }
+
+// Path 返回编码路径指针。
 func (o Organization) Path() *string {
 	if o.CodePathField == "" {
 		return nil
@@ -80,27 +95,44 @@ func (o Organization) Path() *string {
 	path := o.CodePathField
 	return &path
 }
+
+// CodePath 返回编码路径字符串。
 func (o Organization) CodePath() string {
 	if o.CodePathField != "" {
 		return o.CodePathField
 	}
 	return ""
 }
+
+// NamePath 返回名称路径。
 func (o Organization) NamePath() string {
 	if o.NamePathField != "" {
 		return o.NamePathField
 	}
 	return ""
 }
+
+// SortOrder 返回排序字段。
 func (o Organization) SortOrder() *int32 {
 	return clampToInt32Ptr(o.SortOrderField)
 }
-func (o Organization) Description() *string  { return o.DescriptionField }
-func (o Organization) Profile() *string      { return o.ProfileField }
-func (o Organization) CreatedAt() string     { return o.CreatedAtField.Format(time.RFC3339) }
-func (o Organization) UpdatedAt() string     { return o.UpdatedAtField.Format(time.RFC3339) }
+
+// Description 返回组织描述。
+func (o Organization) Description() *string { return o.DescriptionField }
+
+// Profile 返回组织配置。
+func (o Organization) Profile() *string { return o.ProfileField }
+
+// CreatedAt 返回创建时间。
+func (o Organization) CreatedAt() string { return o.CreatedAtField.Format(time.RFC3339) }
+
+// UpdatedAt 返回更新时间。
+func (o Organization) UpdatedAt() string { return o.UpdatedAtField.Format(time.RFC3339) }
+
+// EffectiveDate 返回生效日期。
 func (o Organization) EffectiveDate() string { return o.EffectiveDateField.Format("2006-01-02") }
 
+// EndDate 返回失效日期。
 func (o Organization) EndDate() *string {
 	if o.EndDateField == nil {
 		return nil
@@ -109,6 +141,7 @@ func (o Organization) EndDate() *string {
 	return &date
 }
 
+// IsCurrent 指示是否为当前记录。
 func (o Organization) IsCurrent() bool { return o.IsCurrentField }
 
 func cnTodayDate() time.Time {

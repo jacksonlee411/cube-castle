@@ -1,3 +1,4 @@
+// Package outbox 实现数据库 Outbox 派发器。
 package outbox
 
 import (

@@ -1,3 +1,4 @@
+// Package events 定义 HRMS 命令模块的 Outbox 事件 helper。
 package events
 
 import (
@@ -18,15 +19,23 @@ const (
 	aggregatePosition   = "position"
 	aggregateJobLevel   = "jobLevel"
 
-	EventAssignmentFilled  = "assignment.filled"
+	// EventAssignmentFilled 表示任命占用。
+	EventAssignmentFilled = "assignment.filled"
+	// EventAssignmentVacated 表示任命释放。
 	EventAssignmentVacated = "assignment.vacated"
+	// EventAssignmentUpdated 表示任命变更。
 	EventAssignmentUpdated = "assignment.updated"
-	EventAssignmentClosed  = "assignment.closed"
+	// EventAssignmentClosed 表示任命关闭。
+	EventAssignmentClosed = "assignment.closed"
 
+	// EventPositionCreated 表示职位创建。
 	EventPositionCreated = "position.created"
+	// EventPositionUpdated 表示职位更新。
 	EventPositionUpdated = "position.updated"
 
-	EventJobLevelVersionCreated  = "jobLevel.versionCreated"
+	// EventJobLevelVersionCreated 表示职级版本创建。
+	EventJobLevelVersionCreated = "jobLevel.versionCreated"
+	// EventJobLevelVersionConflict 表示职级版本冲突。
 	EventJobLevelVersionConflict = "jobLevel.versionConflict"
 )
 

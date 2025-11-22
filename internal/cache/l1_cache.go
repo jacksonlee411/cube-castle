@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// L1进程内缓存 - 基于LRU算法的高性能本地缓存
+// L1Cache 是基于 LRU 的进程内缓存实现。
 type L1Cache struct {
 	maxSize int
 	ttl     time.Duration
@@ -24,7 +24,7 @@ type l1CacheItem struct {
 	expiresAt time.Time
 }
 
-// L1缓存统计
+// L1CacheStats 汇总缓存命中率与容量信息。
 type L1CacheStats struct {
 	HitCount  int64   `json:"hit_count"`
 	MissCount int64   `json:"miss_count"`
@@ -32,7 +32,7 @@ type L1CacheStats struct {
 	HitRate   float64 `json:"hit_rate"`
 }
 
-// 创建L1缓存
+// NewL1Cache 创建指定容量与 TTL 的缓存。
 func NewL1Cache(maxSize int, ttl time.Duration) *L1Cache {
 	cache := &L1Cache{
 		maxSize: maxSize,
@@ -48,7 +48,7 @@ func NewL1Cache(maxSize int, ttl time.Duration) *L1Cache {
 	return cache
 }
 
-// 获取缓存项
+// Get 返回缓存项及命中标记。
 func (c *L1Cache) Get(key string) (CacheEntry, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -78,7 +78,7 @@ func (c *L1Cache) Get(key string) (CacheEntry, bool) {
 	return item.entry, true
 }
 
-// 设置缓存项
+// Set 写入缓存条目。
 func (c *L1Cache) Set(key string, entry CacheEntry) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -108,7 +108,7 @@ func (c *L1Cache) Set(key string, entry CacheEntry) {
 	}
 }
 
-// 删除缓存项
+// Delete 移除指定键。
 func (c *L1Cache) Delete(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -143,7 +143,7 @@ func (c *L1Cache) updateHitRate() {
 	}
 }
 
-// 获取统计信息
+// GetStats 返回当前缓存统计数据。
 func (c *L1Cache) GetStats() L1CacheStats {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -153,7 +153,7 @@ func (c *L1Cache) GetStats() L1CacheStats {
 	return stats
 }
 
-// 清空缓存
+// Clear 清空缓存内容。
 func (c *L1Cache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()

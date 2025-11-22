@@ -54,7 +54,7 @@ func TestRequestIDMiddleware_UsesHeadersWhenProvided(t *testing.T) {
 
 func TestPerformanceMiddleware_SetsHeadersAndCallsNext(t *testing.T) {
 	pm := NewPerformanceMiddleware(nil)
-	handler := pm.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := pm.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTeapot)
 		_, _ = w.Write([]byte("ok"))
 	}))

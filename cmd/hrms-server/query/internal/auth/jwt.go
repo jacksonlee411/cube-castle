@@ -9,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// JWTMiddleware 提供 JWT 验证逻辑。
 type JWTMiddleware struct {
 	secretKey []byte
 	issuer    string
@@ -19,6 +20,7 @@ type JWTMiddleware struct {
 	clockSkew time.Duration
 }
 
+// NewJWTMiddleware 构建默认 HS256 中间件。
 func NewJWTMiddleware(secretKey, issuer, audience string) *JWTMiddleware {
 	return &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: "HS256"}
 }
@@ -30,6 +32,7 @@ type Options struct {
 	ClockSkew    time.Duration
 }
 
+// NewJWTMiddlewareWithOptions 允许配置算法、JWKS 等选项。
 func NewJWTMiddlewareWithOptions(secretKey, issuer, audience string, opt Options) *JWTMiddleware {
 	mw := &JWTMiddleware{secretKey: []byte(secretKey), issuer: issuer, audience: audience, alg: strings.ToUpper(strings.TrimSpace(opt.Alg)), clockSkew: opt.ClockSkew}
 	if mw.alg == "RS256" {

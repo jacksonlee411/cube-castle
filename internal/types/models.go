@@ -12,6 +12,7 @@ const (
 	DefaultTenantName     = "高谷集团"
 )
 
+// DefaultTenantID 是默认租户 UUID。
 var DefaultTenantID = uuid.MustParse(DefaultTenantIDString)
 
 // Organization 组织业务实体
@@ -98,7 +99,7 @@ type CreateVersionRequest struct {
 	OperationReason string  `json:"operationReason" validate:"omitempty,max=500"`
 }
 
-// 组织历史版本请求 (旧版本，保持兼容性)
+// CreateOrganizationVersionRequest 描述旧版组织历史版本的创建请求。
 type CreateOrganizationVersionRequest struct {
 	BasedOnVersion int     `json:"basedOnVersion"`
 	Name           *string `json:"name,omitempty"`
@@ -112,7 +113,7 @@ type CreateOrganizationVersionRequest struct {
 	ChangeReason   string  `json:"changeReason" validate:"required"`
 }
 
-// 时态查询响应（包含时间线信息）
+// TemporalOrganizationResponse 包含组织的时态视图及时间线。
 type TemporalOrganizationResponse struct {
 	*OrganizationResponse
 	TemporalStatus string                    `json:"temporalStatus"`
@@ -120,7 +121,7 @@ type TemporalOrganizationResponse struct {
 	Versions       []OrganizationVersionInfo `json:"versions,omitempty"`
 }
 
-// 时间线事件
+// TemporalTimelineEvent 记录组织时间线上的事件。
 type TemporalTimelineEvent struct {
 	EventType     string                 `json:"eventType"`
 	EventDate     time.Time              `json:"eventDate"`
@@ -131,7 +132,7 @@ type TemporalTimelineEvent struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// 版本信息
+// OrganizationVersionInfo 描述组织版本元数据。
 type OrganizationVersionInfo struct {
 	Version       int       `json:"version"`
 	EffectiveFrom Date      `json:"effectiveFrom"`
@@ -140,16 +141,17 @@ type OrganizationVersionInfo struct {
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
-// 组织操作请求类型
+// SuspendOrganizationRequest 表示停用组织的请求。
 type SuspendOrganizationRequest struct {
 	Reason string `json:"reason" validate:"required"`
 }
 
+// ReactivateOrganizationRequest 表示恢复组织的请求。
 type ReactivateOrganizationRequest struct {
 	Reason string `json:"reason" validate:"required"`
 }
 
-// 组织事件请求类型 (用于时态版本管理)
+// OrganizationEventRequest 定义时态事件的创建请求。
 type OrganizationEventRequest struct {
 	EventType     string                 `json:"eventType" validate:"required"`
 	RecordID      string                 `json:"recordId,omitempty"` // 用于精确定位记录（作废时必需）
@@ -158,6 +160,7 @@ type OrganizationEventRequest struct {
 	ChangeReason  string                 `json:"changeReason" validate:"required"`
 }
 
+// ErrorResponse 表示通用错误信息。
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Code    string `json:"code,omitempty"`

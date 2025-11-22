@@ -36,6 +36,7 @@ const (
 	outboxResultRetry = "retry"
 )
 
+// NewDispatcher 构造基于数据库 outbox 的事件派发器。
 func NewDispatcher(cfg Config, repo database.OutboxRepository, bus eventbus.EventBus, logger pkglogger.Logger, reg prometheus.Registerer, withTx func(ctx context.Context, fn database.TxFunc) error, cache AssignmentCacheRefresher) *Dispatcher {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
@@ -51,6 +52,7 @@ func NewDispatcher(cfg Config, repo database.OutboxRepository, bus eventbus.Even
 	}
 }
 
+// Start 启动后台轮询循环。
 func (d *Dispatcher) Start(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -65,6 +67,7 @@ func (d *Dispatcher) Start(ctx context.Context) error {
 	return nil
 }
 
+// Stop 停止派发器并回收资源。
 func (d *Dispatcher) Stop() error {
 	d.mu.Lock()
 	if d.cancel == nil {
@@ -195,6 +198,7 @@ func (d *Dispatcher) asEvent(evt *database.OutboxEvent) eventbus.Event {
 	return eventbus.NewGenericJSONEvent(evt.EventType, evt.AggregateID, evt.AggregateType, payload)
 }
 
+// AssignmentCacheRefresher 刷新职位缓存以反映最新任命。
 type AssignmentCacheRefresher interface {
 	RefreshPositionCache(ctx context.Context, tenantID uuid.UUID, positionCode string) error
 }

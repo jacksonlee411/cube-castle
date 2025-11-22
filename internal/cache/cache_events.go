@@ -10,7 +10,9 @@ import (
 	pkglogger "cube-castle/pkg/logger"
 )
 
-// 缓存事件总线 - PostgreSQL原生架构的缓存更新事件
+// CacheEventBus 负责广播缓存事件。
+//
+//revive:disable-next-line var-naming
 type CacheEventBus struct {
 	subscribers []chan CacheEvent
 	mu          sync.RWMutex
@@ -18,7 +20,9 @@ type CacheEventBus struct {
 	logger      pkglogger.Logger
 }
 
-// 缓存事件定义 - PostgreSQL原生架构
+// CacheEvent 描述缓存变化事件。
+//
+//revive:disable-next-line var-naming
 type CacheEvent struct {
 	EventID    string      `json:"event_id"`
 	Operation  string      `json:"operation"`   // CREATE, UPDATE, DELETE
@@ -30,7 +34,7 @@ type CacheEvent struct {
 	Source     string      `json:"source"` // domain_event, cache_invalidation
 }
 
-// 组织模型 - PostgreSQL原生架构，统一camelCase命名
+// Organization 表示缓存中的组织实体。
 type Organization struct {
 	Code        string    `json:"code"`
 	TenantID    string    `json:"tenantId"` // camelCase统一
@@ -46,7 +50,7 @@ type Organization struct {
 	UpdatedAt   time.Time `json:"updatedAt"`  // camelCase统一
 }
 
-// 组织统计模型 - camelCase命名规范统一
+// OrganizationStats 提供组织聚合统计。
 type OrganizationStats struct {
 	TotalCount int           `json:"totalCount"` // camelCase统一
 	ByType     []TypeCount   `json:"byType"`     // camelCase统一
@@ -54,22 +58,27 @@ type OrganizationStats struct {
 	ByLevel    []LevelCount  `json:"byLevel"`    // camelCase统一
 }
 
+// TypeCount 表示按类别聚合后的数量。
 type TypeCount struct {
 	UnitType string `json:"unitType"` // camelCase统一
 	Count    int    `json:"count"`
 }
 
+// StatusCount 表示按状态聚合后的数量。
 type StatusCount struct {
 	Status string `json:"status"`
 	Count  int    `json:"count"`
 }
 
+// LevelCount 表示按层级聚合后的数量。
 type LevelCount struct {
 	Level string `json:"level"`
 	Count int    `json:"count"`
 }
 
-// 缓存统计 - camelCase命名规范统一
+// CacheStats 聚合 L1/L2 缓存状态。
+//
+//revive:disable-next-line var-naming
 type CacheStats struct {
 	L1Stats         L1Stats `json:"l1Stats"`         // camelCase统一
 	L2Connected     bool    `json:"l2Connected"`     // camelCase统一
@@ -77,6 +86,7 @@ type CacheStats struct {
 	ConsistencyMode string  `json:"consistencyMode"` // camelCase统一
 }
 
+// L1Stats 描述 L1 缓存命中情况。
 type L1Stats struct {
 	HitCount  int64   `json:"hitCount"`  // camelCase统一
 	MissCount int64   `json:"missCount"` // camelCase统一
@@ -84,7 +94,7 @@ type L1Stats struct {
 	HitRate   float64 `json:"hitRate"` // camelCase统一
 }
 
-// 创建事件总线
+// NewCacheEventBus 创建事件总线。
 func NewCacheEventBus(logger pkglogger.Logger) *CacheEventBus {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
@@ -98,7 +108,7 @@ func NewCacheEventBus(logger pkglogger.Logger) *CacheEventBus {
 	}
 }
 
-// 订阅事件
+// Subscribe 返回新的事件订阅通道。
 func (bus *CacheEventBus) Subscribe() <-chan CacheEvent {
 	bus.mu.Lock()
 	defer bus.mu.Unlock()
@@ -114,7 +124,7 @@ func (bus *CacheEventBus) Subscribe() <-chan CacheEvent {
 	return ch
 }
 
-// 发布事件
+// Publish 广播缓存事件。
 func (bus *CacheEventBus) Publish(event CacheEvent) {
 	bus.mu.RLock()
 	defer bus.mu.RUnlock()
@@ -138,7 +148,7 @@ func (bus *CacheEventBus) Publish(event CacheEvent) {
 	}
 }
 
-// 关闭事件总线
+// Close 关闭事件总线并清理订阅者。
 func (bus *CacheEventBus) Close() {
 	bus.mu.Lock()
 	defer bus.mu.Unlock()
@@ -154,7 +164,7 @@ func (bus *CacheEventBus) Close() {
 	bus.subscribers = nil
 }
 
-// 将缓存事件转换为组织对象 - PostgreSQL原生架构
+// ToOrganization 尝试将缓存事件转换为组织对象。
 func (event CacheEvent) ToOrganization() Organization {
 	var org Organization
 
@@ -223,11 +233,12 @@ func getIntFromMap(data map[string]interface{}, key string) int {
 	return 0
 }
 
-// 智能缓存更新器 - 负责高效更新列表缓存
+// SmartCacheUpdater 负责根据事件增量刷新列表缓存。
 type SmartCacheUpdater struct {
 	logger pkglogger.Logger
 }
 
+// NewSmartCacheUpdater 创建智能更新器。
 func NewSmartCacheUpdater(logger pkglogger.Logger) *SmartCacheUpdater {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
@@ -240,7 +251,7 @@ func NewSmartCacheUpdater(logger pkglogger.Logger) *SmartCacheUpdater {
 	}
 }
 
-// 高效列表更新算法
+// UpdateListCache 根据事件更新列表缓存，返回是否命中。
 func (updater *SmartCacheUpdater) UpdateListCache(
 	existingList []Organization,
 	updatedOrg *Organization,
@@ -338,7 +349,7 @@ func (updater *SmartCacheUpdater) handleUpdate(
 func (updater *SmartCacheUpdater) handleDelete(
 	existingList []Organization,
 	deletedOrg *Organization,
-	queryParams QueryParams,
+	_ QueryParams,
 ) ([]Organization, bool) {
 
 	updatedList := make([]Organization, 0, len(existingList))
@@ -486,7 +497,7 @@ func (checker *ConsistencyChecker) checkSingleKey(ctx context.Context, key strin
 }
 
 // 从L2缓存获取数据（需要根据实际实现）
-func (checker *ConsistencyChecker) getFromL2(ctx context.Context, key string) (string, error) {
+func (checker *ConsistencyChecker) getFromL2(_ context.Context, _ string) (string, error) {
 	// 这里需要根据实际的Redis客户端实现
 	return "", fmt.Errorf("需要实现L2缓存获取逻辑")
 }

@@ -61,7 +61,7 @@ func TestTranslateJobCatalogErrorUsesValidatorResult(t *testing.T) {
 		},
 	})
 	stubValidator := &stubJobCatalogValidator{
-		onFamilyGroup: func(ctx context.Context, tenant uuid.UUID, code string, req *types.JobCatalogVersionRequest) *validator.ValidationResult {
+		onFamilyGroup: func(_ context.Context, _ uuid.UUID, _ string, _ *types.JobCatalogVersionRequest) *validator.ValidationResult {
 			return stubResult
 		},
 	}

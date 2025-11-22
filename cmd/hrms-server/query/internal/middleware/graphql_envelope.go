@@ -1,3 +1,4 @@
+// Package middleware 提供 GraphQL 企业级中间件。
 package middleware
 
 import (

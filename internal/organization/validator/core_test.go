@@ -24,7 +24,7 @@ func TestValidatorCoreSmoke(t *testing.T) {
 		ID:       "ORG-DEPTH",
 		Priority: 10,
 		Severity: SeverityHigh,
-		Handler: func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+		Handler: func(_ context.Context, _ interface{}) (*RuleOutcome, error) {
 			executionOrder = append(executionOrder, "ORG-DEPTH")
 			return &RuleOutcome{
 				Warnings: []ValidationWarning{
@@ -44,7 +44,7 @@ func TestValidatorCoreSmoke(t *testing.T) {
 		Priority:     20,
 		Severity:     SeverityHigh,
 		ShortCircuit: true,
-		Handler: func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+		Handler: func(_ context.Context, _ interface{}) (*RuleOutcome, error) {
 			executionOrder = append(executionOrder, "POS-HEADCOUNT")
 			return &RuleOutcome{
 				Errors: []ValidationError{
@@ -68,7 +68,7 @@ func TestValidatorCoreSmoke(t *testing.T) {
 		ID:       "ASSIGN-FTE",
 		Priority: 30,
 		Severity: SeverityMedium,
-		Handler: func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+		Handler: func(_ context.Context, _ interface{}) (*RuleOutcome, error) {
 			executionOrder = append(executionOrder, "ASSIGN-FTE")
 			return &RuleOutcome{
 				Errors: []ValidationError{
@@ -160,7 +160,7 @@ func TestValidationChainContextCancelled(t *testing.T) {
 	_ = chain.Register(&Rule{
 		ID:       "TEST-CANCEL",
 		Severity: SeverityHigh,
-		Handler: func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+		Handler: func(_ context.Context, _ interface{}) (*RuleOutcome, error) {
 			called = true
 			return nil, nil
 		},
@@ -191,7 +191,7 @@ func TestValidationChainTelemetryOnly(t *testing.T) {
 		Priority:      5,
 		ShortCircuit:  true,
 		TelemetryOnly: true,
-		Handler: func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+		Handler: func(_ context.Context, _ interface{}) (*RuleOutcome, error) {
 			order = append(order, "TELEMETRY")
 			return &RuleOutcome{Errors: []ValidationError{{Code: "TELEMETRY_FAILURE"}}}, nil
 		},
@@ -199,7 +199,7 @@ func TestValidationChainTelemetryOnly(t *testing.T) {
 	_ = chain.Register(&Rule{
 		ID:       "NEXT",
 		Priority: 10,
-		Handler: func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+		Handler: func(_ context.Context, _ interface{}) (*RuleOutcome, error) {
 			order = append(order, "NEXT")
 			return nil, nil
 		},

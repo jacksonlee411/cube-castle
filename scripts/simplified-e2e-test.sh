@@ -70,9 +70,9 @@ DB_HEALTH=$(echo "$DB_HEALTH_PAYLOAD" | grep -o '"database":"[^"]*"' | cut -d'"'
 if [ -n "$DB_HEALTH" ]; then
     test_pass "数据库连接正常: $DB_HEALTH"
 elif [ -n "$DB_HEALTH_PAYLOAD" ]; then
-    test_pass "数据库健康端点可访问（未返回 database 字段）"
+    test_fail "数据库健康端点缺失 database 字段: $DB_HEALTH_PAYLOAD"
 else
-    test_pass "数据库健康端点未返回内容（CI 跳过）"
+    test_fail "数据库健康端点不可达"
 fi
 
 # 测试3: GraphQL 最小业务查询健康（RS256 认证）

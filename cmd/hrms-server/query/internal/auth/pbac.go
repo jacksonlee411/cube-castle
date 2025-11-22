@@ -19,7 +19,7 @@ type PBACPermissionChecker struct {
 //go:embed generated/graphql-permissions.json
 var embeddedGraphQLPermissions []byte
 
-// GraphQLQueryPermissionsSSOT 从生成制品加载的 Query→scope 映射（由 docs/api/schema.graphql 注释生成）
+// GraphQLQueryPermissions 从生成制品加载 Query→scope 映射（由 docs/api/schema.graphql 注释生成）。
 var GraphQLQueryPermissions = func() map[string]string {
 	var m map[string]string
 	if len(embeddedGraphQLPermissions) > 0 {
@@ -73,6 +73,7 @@ var defaultGraphQLQueryPermissions = map[string]string{
 	"jobLevels":       "job-catalog:read",
 }
 
+// NewPBACPermissionChecker 返回 PBAC 检查器实例。
 func NewPBACPermissionChecker(db *sql.DB, logger pkglogger.Logger) *PBACPermissionChecker {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
@@ -83,7 +84,7 @@ func NewPBACPermissionChecker(db *sql.DB, logger pkglogger.Logger) *PBACPermissi
 	}
 }
 
-// 角色权限预设映射
+// RolePermissions 提供角色到权限的映射（兜底用途）。
 var RolePermissions = map[string][]string{
 	"ADMIN": {
 		"READ_ORGANIZATION",
@@ -150,7 +151,7 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 }
 
 // checkUserPermission 检查用户直接权限
-func (p *PBACPermissionChecker) checkUserPermission(ctx context.Context, tenantID, userID, permission string) bool {
+func (p *PBACPermissionChecker) checkUserPermission(_ context.Context, _ string, userID, _ string) bool {
 	// 这里可以查询用户权限表
 	// 简化实现：现在只检查是否为系统管理员
 	if userID == "admin" {
@@ -172,7 +173,7 @@ func (p *PBACPermissionChecker) checkRolePermission(role, permission string) boo
 }
 
 // checkInheritedPermission 检查继承权限
-func (p *PBACPermissionChecker) checkInheritedPermission(ctx context.Context, tenantID, userID, permission string) bool {
+func (p *PBACPermissionChecker) checkInheritedPermission(_ context.Context, _ string, _ string, _ string) bool {
 	// 实现基于组织层级的权限继承
 	// 这里可以查询用户所在的组织，然后检查组织层级权限
 	// 简化实现：暂时返回false
@@ -184,7 +185,7 @@ func (p *PBACPermissionChecker) CheckGraphQLQuery(ctx context.Context, queryName
 	return p.CheckPermission(ctx, queryName)
 }
 
-// 模拟权限检查（用于开发和测试）
+// MockPermissionCheck 是面向开发环境的简化检查逻辑。
 func (p *PBACPermissionChecker) MockPermissionCheck(ctx context.Context, queryName string) error {
 	roles := GetUserRoles(ctx)
 	userID := GetUserID(ctx)

@@ -2,15 +2,16 @@
 
 **文档编号**: 269  
 **创建日期**: 2025-11-20  
-**关联计划**: Plan 262（自托管 Runner 基建）、Plan 265（Required Checks）、Plan 267（网络稳定化）
+**关联计划**: Plan 262（自托管 Runner 基建）、Plan 265（Required Checks）、Plan 267（网络稳定化）  
+**状态**: ❌ 已取消（2025-11-22，WSL Runner 例外撤销；禁止重新启用 `self-hosted,cubecastle,wsl` 标签）
 
 ---
 
 ## 1. 背景与目标
 
 - 当前自托管 Runner 运行在 Docker 容器内（WSL2 宿主），但容器缺少 `docker compose`、Go/Node 等工具，需要额外补齐；同时容器内网络受 WSL/防火墙双重影响，导致 GitHub TLS、Compose 等步骤频繁失败。
-- 2025-11-20 经架构/安全/平台负责人联合评审，确认“Runner 属于 CI 基础设施，不在 Docker 强制约束的业务服务范围内”，允许在满足 Docker 服务依旧运行在容器中的前提下，引入“WSL 原生 Runner”作为官方备选方案。该结论需同步更新 `AGENTS.md` 与参考文档，避免事实来源分裂。
-- Plan 269 旨在评估并落地“在 WSL 内直接部署 Runner（Systemd service 或 CLI 模式）”的可行性，对照历史容器方案的优缺点，形成部署步骤、回滚方式、CI workflow 更新以及与仓库原则的兼容性说明，最终决定以 WSL Runner 作为唯一的自托管路径。
+- 2025-11-20 曾评估“Runner 属于 CI 基础设施，不在 Docker 强制约束的业务服务范围内”，并计划尝试 WSL 原生 Runner。但在 2025-11-22 的复盘中，考虑到维护/安全风险，WSL Runner 方案被正式取消；Plan 269 仅作为历史记录保留。
+- 现行策略：所有 Required workflows 使用 GitHub 平台 runner，`self-hosted,cubecastle,wsl` 标签不再使用。如需新的自托管方案，必须另起计划并重新审批。
 
 ---
 

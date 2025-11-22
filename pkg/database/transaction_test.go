@@ -37,7 +37,7 @@ func TestWithTxRollbackOnError(t *testing.T) {
 	mock.ExpectRollback()
 
 	expectedErr := errors.New("boom")
-	err := db.WithTx(context.Background(), func(ctx context.Context, tx Transaction) error {
+	err := db.WithTx(context.Background(), func(_ context.Context, _ Transaction) error {
 		return expectedErr
 	})
 	require.ErrorIs(t, err, expectedErr)
@@ -51,7 +51,7 @@ func TestWithTxRollbackFailureReported(t *testing.T) {
 	require.NoError(t, err)
 	mock.MatchExpectationsInOrder(false)
 
-	openDB = func(driverName, dsn string) (*sql.DB, error) {
+	openDB = func(_ string, _ string) (*sql.DB, error) {
 		return rawDB, nil
 	}
 	mock.ExpectPing()
@@ -66,7 +66,7 @@ func TestWithTxRollbackFailureReported(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectRollback().WillReturnError(errors.New("rollback failed"))
 
-	err = database.WithTx(context.Background(), func(ctx context.Context, tx Transaction) error {
+	err = database.WithTx(context.Background(), func(_ context.Context, _ Transaction) error {
 		return errors.New("failure")
 	})
 	require.Error(t, err)
@@ -79,7 +79,7 @@ func TestWithTxRollbackFailureReported(t *testing.T) {
 
 func TestWithTxNilDatabase(t *testing.T) {
 	var db *Database
-	err := db.WithTx(context.Background(), func(ctx context.Context, tx Transaction) error {
+	err := db.WithTx(context.Background(), func(_ context.Context, _ Transaction) error {
 		return nil
 	})
 	require.ErrorIs(t, err, ErrDatabaseNotInitialized)

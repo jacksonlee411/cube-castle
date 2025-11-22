@@ -39,7 +39,9 @@
    ```
    避免 Windows DNS 缓存保留旧的 GitHub IP。
 
-## 3. WSL Runner / Compose 设置
+> ⚠️ 2025-11-22 更新：WSL Runner 方案已取消，以下 WSL 相关步骤仅作为历史记录保留，请勿据此重新启用自托管 Runner。若未来需要自托管方案，必须另行立项并重新审批。
+
+## 3. WSL Runner / Compose 设置（历史参考）
 
 | 项目 | 操作 |
 |------|------|
@@ -88,11 +90,11 @@
   ```
 - Watchdog 集成：`scripts/ci/runner/watchdog.sh` 可每 10 分钟执行 `verify-github-connectivity.sh --smoke --output logs/ci-monitor/network-watchdog.log`，失败时写入 `[NET][FAIL]` 标记。
 
-## 6. 与 WSL Runner 的关系
+## 6. 与 WSL Runner 的关系（历史参考）
 
 - WSL Runner 直接使用 WSL 网络栈，故 `scripts/network/configure-github-hosts.sh` 与本 Playbook 同样适用。
 - `scripts/ci/runner/wsl-install.sh` 和 `wsl-verify.sh` 会在启动前调用 `verify-github-connectivity.sh --smoke`。若检测失败，脚本会拒绝启动 Runner。
-- Docker Runner 已退役，如需恢复需重新立项审批；本 Playbook 默认所有诊断均在 WSL Runner 环境执行。
+- Docker Runner 已退役，如需恢复需重新立项审批；当前默认所有诊断与 workflow 均运行在 GitHub 平台 runner，WSL 相关内容仅供追溯。
 
 ## 7. 回滚策略
 

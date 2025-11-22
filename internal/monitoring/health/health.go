@@ -11,16 +11,23 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// HealthStatus 表示服务健康状态
+// HealthStatus 表示服务健康状态。
+//
+//revive:disable-next-line var-naming
 type HealthStatus string
 
 const (
-	StatusHealthy   HealthStatus = "healthy"
+	// StatusHealthy 表示服务完全健康。
+	StatusHealthy HealthStatus = "healthy"
+	// StatusUnhealthy 表示服务不可用。
 	StatusUnhealthy HealthStatus = "unhealthy"
-	StatusDegraded  HealthStatus = "degraded"
+	// StatusDegraded 表示服务处于降级状态。
+	StatusDegraded HealthStatus = "degraded"
 )
 
-// HealthCheck 表示单个组件的健康检查
+// HealthCheck 表示单个组件的健康检查结果。
+//
+//revive:disable-next-line var-naming
 type HealthCheck struct {
 	Name     string                 `json:"name"`
 	Status   HealthStatus           `json:"status"`
@@ -59,6 +66,7 @@ type PostgreSQLChecker struct {
 	DB   *sql.DB
 }
 
+// Check 执行 PostgreSQL 健康检查。
 func (c *PostgreSQLChecker) Check(ctx context.Context) HealthCheck {
 	start := time.Now()
 	check := HealthCheck{
@@ -107,6 +115,7 @@ type RedisChecker struct {
 	Client *redis.Client
 }
 
+// Check 执行 Redis 健康检查。
 func (c *RedisChecker) Check(ctx context.Context) HealthCheck {
 	start := time.Now()
 	check := HealthCheck{
@@ -156,6 +165,7 @@ type DependencyChecker struct {
 	MaxRetries    int
 }
 
+// Check 调用下游依赖并返回健康结果。
 func (c *DependencyChecker) Check(ctx context.Context) HealthCheck {
 	start := time.Now()
 	check := HealthCheck{
@@ -229,6 +239,7 @@ type StartupChecker struct {
 	Description   string
 }
 
+// Check 运行启动检查函数并格式化结果。
 func (c *StartupChecker) Check(ctx context.Context) HealthCheck {
 	start := time.Now()
 	check := HealthCheck{
@@ -259,7 +270,9 @@ func (c *StartupChecker) Check(ctx context.Context) HealthCheck {
 	return check
 }
 
-// HealthManager 健康检查管理器
+// HealthManager 健康检查管理器。
+//
+//revive:disable-next-line var-naming
 type HealthManager struct {
 	serviceName string
 	version     string

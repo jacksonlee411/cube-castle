@@ -24,6 +24,7 @@ type jwkSet struct {
 	Keys []jwkKey `json:"keys"`
 }
 
+// JWKSManager 负责缓存 JWKS 公钥集合。
 type JWKSManager struct {
 	url       string
 	ttl       time.Duration
@@ -32,6 +33,7 @@ type JWKSManager struct {
 	lastFetch time.Time
 }
 
+// NewJWKSManager 创建 JWKS 管理器。
 func NewJWKSManager(url string, ttl time.Duration) *JWKSManager {
 	return &JWKSManager{url: url, ttl: ttl, cache: make(map[string]*rsa.PublicKey)}
 }

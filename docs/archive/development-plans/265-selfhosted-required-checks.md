@@ -4,7 +4,8 @@
 **标题**: 自托管 Runner 门禁扩展（Plan 263/264 衔接）  
 **版本**: v0.1  
 **创建日期**: 2025-11-19  
-**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）
+**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）  
+**状态更新（2025-11-22）**：WSL Runner 方案已取消，本文档仅保留历史记录；请勿重新启用任何 `self-hosted` 标签，所有 Required workflow 必须运行在 GitHub 平台 runner。
 
 ---
 
@@ -140,3 +141,6 @@
 | 2025-11-21 11:04 | `gh workflow run contract-testing.yml --ref feat/shared-dev` | Run `19568443094` | `performance-impact-analysis` 进入构建阶段但被现有 TS 编译错误阻塞（Plan 263 需处理）；WSL job 被 workflow 矩阵跳过 |
 | 2025-11-21 11:05 | push 触发 IIG Guardian (`iig-guardian.yml`) | Run `19568402680` | WSL Runner 无可用 slot，job 长时间 `queued` 后被人工取消，需配合 Plan 269 恢复 WSL 节点 |
 | 2025-11-21 11:24 | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | Run `19568978952` + artifact `e2e-smoke-outputs` | ubuntu 变体通过 docs-only 快速通道（`paths-filter` 修复生效），WSL job 因 runner 不可用持续 `queued`，最终人工取消；artifact 仅包含 diag 输出 |
+| 2025-11-22 06:42 | `~/go/bin/golangci-lint run ./...`（启用 typecheck） | `logs/plan272/golangci-typecheck-final-20251122T064255Z.log` | Plan 272 回收 typecheck，log 空表示 0 issue；`GOTOOLCHAIN=go1.24.9` 为基线 |
+| 2025-11-22 06:44 | `make workflow-lint`（本地） | `reports/workflows/actionlint-20251122T064452Z.txt` | Plan 272 确认 actionlint 仍过，Agents Compliance 仍上传 `workflow-lint-<run_id>` artifact |
+| 2025-11-22 06:46 | `gh workflow run e2e-smoke.yml --ref feat/shared-dev` | Run `19591826055` / artifact `e2e-smoke-outputs`(ID 4647891075) | Query Service 健康端点已恢复 `database` 字段，`scripts/simplified-e2e-test.sh` 缺字段即失败；本次 ubuntu job 全绿，WSL job 仍禁用 |

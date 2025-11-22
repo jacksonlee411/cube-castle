@@ -21,7 +21,7 @@ func newMockDatabase(t *testing.T, cfg ConnectionConfig) (*Database, sqlmock.Sql
 	require.NoError(t, err)
 	mock.MatchExpectationsInOrder(false)
 
-	openDB = func(driverName, dsn string) (*sql.DB, error) {
+	openDB = func(_ string, _ string) (*sql.DB, error) {
 		return db, nil
 	}
 
@@ -88,7 +88,7 @@ func TestNewDatabaseShortcut(t *testing.T) {
 		db.Close()
 	})
 
-	openDB = func(driverName, dsn string) (*sql.DB, error) {
+	openDB = func(_ string, dsn string) (*sql.DB, error) {
 		require.Equal(t, "postgres://test/newdatabase", dsn)
 		return db, nil
 	}

@@ -11,6 +11,7 @@ import (
 type contextKey string
 
 const (
+	// RequestIDKey 是 Request ID 在上下文中的键。
 	RequestIDKey         contextKey = "requestId"
 	correlationIDKey     contextKey = "correlationId"
 	correlationSourceKey contextKey = "correlationSource"

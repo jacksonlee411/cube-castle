@@ -1419,7 +1419,7 @@ func (s *PositionService) lookupJobLevel(ctx context.Context, tx *sql.Tx, tenant
 	return s.jobCatalog.GetCurrentJobLevel(ctx, tx, tenantID, code)
 }
 
-func (s *PositionService) buildPositionEntity(tenantID uuid.UUID, code string, req *types.PositionRequest, catalog *jobCatalogSnapshot, org *types.Organization, operator types.OperatedByInfo, isNew bool) (*types.Position, error) {
+func (s *PositionService) buildPositionEntity(tenantID uuid.UUID, code string, req *types.PositionRequest, catalog *jobCatalogSnapshot, org *types.Organization, operator types.OperatedByInfo, _ bool) (*types.Position, error) {
 	effectiveDate, err := time.Parse("2006-01-02", req.EffectiveDate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid effectiveDate: %w", err)

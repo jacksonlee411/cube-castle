@@ -1,3 +1,4 @@
+// Package graphql 提供 Schema 加载和工具方法。
 package graphql
 
 import (

@@ -257,7 +257,7 @@ type stubOutboxRepo struct {
 	saved []*database.OutboxEvent
 }
 
-func (s *stubOutboxRepo) Save(ctx context.Context, tx database.Transaction, event *database.OutboxEvent) error {
+func (s *stubOutboxRepo) Save(_ context.Context, tx database.Transaction, event *database.OutboxEvent) error {
 	if tx == nil {
 		return errors.New("tx required")
 	}
@@ -265,13 +265,13 @@ func (s *stubOutboxRepo) Save(ctx context.Context, tx database.Transaction, even
 	return nil
 }
 
-func (s *stubOutboxRepo) GetUnpublishedForUpdate(ctx context.Context, tx database.Transaction, limit int) ([]*database.OutboxEvent, error) {
+func (s *stubOutboxRepo) GetUnpublishedForUpdate(_ context.Context, _ database.Transaction, _ int) ([]*database.OutboxEvent, error) {
 	return nil, nil
 }
 
-func (s *stubOutboxRepo) MarkPublished(ctx context.Context, eventID string) error { return nil }
+func (s *stubOutboxRepo) MarkPublished(_ context.Context, _ string) error { return nil }
 
-func (s *stubOutboxRepo) IncrementRetryCount(ctx context.Context, eventID string, nextAvailable time.Time) error {
+func (s *stubOutboxRepo) IncrementRetryCount(_ context.Context, _ string, _ time.Time) error {
 	return nil
 }
 

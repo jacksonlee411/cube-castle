@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func TestSetupRoutes_NoPanic(t *testing.T) {
+func TestSetupRoutes_NoPanic(_ *testing.T) {
 	r := chi.NewRouter()
 	// DevTools (dev mode)
 	dh := NewDevToolsHandler(nil, pkglogger.NewNoopLogger(), true, nil)

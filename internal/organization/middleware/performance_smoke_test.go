@@ -10,7 +10,7 @@ import (
 
 func TestPerformanceMiddleware_Serve(t *testing.T) {
 	pm := NewPerformanceMiddleware(pkglogger.NewNoopLogger())
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("ok"))
 	})

@@ -18,7 +18,7 @@ func TestRateLimitMiddleware_AllowsThenBlocks(t *testing.T) {
 	rl := NewRateLimitMiddleware(cfg, nil)
 
 	handled := 0
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		handled++
 		w.WriteHeader(http.StatusOK)
 	})

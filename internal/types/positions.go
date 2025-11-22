@@ -81,6 +81,7 @@ type FillPositionRequest struct {
 	Notes              *string  `json:"notes,omitempty" validate:"omitempty,max=500"`
 }
 
+// CreateAssignmentRequest 描述创建职位任命的请求。
 type CreateAssignmentRequest struct {
 	EmployeeID      string   `json:"employeeId" validate:"required,uuid4"`
 	EmployeeName    string   `json:"employeeName" validate:"required,max=120"`
@@ -94,6 +95,7 @@ type CreateAssignmentRequest struct {
 	Notes           *string  `json:"notes,omitempty" validate:"omitempty,max=500"`
 }
 
+// UpdateAssignmentRequest 描述更新任命信息的请求。
 type UpdateAssignmentRequest struct {
 	FTE             *float64 `json:"fte,omitempty"`
 	ActingUntil     *string  `json:"actingUntil,omitempty" validate:"omitempty,datetime=2006-01-02"`
@@ -102,12 +104,14 @@ type UpdateAssignmentRequest struct {
 	OperationReason string   `json:"operationReason" validate:"required"`
 }
 
+// CloseAssignmentRequest 表示结束任命的请求。
 type CloseAssignmentRequest struct {
 	EndDate         string  `json:"endDate" validate:"required,datetime=2006-01-02"`
 	OperationReason string  `json:"operationReason" validate:"required"`
 	Notes           *string `json:"notes,omitempty" validate:"omitempty,max=500"`
 }
 
+// AssignmentListFilter 定义任命列表的过滤条件。
 type AssignmentListFilter struct {
 	AssignmentTypes   []string
 	AssignmentStatus  *string
@@ -116,12 +120,14 @@ type AssignmentListFilter struct {
 	IncludeActingOnly bool
 }
 
+// AssignmentListOptions 封装列表分页配置。
 type AssignmentListOptions struct {
 	Filter   AssignmentListFilter
 	Page     int
 	PageSize int
 }
 
+// AssignmentUpdateParams 聚合更新任命所需的字段。
 type AssignmentUpdateParams struct {
 	FTE               *float64
 	ActingUntil       *time.Time
@@ -132,6 +138,7 @@ type AssignmentUpdateParams struct {
 	ClearReminderSent bool
 }
 
+// PaginationMeta 提供分页元数据。
 type PaginationMeta struct {
 	Total       int  `json:"total"`
 	Page        int  `json:"page"`
@@ -140,6 +147,7 @@ type PaginationMeta struct {
 	HasPrevious bool `json:"hasPrevious"`
 }
 
+// PositionAssignmentListResponse 表示任命列表响应。
 type PositionAssignmentListResponse struct {
 	Data       []PositionAssignmentResponse `json:"data"`
 	Pagination PaginationMeta               `json:"pagination"`
@@ -162,7 +170,7 @@ type TransferPositionRequest struct {
 	ReassignReports        *bool  `json:"reassignReports,omitempty"`
 }
 
-// Job catalog requests
+// CreateJobFamilyGroupRequest 描述创建职族组的请求。
 type CreateJobFamilyGroupRequest struct {
 	Code          string  `json:"code" validate:"required"`
 	Name          string  `json:"name" validate:"required"`
@@ -171,6 +179,7 @@ type CreateJobFamilyGroupRequest struct {
 	EffectiveDate string  `json:"effectiveDate" validate:"required,datetime=2006-01-02"`
 }
 
+// CreateJobFamilyRequest 描述创建职族的请求。
 type CreateJobFamilyRequest struct {
 	Code               string  `json:"code" validate:"required"`
 	JobFamilyGroupCode string  `json:"jobFamilyGroupCode" validate:"required"`
@@ -180,6 +189,7 @@ type CreateJobFamilyRequest struct {
 	EffectiveDate      string  `json:"effectiveDate" validate:"required,datetime=2006-01-02"`
 }
 
+// CreateJobRoleRequest 描述创建职级角色的请求。
 type CreateJobRoleRequest struct {
 	Code            string                 `json:"code" validate:"required"`
 	JobFamilyCode   string                 `json:"jobFamilyCode" validate:"required"`
@@ -190,6 +200,7 @@ type CreateJobRoleRequest struct {
 	CompetencyModel map[string]interface{} `json:"competencyModel,omitempty"`
 }
 
+// CreateJobLevelRequest 描述创建职级的请求。
 type CreateJobLevelRequest struct {
 	Code          string                 `json:"code" validate:"required"`
 	JobRoleCode   string                 `json:"jobRoleCode" validate:"required"`
@@ -201,6 +212,7 @@ type CreateJobLevelRequest struct {
 	SalaryBand    map[string]interface{} `json:"salaryBand,omitempty"`
 }
 
+// UpdateJobFamilyGroupRequest 描述更新职族组的请求。
 type UpdateJobFamilyGroupRequest struct {
 	Name          string  `json:"name" validate:"required"`
 	Status        string  `json:"status" validate:"required"`
@@ -208,6 +220,7 @@ type UpdateJobFamilyGroupRequest struct {
 	Description   *string `json:"description,omitempty"`
 }
 
+// UpdateJobFamilyRequest 描述更新职族的请求。
 type UpdateJobFamilyRequest struct {
 	Name               string  `json:"name" validate:"required"`
 	Status             string  `json:"status" validate:"required"`
@@ -216,6 +229,7 @@ type UpdateJobFamilyRequest struct {
 	JobFamilyGroupCode *string `json:"jobFamilyGroupCode,omitempty"`
 }
 
+// UpdateJobRoleRequest 描述更新职位角色的请求。
 type UpdateJobRoleRequest struct {
 	Name          string  `json:"name" validate:"required"`
 	Status        string  `json:"status" validate:"required"`
@@ -224,6 +238,7 @@ type UpdateJobRoleRequest struct {
 	JobFamilyCode *string `json:"jobFamilyCode,omitempty"`
 }
 
+// UpdateJobLevelRequest 描述更新职位级别的请求。
 type UpdateJobLevelRequest struct {
 	Name          string  `json:"name" validate:"required"`
 	Status        string  `json:"status" validate:"required"`
@@ -233,6 +248,7 @@ type UpdateJobLevelRequest struct {
 	LevelRank     *int    `json:"levelRank,omitempty"`
 }
 
+// JobCatalogVersionRequest 描述创建职族目录版本的请求。
 type JobCatalogVersionRequest struct {
 	Name           string  `json:"name" validate:"required"`
 	Status         string  `json:"status" validate:"required"`
@@ -277,6 +293,7 @@ type PositionResponse struct {
 	AssignmentHistory     []PositionAssignmentResponse `json:"assignmentHistory,omitempty"`
 }
 
+// PositionAssignmentResponse 表示职位任命的响应模型。
 type PositionAssignmentResponse struct {
 	AssignmentID     uuid.UUID  `json:"assignmentId"`
 	PositionCode     string     `json:"positionCode"`
@@ -373,7 +390,7 @@ type PositionTimelineEntry struct {
 	Status        string       `db:"status"`
 }
 
-// Job catalog 实体定义
+// JobFamilyGroup 表示职位目录中的职族组实体。
 type JobFamilyGroup struct {
 	RecordID      uuid.UUID      `db:"record_id"`
 	TenantID      uuid.UUID      `db:"tenant_id"`
@@ -386,6 +403,7 @@ type JobFamilyGroup struct {
 	IsCurrent     bool           `db:"is_current"`
 }
 
+// JobFamily 表示职位目录中的职族实体。
 type JobFamily struct {
 	RecordID        uuid.UUID      `db:"record_id"`
 	TenantID        uuid.UUID      `db:"tenant_id"`
@@ -400,6 +418,7 @@ type JobFamily struct {
 	IsCurrent       bool           `db:"is_current"`
 }
 
+// JobRole 表示职位目录中的职位角色实体。
 type JobRole struct {
 	RecordID      uuid.UUID      `db:"record_id"`
 	TenantID      uuid.UUID      `db:"tenant_id"`
@@ -415,6 +434,7 @@ type JobRole struct {
 	IsCurrent     bool           `db:"is_current"`
 }
 
+// JobLevel 表示职位目录中的职位级别实体。
 type JobLevel struct {
 	RecordID      uuid.UUID      `db:"record_id"`
 	TenantID      uuid.UUID      `db:"tenant_id"`

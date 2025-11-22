@@ -194,7 +194,7 @@ func (s *positionAssignmentValidationService) ValidateFillPosition(ctx context.C
 }
 
 // ValidateVacatePosition 校验清空职位请求。
-func (s *positionAssignmentValidationService) ValidateVacatePosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.VacatePositionRequest) *ValidationResult {
+func (s *positionAssignmentValidationService) ValidateVacatePosition(_ context.Context, _ uuid.UUID, _ string, _ *types.VacatePositionRequest) *ValidationResult {
 	return NewValidationResult()
 }
 
@@ -239,7 +239,7 @@ func (s *positionAssignmentValidationService) ValidateTransferPosition(ctx conte
 }
 
 // ValidateApplyEvent 校验职位事件请求。
-func (s *positionAssignmentValidationService) ValidateApplyEvent(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionEventRequest) *ValidationResult {
+func (s *positionAssignmentValidationService) ValidateApplyEvent(_ context.Context, _ uuid.UUID, _ string, _ *types.PositionEventRequest) *ValidationResult {
 	return NewValidationResult()
 }
 
@@ -638,7 +638,7 @@ func (s *positionAssignmentValidationService) newPosJobCatalogRule() RuleHandler
 }
 
 func (s *positionAssignmentValidationService) newAssignFTERule() RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		requested := s.extractRequestedFTE(subject)
 		if requested <= 0 || requested > 1.0 {
 			return &RuleOutcome{
@@ -663,7 +663,7 @@ func (s *positionAssignmentValidationService) newAssignFTERule() RuleHandler {
 }
 
 func (s *positionAssignmentValidationService) newAssignStateRule() RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		operation := s.extractOperation(subject)
 		switch sub := subject.(type) {
 		case *positionFillSubject:
@@ -690,7 +690,7 @@ func (s *positionAssignmentValidationService) newAssignStateRule() RuleHandler {
 }
 
 func (s *positionAssignmentValidationService) newCrossActiveRule() RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		position := s.extractPosition(subject)
 		org := s.extractOrganization(subject)
 		if position == nil || org == nil {
@@ -738,7 +738,7 @@ func (s *positionAssignmentValidationService) newCrossActiveRule() RuleHandler {
 }
 
 func (s *positionAssignmentValidationService) newPosHeadcountRule() RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		position := s.extractPosition(subject)
 		if position == nil {
 			return nil, nil
@@ -812,7 +812,7 @@ func (s *positionAssignmentValidationService) loadPositionContext(ctx context.Co
 	return position, org, currentFTE, nil
 }
 
-func (s *positionAssignmentValidationService) mergeJobCatalogContext(ctx context.Context, result *ValidationResult, tenantID uuid.UUID, req *types.PositionRequest) {
+func (s *positionAssignmentValidationService) mergeJobCatalogContext(_ context.Context, result *ValidationResult, tenantID uuid.UUID, req *types.PositionRequest) {
 	if result == nil || result.Context == nil || req == nil {
 		return
 	}

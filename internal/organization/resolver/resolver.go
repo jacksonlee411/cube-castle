@@ -195,7 +195,7 @@ func (r *Resolver) OrganizationVersions(ctx context.Context, args struct {
 }
 
 // 组织统计 (camelCase方法名)
-func (r *Resolver) OrganizationStats(ctx context.Context, args struct {
+func (r *Resolver) OrganizationStats(ctx context.Context, _ struct {
 	AsOfDate          *string
 	IncludeHistorical bool
 }) (*dto.OrganizationStats, error) {

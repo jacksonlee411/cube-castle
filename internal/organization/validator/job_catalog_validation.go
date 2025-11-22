@@ -259,7 +259,7 @@ func (s *jobCatalogValidationService) timelineFailureResult(operation, code stri
 }
 
 func (s *jobCatalogValidationService) newJobCatalogTemporalRule() RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+	return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		version, ok := subject.(*jobCatalogVersionSubject)
 		if !ok {
 			return nil, fmt.Errorf("JC-TEMPORAL rule expects jobCatalogVersionSubject, got %T", subject)
@@ -304,7 +304,7 @@ func (s *jobCatalogValidationService) newJobCatalogTemporalRule() RuleHandler {
 }
 
 func (s *jobCatalogValidationService) newJobCatalogSequenceRule() RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+	return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		version, ok := subject.(*jobCatalogVersionSubject)
 		if !ok {
 			return nil, fmt.Errorf("JC-SEQUENCE rule expects jobCatalogVersionSubject, got %T", subject)

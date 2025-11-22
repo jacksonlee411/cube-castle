@@ -11,6 +11,7 @@ import (
 type contextKey string
 
 const (
+	// RequestIDKey 是请求 ID 在上下文中的键。
 	RequestIDKey         contextKey = "requestId"
 	correlationIDKey     contextKey = "correlationId"
 	correlationSourceKey contextKey = "correlationSource"
@@ -50,6 +51,7 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
+// GetCorrelationID 从上下文读取关联 ID。
 func GetCorrelationID(ctx context.Context) string {
 	if correlationID, ok := ctx.Value(correlationIDKey).(string); ok {
 		return correlationID
@@ -57,6 +59,7 @@ func GetCorrelationID(ctx context.Context) string {
 	return ""
 }
 
+// GetCorrelationSource 返回相关 ID 的来源。
 func GetCorrelationSource(ctx context.Context) string {
 	if source, ok := ctx.Value(correlationSourceKey).(string); ok {
 		return source

@@ -49,9 +49,9 @@
 - 历史 E2E：`frontend-e2e.yml` / `e2e-tests.yml` 使用包含前端容器的完整栈（逐步迁移中）
 
 ## 自托管 Runner 选型（Plan 265 + Plan 269）
-- **阶段性策略：GitHub 平台 runner 优先，WSL Runner 做 smoke 验证**
-  - 2025-11-20 起，WSL Runner 是唯一允许的自托管形态；目前仅 `ci-selfhosted-smoke`/诊断类任务在 `runs-on: [self-hosted,cubecastle,wsl]` 上运行，以验证网络与依赖。
-  - 所有 Required workflow（document-sync、api-compliance、consistency-guard、plan-254-gates、iig-guardian、contract-testing、e2e-smoke 等）暂时改为 `runs-on: ubuntu-latest`，待 GitHub `workflow_dispatch` 在 WSL Runner 上恢复正常后，再按计划逐步迁移回 WSL。
+- **阶段性策略（2025-11-22 起）**
+  - WSL Runner 方案已取消，仓库禁止启用任何 `self-hosted,cubecastle,wsl` 标签，所有 workflow（含原 `ci-selfhosted-smoke`）一律使用 GitHub 平台 runner (`ubuntu-latest`)。
+  - 如需重新引入自托管 Runner，必须另行立项并通过审批；在没有新的审批前，`scripts/ci/runner/*` 仅供历史参考，禁止执行安装/启用操作。
 - **历史方案：Docker Runner（已退役）**
   - 旧版通过 `docker-compose.runner*.yml` 维护容器 Runner；现已关闭，不再作为默认路径。
   - 如确需恢复 Docker Runner，必须创建新的计划条目并重新审批。

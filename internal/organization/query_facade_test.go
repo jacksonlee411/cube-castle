@@ -51,7 +51,7 @@ func TestAssignmentQueryFacade_UsesCache(t *testing.T) {
 	positionCode := "P10001"
 
 	callCount := 0
-	fakeRepo.statsFn = func(ctx context.Context, tenantID uuid.UUID, pos string, org string) (*dto.AssignmentStats, error) {
+	fakeRepo.statsFn = func(_ context.Context, _ uuid.UUID, pos string, _ string) (*dto.AssignmentStats, error) {
 		callCount++
 		return &dto.AssignmentStats{
 			PositionCodeField:  &pos,

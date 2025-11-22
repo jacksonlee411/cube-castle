@@ -112,7 +112,7 @@ func TestJWTValidateTokenRS256WithJWKS(t *testing.T) {
 		}},
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(jwksPayload)
 	}))
 	defer server.Close()
@@ -204,7 +204,7 @@ func TestJWKSManagerRefresh(t *testing.T) {
 
 	payload := jwkSet{Keys: []jwkKey{{Kty: "RSA", Kid: "key", N: n, E: e}}}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(payload)
 	}))
 	defer server.Close()
@@ -218,7 +218,7 @@ func TestJWKSManagerRefresh(t *testing.T) {
 	}
 
 	// bad status response
-	badSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	badSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "boom", http.StatusInternalServerError)
 	}))
 	defer badSrv.Close()
@@ -364,7 +364,7 @@ func TestGraphQLPermissionMiddlewareProduction(t *testing.T) {
 
 	middleware := NewGraphQLPermissionMiddleware(jwtMW, checker, logger, false)
 
-	handler := middleware.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 

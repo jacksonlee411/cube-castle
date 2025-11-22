@@ -171,7 +171,7 @@ func decodeResponse(t *testing.T, recorder *httptest.ResponseRecorder) utils.API
 
 func TestPositionHandler_CreatePosition_Success(t *testing.T) {
 	service := &stubPositionService{
-		createFunc: func(ctx context.Context, tenantID uuid.UUID, req *types.PositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		createFunc: func(_ context.Context, _ uuid.UUID, req *types.PositionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			if req.Title != "HR Manager" {
 				t.Fatalf("unexpected title: %s", req.Title)
 			}
@@ -232,7 +232,7 @@ func TestPositionHandler_CreatePosition_Success(t *testing.T) {
 
 func TestPositionHandler_ReplacePosition_VersionConflict(t *testing.T) {
 	service := &stubPositionService{
-		replaceFunc: func(ctx context.Context, tenantID uuid.UUID, code string, ifMatch *string, req *types.PositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		replaceFunc: func(_ context.Context, _ uuid.UUID, code string, ifMatch *string, _ *types.PositionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			if code != "P2000001" {
 				t.Fatalf("unexpected code: %s", code)
 			}
@@ -270,7 +270,7 @@ func TestPositionHandler_ReplacePosition_VersionConflict(t *testing.T) {
 
 func TestPositionHandler_CreatePositionVersion_Success(t *testing.T) {
 	service := &stubPositionService{
-		versionFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionVersionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		versionFunc: func(_ context.Context, _ uuid.UUID, _ string, req *types.PositionVersionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			if req.EffectiveDate != "2025-02-01" {
 				t.Fatalf("unexpected effective date: %s", req.EffectiveDate)
 			}
@@ -299,7 +299,7 @@ func TestPositionHandler_CreatePositionVersion_Success(t *testing.T) {
 
 func TestPositionHandler_CreatePositionVersion_Conflict(t *testing.T) {
 	service := &stubPositionService{
-		versionFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionVersionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		versionFunc: func(_ context.Context, _ uuid.UUID, _ string, _ *types.PositionVersionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			return nil, service.ErrPositionVersionExists
 		},
 	}
@@ -328,7 +328,7 @@ func TestPositionHandler_CreatePositionVersion_Conflict(t *testing.T) {
 
 func TestPositionHandler_FillPosition_Success(t *testing.T) {
 	service := &stubPositionService{
-		fillFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		fillFunc: func(_ context.Context, _ uuid.UUID, _ string, req *types.FillPositionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			if req.EmployeeID != "11111111-1111-1111-1111-111111111111" {
 				t.Fatalf("unexpected employee id: %s", req.EmployeeID)
 			}
@@ -367,7 +367,7 @@ func TestPositionHandler_FillPosition_Success(t *testing.T) {
 func TestPositionHandler_CreateAssignment_Success(t *testing.T) {
 	assignmentID := uuid.New()
 	service := &stubPositionService{
-		createAssignmentFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.CreateAssignmentRequest, operator types.OperatedByInfo) (*types.PositionAssignmentResponse, error) {
+		createAssignmentFunc: func(_ context.Context, _ uuid.UUID, code string, req *types.CreateAssignmentRequest, _ types.OperatedByInfo) (*types.PositionAssignmentResponse, error) {
 			if req.EmployeeName != "李四" {
 				t.Fatalf("unexpected employee name: %s", req.EmployeeName)
 			}
@@ -409,7 +409,7 @@ func TestPositionHandler_CreateAssignment_Success(t *testing.T) {
 
 func TestPositionHandler_ApplyPositionEvent_NotFound(t *testing.T) {
 	service := &stubPositionService{
-		applyEventFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionEventRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		applyEventFunc: func(_ context.Context, _ uuid.UUID, _ string, _ *types.PositionEventRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			return nil, service.ErrPositionNotFound
 		},
 	}
@@ -438,7 +438,7 @@ func TestPositionHandler_ApplyPositionEvent_NotFound(t *testing.T) {
 
 func TestPositionHandler_VacatePosition_MissingCode(t *testing.T) {
 	service := &stubPositionService{
-		vacateFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.VacatePositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		vacateFunc: func(_ context.Context, _ uuid.UUID, _ string, _ *types.VacatePositionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			t.Fatalf("service should not be called")
 			return nil, nil
 		},
@@ -465,7 +465,7 @@ func TestPositionHandler_VacatePosition_MissingCode(t *testing.T) {
 
 func TestPositionHandler_TransferPosition_Error(t *testing.T) {
 	service := &stubPositionService{
-		transferFunc: func(ctx context.Context, tenantID uuid.UUID, code string, req *types.TransferPositionRequest, operator types.OperatedByInfo) (*types.PositionResponse, error) {
+		transferFunc: func(_ context.Context, _ uuid.UUID, _ string, _ *types.TransferPositionRequest, _ types.OperatedByInfo) (*types.PositionResponse, error) {
 			return nil, service.ErrJobCatalogMismatch
 		},
 	}

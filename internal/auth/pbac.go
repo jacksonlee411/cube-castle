@@ -123,7 +123,7 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 }
 
 // checkUserPermission 检查用户直接权限
-func (p *PBACPermissionChecker) checkUserPermission(ctx context.Context, tenantID, userID, permission string) bool {
+func (p *PBACPermissionChecker) checkUserPermission(_ context.Context, _ string, userID, _ string) bool {
 	// 这里可以查询用户权限表
 	// 简化实现：现在只检查是否为系统管理员
 	return userID == "admin"
@@ -142,7 +142,7 @@ func (p *PBACPermissionChecker) checkRolePermission(role, permission string) boo
 }
 
 // checkInheritedPermission 检查继承权限
-func (p *PBACPermissionChecker) checkInheritedPermission(ctx context.Context, tenantID, userID, permission string) bool {
+func (p *PBACPermissionChecker) checkInheritedPermission(_ context.Context, _ string, _ string, _ string) bool {
 	// 实现基于组织层级的权限继承
 	// 这里可以查询用户所在的组织，然后检查组织层级权限
 	// 简化实现：暂时返回false

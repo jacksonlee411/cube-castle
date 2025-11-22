@@ -11,6 +11,12 @@
 
 如需执行或更新回归，请参考以上“当前权威来源”。
 
+## Plan 272 – Required Checks 回收（2025-11-22）
+
+- 恢复 Query Service 健康端点 `database` 字段强校验：`scripts/simplified-e2e-test.sh` 缺字段即失败；`gh workflow run e2e-smoke.yml --ref feat/shared-dev` Run `19591826055`（artifact `e2e-smoke-outputs`，ID `4647891075`）生成验证证据。
+- `~/go/bin/golangci-lint run ./...` → `logs/plan272/golangci-typecheck-final-20251122T064255Z.log`（空文件表示 typecheck 0 issue），Plan 255/272 约束已回收。
+- `make workflow-lint` → `reports/workflows/actionlint-20251122T064452Z.txt`，维持 actionlint 常驻门禁，WSL runner 仍禁用，仅跑 ubuntu job。
+
 ## 4. 文档治理与命名抽象（Plan 247）
 - 完成文档与治理对齐（T5）：`Temporal Entity Experience Guide` 成为唯一事实来源；旧 Positions 指南路径在 reference 目录仅保留“Deprecated 占位符”（无正文）。  
 - 证据已落盘：  
