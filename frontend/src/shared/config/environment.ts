@@ -1,3 +1,5 @@
+import { logger } from '@/shared/utils/logger';
+
 type RawEnv = Record<string, string | boolean | undefined>;
 
 type ImportMetaContainer = { env?: unknown };
@@ -183,8 +185,8 @@ export const validateEnvironmentConfig = (): void => {
     );
   }
 
-  if (env.isDevelopment && typeof console !== 'undefined') {
-    console.info('[Environment] 开发环境配置已加载', {
+  if (env.isDevelopment) {
+    logger.info('[Environment] 开发环境配置已加载', {
       mode: env.mode,
       apiBaseUrl: env.apiBaseUrl || 'relative:/api/v1',
       graphqlEndpoint: env.graphqlEndpoint || 'relative:/graphql',
