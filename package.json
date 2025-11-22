@@ -7,7 +7,7 @@
     "guard:plan245": "node scripts/quality/plan245-guard.js",
     "guard:selectors-246": "node scripts/quality/selector-guard-246.js",
     "toolchain:health": "bash scripts/quality/toolchain-health.sh --scope all",
-    "quality:preflight": "node scripts/quality/document-sync.js && npm run guard:selectors-246 && npm --prefix frontend run lint",
+    "quality:preflight": "node scripts/quality/document-sync.js && npm run guard:selectors-246 && npm --prefix frontend run lint && npm run guard:fields && node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden && npm run lint:docs",
     "lint:changed:testid": "bash scripts/quality/lint-changed.sh",
     "lint:api": "spectral lint docs/api/openapi.yaml --fail-on-unmatched-globs",
     "lint:api:watch": "spectral lint docs/api/openapi.yaml --watch",
@@ -21,8 +21,7 @@
     "test:compliance": "npm run compliance:check && echo '✅ API合规性检查通过'",
     "build:analyze": "tsc -b && vite build",
     "fields:add": "node scripts/fields/add.js",
-    "guard:fields": "node scripts/quality/preflight-field-standard.js",
-    "quality:preflight": "node scripts/quality/document-sync.js && npm run guard:selectors-246 && npm --prefix frontend run lint && npm run guard:fields"
+    "guard:fields": "node scripts/quality/preflight-field-standard.js"
   },
   "devDependencies": {
     "@graphql-inspector/cli": "^5.0.8",

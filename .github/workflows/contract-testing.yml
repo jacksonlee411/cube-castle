@@ -320,11 +320,11 @@ jobs:
         cd frontend
         npm ci
         
-    - name: 构建性能分析
+    - name: 构建性能分析（build:verify）
       run: |
         cd frontend
-        npm run build
-        
+        npm run build:verify
+       
     - name: Bundle大小分析
       run: |
         cd frontend
