@@ -10,7 +10,8 @@
 
 表：`audit_logs`（见 database/migrations/**，以及实现 `internal/audit/logger.go`）
 
-> 组织单元相关的行级触发器在 Plan 234 中已全部移除，`database/migrations/20251110110000_234_remove_org_unit_triggers.sql` 通过 Goose 显式删除触发器与函数，命令服务仅通过 `internal/organization/audit/logger.go:120-189` 写入结构化审计，确保单一事实来源。
+> 组织单元相关的行级触发器在 Plan 234 中已全部移除，`database/migrations/20251110110000_234_remove_org_unit_triggers.sql` 通过 Goose 显式删除触发器与函数，命令服务仅通过 `internal/organization/audit/logger.go:120-189` 写入结构化审计，确保单一事实来源。  
+> ⚠️ 若复用既有 `postgres_data` 卷（未重新初始化容器），必须依照 `../archive/development-plans/234t-trigger-verification.md` Step 1 的 `DROP TRIGGER`/`DROP FUNCTION` SQL 在 `postgres` 容器中再执行一次，避免旧触发器残留导致 `scripts/validate-audit-recordid-consistency*.sql` 误报；执行完毕需重跑两份审计脚本并将日志落盘。
 
 - 核心字段（与实现保持一致）：
   - `event_type`：事件类型（AUTHENTICATION/ERROR/CREATE/UPDATE/...）

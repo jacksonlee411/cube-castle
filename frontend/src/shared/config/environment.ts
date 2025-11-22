@@ -184,7 +184,6 @@ export const validateEnvironmentConfig = (): void => {
   }
 
   if (env.isDevelopment && typeof console !== 'undefined') {
-    // eslint-disable-next-line no-console -- 开发态打印一次关键配置，便于排查环境变量
     console.info('[Environment] 开发环境配置已加载', {
       mode: env.mode,
       apiBaseUrl: env.apiBaseUrl || 'relative:/api/v1',

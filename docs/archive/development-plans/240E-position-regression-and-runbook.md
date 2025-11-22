@@ -2,7 +2,7 @@
 
 编号: 240E  
 上游: Plan 240（职位管理页面重构） · 依赖 240A/240B/240C/240D 完成  
-状态: 进行中（T0/T4 门禁已完成；回归套件执行转交 CI）
+状态: 已完成（CI 持续运行；2025-11-22 复验 lint/typecheck 合格）
 
 —
 
@@ -17,6 +17,10 @@
   - 计划守卫（Plan 245）：`logs/plan240/E/guard-plan245.log`  
 - 回归执行（T1）与证据落盘（trace/E2E 日志）交由 CI 持续运行；统一入口保持为 `frontend/tests/e2e/` 下职位域用例与 `frontend/playwright.config.ts` 指定的浏览器矩阵。  
 - 本计划不新增事件/选择器定义，采集与词汇表仅引用 `docs/reference/temporal-entity-experience-guide.md` 与 `frontend/src/shared/testids/temporalEntity.ts`（唯一事实来源）。
+
+## 进展登记（2025-11-22）
+- 复执行前端 lint/typecheck：`npm run lint`、`npm --prefix frontend run typecheck`，产出均落盘至 `logs/plan240/E/frontend-lint.log` 与 `logs/plan240/E/frontend-typecheck.log`，结果为 0 warning/0 error，满足关闭条件。  
+- 复核 `docs/development-plans/215-phase2-execution-log.md`，登记最新门禁结果并指向同一路径，确保执行日志与证据保持一致。
 
 ## 任务清单
 T0) 环境与门禁前置校验（以 AGENTS.md 为准；本计划仅补充 240E 专属差异）  
@@ -119,3 +123,7 @@ T4) 质量门禁结果汇总（依赖既有 CI/脚本；本计划仅统一落盘
 ## 关闭确认（2025-11-15 14:32:53 CST）
 - CI 稳定通过与门禁校验完成，产物已收敛至 `logs/plan240/E`（trace 见 `logs/plan240/E/trace`；HAR 见 `logs/plan240/B`/BT）。  
 - 执行日志已登记至 `docs/development-plans/215-phase2-execution-log.md`。
+
+## 关闭确认（2025-11-22 18:18:25 CST）
+- 前端 lint/typecheck 复验通过：`logs/plan240/E/frontend-lint.log`、`logs/plan240/E/frontend-typecheck.log` 均显示 0 warning/0 error。  
+- `docs/development-plans/215-phase2-execution-log.md` 已更新，标记前端门禁均为 ✅ 并引用上述日志；与 240E Runbook 的关闭条件保持一致。

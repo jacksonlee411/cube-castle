@@ -36,7 +36,7 @@
   - Plan 240BT：验收完成并归档  
     - `docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`
   - Plan 240E：登记本地 Smoke + 守卫证据，新增“关闭确认”段落；215 执行日志同步  
-    - `docs/development-plans/240E-position-regression-and-runbook.md`  
+    - `docs/archive/development-plans/240E-position-regression-and-runbook.md`  
     - `docs/development-plans/215-phase2-execution-log.md`
   - 文档索引更新：240 为“已完成”；列出 241 子计划（A/B/C）  
     - `docs/development-plans/HRMS-DOCUMENTATION-INDEX.md`

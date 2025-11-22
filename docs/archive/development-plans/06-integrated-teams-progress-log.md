@@ -5,7 +5,7 @@
 现行来源：
 - P0 用例清单与门禁：`docs/archive/development-plans/232-playwright-p0-stabilization.md`、`docs/archive/development-plans/232t-test-checklist.md`
 - 执行/进度汇总：`docs/development-plans/215-phase2-execution-log.md`
-- 职位域回归与运行手册：`docs/development-plans/240E-position-regression-and-runbook.md`
+- 职位域回归与运行手册：`docs/archive/development-plans/240E-position-regression-and-runbook.md`
 - 2025-11-21 更新：Plan 232 已在 Chromium/Firefox 双端复测并锁定 `@playwright/test@1.56.1`，最新日志保存在 `logs/219E/position-tabs-{chromium-20251121121935,firefox-20251121121954}.log`、`logs/219E/position-lifecycle-{chromium-20251121122024,firefox-20251121122032}.log` 中；请以上述现行来源为准。
 
 ---
