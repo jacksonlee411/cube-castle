@@ -1,10 +1,11 @@
+// Package types hosts shared API response contracts for the command service.
 package types
 
 import (
 	"time"
 )
 
-// 企业级成功响应结构
+// SuccessResponse 表示命令服务的标准成功响应。
 type SuccessResponse struct {
 	Success   bool        `json:"success"`
 	Data      interface{} `json:"data"`
@@ -13,7 +14,7 @@ type SuccessResponse struct {
 	RequestID string      `json:"requestId"`
 }
 
-// 企业级错误响应结构
+// EnterpriseErrorResponse 表示命令服务的标准错误响应。
 type EnterpriseErrorResponse struct {
 	Success   bool      `json:"success"`
 	Error     ErrorInfo `json:"error"`
@@ -21,6 +22,7 @@ type EnterpriseErrorResponse struct {
 	RequestID string    `json:"requestId"`
 }
 
+// ErrorInfo 提供错误代码、信息与可选详情。
 type ErrorInfo struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`

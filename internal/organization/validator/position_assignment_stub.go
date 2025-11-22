@@ -22,44 +22,44 @@ func (s *stubValidationService) result() *ValidationResult {
 }
 
 // Position 验证占位实现
-func (s *stubValidationService) ValidateCreatePosition(ctx context.Context, tenantID uuid.UUID, req *types.PositionRequest) *ValidationResult {
+func (s *stubValidationService) ValidateCreatePosition(_ context.Context, _ uuid.UUID, _ *types.PositionRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateReplacePosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionRequest) *ValidationResult {
+func (s *stubValidationService) ValidateReplacePosition(_ context.Context, _ uuid.UUID, _ string, _ *types.PositionRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateCreateVersion(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionVersionRequest) *ValidationResult {
+func (s *stubValidationService) ValidateCreateVersion(_ context.Context, _ uuid.UUID, _ string, _ *types.PositionVersionRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateFillPosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.FillPositionRequest) *ValidationResult {
+func (s *stubValidationService) ValidateFillPosition(_ context.Context, _ uuid.UUID, _ string, _ *types.FillPositionRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateVacatePosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.VacatePositionRequest) *ValidationResult {
+func (s *stubValidationService) ValidateVacatePosition(_ context.Context, _ uuid.UUID, _ string, _ *types.VacatePositionRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateTransferPosition(ctx context.Context, tenantID uuid.UUID, code string, req *types.TransferPositionRequest) *ValidationResult {
+func (s *stubValidationService) ValidateTransferPosition(_ context.Context, _ uuid.UUID, _ string, _ *types.TransferPositionRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateApplyEvent(ctx context.Context, tenantID uuid.UUID, code string, req *types.PositionEventRequest) *ValidationResult {
+func (s *stubValidationService) ValidateApplyEvent(_ context.Context, _ uuid.UUID, _ string, _ *types.PositionEventRequest) *ValidationResult {
 	return s.result()
 }
 
 // Assignment 验证占位实现
-func (s *stubValidationService) ValidateCreateAssignment(ctx context.Context, tenantID uuid.UUID, positionCode string, req *types.CreateAssignmentRequest) *ValidationResult {
+func (s *stubValidationService) ValidateCreateAssignment(_ context.Context, _ uuid.UUID, _ string, _ *types.CreateAssignmentRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateUpdateAssignment(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID uuid.UUID, req *types.UpdateAssignmentRequest) *ValidationResult {
+func (s *stubValidationService) ValidateUpdateAssignment(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _ *types.UpdateAssignmentRequest) *ValidationResult {
 	return s.result()
 }
 
-func (s *stubValidationService) ValidateCloseAssignment(ctx context.Context, tenantID uuid.UUID, positionCode string, assignmentID uuid.UUID, req *types.CloseAssignmentRequest) *ValidationResult {
+func (s *stubValidationService) ValidateCloseAssignment(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _ *types.CloseAssignmentRequest) *ValidationResult {
 	return s.result()
 }
 

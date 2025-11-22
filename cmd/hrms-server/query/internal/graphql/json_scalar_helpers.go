@@ -8,10 +8,10 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-func (ec *executionContext) unmarshalInputJSON(ctx context.Context, v interface{}) (dto.JSON, error) {
+func (ec *executionContext) unmarshalInputJSON(_ context.Context, v interface{}) (dto.JSON, error) {
 	return UnmarshalJSON(v)
 }
 
-func (ec *executionContext) _JSON(ctx context.Context, sel ast.SelectionSet, v dto.JSON) graphql.Marshaler {
+func (ec *executionContext) _JSON(_ context.Context, _ ast.SelectionSet, v dto.JSON) graphql.Marshaler {
 	return MarshalJSON(v)
 }

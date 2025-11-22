@@ -4,33 +4,16 @@ run:
   go: "1.24"
   env:
     - GOTOOLCHAIN=go1.24.9
-  # TODO-TEMPORARY(2025-11-16): soften package loading to avoid go1.24 typecheck noise on generated/third_party
-  skip-dirs:
-    - third_party
-    - tools
-  skip-files:
-    # TODO-TEMPORARY(2025-11-16): generated GraphQL contains constructs that trip go1.24 loader
-    - cmd/hrms-server/query/internal/graphql/generated.go
-    # TODO-TEMPORARY(2025-11-16): infra/dev helpers not part of boundary/naming gate
-    - scripts/cmd/.*
-    # TODO-TEMPORARY(2025-11-16): known local types under refactor
-    - internal/types/date.go
-    - internal/monitoring/health/health.go
-    - internal/config/scheduler.go
-    - internal/organization/middleware/performance.go
-    - cmd/hrms-server/command/internal/authbff/.*\.go
-    - cmd/hrms-server/query/publicgraphql/.*\.go
 
 linters:
+  disable-all: true
   enable:
+    - typecheck
     - depguard
     - importas
     - revive
     - govet
     - tagliatelle
-  disable:
-    # TODO-TEMPORARY(2025-11-30): 仅启用 boundary/naming 守卫，跳过 typecheck 噪音（缺少 go 1.24 toolchain 支持时会截断 push）
-    - typecheck
 
 linters-settings:
   depguard:
@@ -62,8 +45,16 @@ linters-settings:
   tagliatelle:
     case:
       json: camel
+  revive:
+    rules:
+      - name: unused-parameter
 
 issues:
+  exclude-dirs:
+    - third_party
+    - tools
+  exclude-files:
+    - cmd/hrms-server/query/internal/graphql/generated.go
   exclude-use-default: false
   exclude-rules:
     # 允许 OAuth/OIDC/JWT 标准字段的 snake_case json tag（仅限认证相关路径，且仅允许列举字段）

@@ -2,6 +2,7 @@
 
 **文档编号**: 272  
 **创建日期**: 2025-11-22  
+**状态**: 已完成（2025-11-22）  
 **关联计划**: Plan 264（Workflow 治理）、Plan 265（自托管门禁）、Plan 269（WSL Runner 部署）、Plan 270（Workflow 守卫回收）
 
 ---
@@ -56,9 +57,9 @@
 
 ## 4. 验收标准
 
-- [ ] `.golangci.yml`/`scripts/quality/golangci-fast.yml` 恢复 `typecheck`，`~/go/bin/golangci-lint run` 无噪音；Plan 255 pre-push 钩子不再输出类型错误。
-- [ ] `scripts/simplified-e2e-test.sh`/E2E spec 中与数据库健康相关的 TODO 删除，e2e-smoke workflow 的健康探针重新验证健康字段；Plan 270 Runbook 记录回收时间。
-- [ ] Plan 265 Runbook、Plan 270 Runbook 与 `docs/development-plans/06-integrated-teams-progress-log.md` 均添加 Plan 272 的执行记录；所有新的 `make workflow-lint` 输出落盘到 `reports/workflows/` 并记录，并明确标注“WSL Runner 已取消”。
+- [x] `.golangci.yml`/`scripts/quality/golangci-fast.yml` 恢复 `typecheck`，`~/go/bin/golangci-lint run` 无噪音；Plan 255 pre-push 钩子不再输出类型错误。
+- [x] `scripts/simplified-e2e-test.sh`/E2E spec 中与数据库健康相关的 TODO 删除，e2e-smoke workflow 的健康探针重新验证健康字段；Plan 270 Runbook 记录回收时间。
+- [x] Plan 265 Runbook、Plan 270 Runbook 与 `docs/development-plans/06-integrated-teams-progress-log.md` 均添加 Plan 272 的执行记录；所有新的 `make workflow-lint` 输出落盘到 `reports/workflows/` 并记录，并明确标注“WSL Runner 已取消”。
 
 ---
 

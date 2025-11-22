@@ -385,7 +385,7 @@ func (sr *StatusReporter) renderHTMLDashboard(w http.ResponseWriter, dashboard S
 
 // StatusPageHandler 状态页面处理器
 func (sr *StatusReporter) StatusPageHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		// 这里可以实现一个公共状态页面
 		// 显示所有服务的整体状态
 		w.Header().Set("Content-Type", "application/json")

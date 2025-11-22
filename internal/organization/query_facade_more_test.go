@@ -52,7 +52,7 @@ func Test_GetAssignments_RepoNil(t *testing.T) {
 func Test_GetAssignments_DelegatesAndTrims(t *testing.T) {
 	var gotPos string
 	repo := &fakeRepo{
-		assignmentsFn: func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
+		assignmentsFn: func(_ context.Context, _ uuid.UUID, positionCode string, _ *dto.PositionAssignmentFilterInput, _ *dto.PaginationInput, _ []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
 			gotPos = positionCode
 			return &dto.PositionAssignmentConnection{}, nil
 		},
@@ -70,7 +70,7 @@ func Test_GetAssignments_DelegatesAndTrims(t *testing.T) {
 func Test_GetAssignmentHistory_DelegatesAndTrims(t *testing.T) {
 	var gotPos string
 	repo := &fakeRepo{
-		historyFn: func(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
+		historyFn: func(_ context.Context, _ uuid.UUID, positionCode string, _ *dto.PositionAssignmentFilterInput, _ *dto.PaginationInput, _ []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
 			gotPos = positionCode
 			return &dto.PositionAssignmentConnection{}, nil
 		},
@@ -87,7 +87,7 @@ func Test_GetAssignmentHistory_DelegatesAndTrims(t *testing.T) {
 
 func Test_GetAssignmentStats_NoCacheAndNilFromRepoReturnsEmpty(t *testing.T) {
 	repo := &fakeRepo{
-		statsFn: func(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error) {
+		statsFn: func(_ context.Context, _ uuid.UUID, _ string, _ string) (*dto.AssignmentStats, error) {
 			return nil, nil // simulate not found / nil stats
 		},
 	}
@@ -116,7 +116,7 @@ func Test_RefreshPositionCache_DeletesKeys(t *testing.T) {
 	defer mr.Close()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	repo := &fakeRepo{
-		statsFn: func(ctx context.Context, tenantID uuid.UUID, positionCode string, organizationCode string) (*dto.AssignmentStats, error) {
+		statsFn: func(_ context.Context, _ uuid.UUID, _ string, _ string) (*dto.AssignmentStats, error) {
 			// return stable stats to populate cache
 			return &dto.AssignmentStats{TotalCountField: 1, LastUpdatedAtField: time.Now()}, nil
 		},

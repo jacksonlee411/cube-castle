@@ -2,7 +2,7 @@ package utils
 
 import "testing"
 
-func TestMetricsRecorders_NoPanic(t *testing.T) {
+func TestMetricsRecorders_NoPanic(_ *testing.T) {
 	// Exercise registration and counters
 	RecordTemporalOperation(OperationCreate, nil)
 	RecordTemporalOperation(OperationUpdate, assertError{})

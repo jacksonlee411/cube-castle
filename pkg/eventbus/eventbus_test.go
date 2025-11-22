@@ -19,7 +19,7 @@ func TestPublishWithSingleSubscriber(t *testing.T) {
 	}
 
 	var called bool
-	handler := func(ctx context.Context, e Event) error {
+	handler := func(_ context.Context, _ Event) error {
 		called = true
 		return nil
 	}
@@ -51,11 +51,11 @@ func TestPublishWithMultipleSubscribers(t *testing.T) {
 	}
 
 	callCount := 0
-	handler1 := func(ctx context.Context, e Event) error {
+	handler1 := func(_ context.Context, _ Event) error {
 		callCount++
 		return nil
 	}
-	handler2 := func(ctx context.Context, e Event) error {
+	handler2 := func(_ context.Context, _ Event) error {
 		callCount++
 		return nil
 	}
@@ -91,13 +91,13 @@ func TestPublishWithHandlerError(t *testing.T) {
 	callOrder := make([]int, 0, 2)
 	var mu sync.Mutex
 
-	handler1 := func(ctx context.Context, e Event) error {
+	handler1 := func(_ context.Context, _ Event) error {
 		mu.Lock()
 		callOrder = append(callOrder, 1)
 		mu.Unlock()
 		return errors.New("handler1 error")
 	}
-	handler2 := func(ctx context.Context, e Event) error {
+	handler2 := func(_ context.Context, _ Event) error {
 		mu.Lock()
 		callOrder = append(callOrder, 2)
 		mu.Unlock()
@@ -156,7 +156,7 @@ func TestConcurrentPublishAndSubscribe(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			handler := func(ctx context.Context, e Event) error {
+			handler := func(_ context.Context, _ Event) error {
 				callCount.Add(1)
 				return nil
 			}
@@ -207,7 +207,7 @@ func TestPublishWithNoSubscribers(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	bus := NewMemoryEventBus(nil, nil)
 
-	if err := bus.Subscribe("", func(ctx context.Context, e Event) error { return nil }); !errors.Is(err, ErrEmptyEventType) {
+	if err := bus.Subscribe("", func(_ context.Context, _ Event) error { return nil }); !errors.Is(err, ErrEmptyEventType) {
 		t.Fatalf("expected ErrEmptyEventType, got %v", err)
 	}
 
@@ -227,7 +227,7 @@ func TestErrorHandling(t *testing.T) {
 
 func TestReset(t *testing.T) {
 	bus := NewMemoryEventBus(nil, nil)
-	if err := bus.Subscribe("a", func(ctx context.Context, e Event) error { return nil }); err != nil {
+	if err := bus.Subscribe("a", func(_ context.Context, _ Event) error { return nil }); err != nil {
 		t.Fatalf("Subscribe failed: %v", err)
 	}
 	if got := bus.GetHandlerCount("a"); got != 1 {
@@ -249,7 +249,7 @@ func TestLatencyMetricRecorded(t *testing.T) {
 		aggregateID: "agg",
 	}
 
-	if err := bus.Subscribe("latency.event", func(ctx context.Context, e Event) error {
+	if err := bus.Subscribe("latency.event", func(_ context.Context, _ Event) error {
 		time.Sleep(5 * time.Millisecond)
 		return nil
 	}); err != nil {

@@ -798,7 +798,7 @@ func (s *TemporalService) getCurrentStatus(tx *sql.Tx, tenantID uuid.UUID, code 
 	return status, nil
 }
 
-func (s *TemporalService) getCurrentVersion(tx *sql.Tx, tenantID uuid.UUID, code string) *VersionResponse {
+func (s *TemporalService) getCurrentVersion(_ *sql.Tx, _ uuid.UUID, code string) *VersionResponse {
 	// 简化实现 - 返回基本信息
 	return &VersionResponse{
 		Code:    code,
@@ -818,7 +818,7 @@ func (s *TemporalService) insertIntermediateVersionInTx(ctx context.Context, tx 
 	})
 }
 
-func (s *TemporalService) writeTimelineEvent(tx *sql.Tx, tenantID uuid.UUID, code, operationType, reason string) error {
+func (s *TemporalService) writeTimelineEvent(_ *sql.Tx, _ uuid.UUID, _ string, _ string, _ string) error {
 	// 简化实现 - 写入审计日志
 	// 这里可以扩展为完整的时间线事件记录
 	return nil

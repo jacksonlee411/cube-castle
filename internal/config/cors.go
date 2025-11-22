@@ -1,3 +1,4 @@
+// Package config 提供环境驱动的配置解析工具。
 package config
 
 import (

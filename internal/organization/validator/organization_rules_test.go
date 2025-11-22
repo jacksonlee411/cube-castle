@@ -21,32 +21,32 @@ type stubHierarchy struct {
 	temporal  map[string]map[string]*repository.OrganizationNode
 }
 
-func (s *stubHierarchy) GetOrganization(ctx context.Context, code string, tenantID uuid.UUID) (*types.Organization, error) {
+func (s *stubHierarchy) GetOrganization(_ context.Context, code string, _ uuid.UUID) (*types.Organization, error) {
 	if org, ok := s.orgs[code]; ok {
 		return org, nil
 	}
 	return nil, fmt.Errorf("organization not found: %s", code)
 }
 
-func (s *stubHierarchy) GetOrganizationDepth(ctx context.Context, code string, tenantID uuid.UUID) (int, error) {
+func (s *stubHierarchy) GetOrganizationDepth(_ context.Context, code string, _ uuid.UUID) (int, error) {
 	if depth, ok := s.depths[code]; ok {
 		return depth, nil
 	}
 	return 0, fmt.Errorf("depth not found for %s", code)
 }
 
-func (s *stubHierarchy) GetAncestorChain(ctx context.Context, code string, tenantID uuid.UUID) ([]repository.OrganizationNode, error) {
+func (s *stubHierarchy) GetAncestorChain(_ context.Context, code string, _ uuid.UUID) ([]repository.OrganizationNode, error) {
 	if chain, ok := s.ancestors[code]; ok {
 		return chain, nil
 	}
 	return nil, nil
 }
 
-func (s *stubHierarchy) GetDirectChildren(ctx context.Context, code string, tenantID uuid.UUID) ([]repository.OrganizationNode, error) {
+func (s *stubHierarchy) GetDirectChildren(_ context.Context, _ string, _ uuid.UUID) ([]repository.OrganizationNode, error) {
 	return nil, nil
 }
 
-func (s *stubHierarchy) GetOrganizationAtDate(ctx context.Context, code string, tenantID uuid.UUID, ts time.Time) (*repository.OrganizationNode, error) {
+func (s *stubHierarchy) GetOrganizationAtDate(_ context.Context, code string, _ uuid.UUID, ts time.Time) (*repository.OrganizationNode, error) {
 	if entries, ok := s.temporal[code]; ok {
 		if node, ok := entries[ts.Format("2006-01-02")]; ok {
 			return node, nil
@@ -57,7 +57,7 @@ func (s *stubHierarchy) GetOrganizationAtDate(ctx context.Context, code string, 
 
 type stubOrgRepo struct{}
 
-func (stubOrgRepo) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+func (stubOrgRepo) GetByCode(_ context.Context, _ uuid.UUID, _ string) (*types.Organization, error) {
 	return nil, fmt.Errorf("not implemented in stub")
 }
 

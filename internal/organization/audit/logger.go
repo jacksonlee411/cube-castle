@@ -13,13 +13,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// AuditLogger 结构化审计日志记录器
+// AuditLogger 结构化审计日志记录器。
+//
+//revive:disable-next-line var-naming
 type AuditLogger struct {
 	db     *sql.DB
 	logger pkglogger.Logger
 }
 
-// AuditEvent 简化的审计事件 (v4.3.0 - 移除过度设计的技术细节追踪)
+// AuditEvent 简化的审计事件 (v4.3.0 - 移除过度设计的技术细节追踪)。
+//
+//revive:disable-next-line var-naming
 type AuditEvent struct {
 	ID                uuid.UUID              `json:"id"`
 	TenantID          uuid.UUID              `json:"tenantId"`
@@ -86,6 +90,7 @@ const (
 	ActorTypeService = "SERVICE"
 )
 
+// NewAuditLogger 创建结构化审计记录器。
 func NewAuditLogger(db *sql.DB, baseLogger pkglogger.Logger) *AuditLogger {
 	return &AuditLogger{
 		db: db,
@@ -350,7 +355,7 @@ func valueOrNil(ptr *string) interface{} {
 }
 
 // LogOrganizationCreate 记录组织创建事件 (v4.3.0 - 简化审计信息)
-func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.CreateOrganizationRequest, result *types.Organization, actorID, requestID, operationReason string) error {
+func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, _ *types.CreateOrganizationRequest, result *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(result.TenantID)
 	// 计算创建时的“新增字段”列表（使用实际值作为 newValue）
 	createdFields := []FieldChange{
@@ -415,7 +420,7 @@ func (a *AuditLogger) LogOrganizationCreate(ctx context.Context, req *types.Crea
 }
 
 // LogOrganizationUpdate 记录组织更新事件 (v4.3.0 - 简化参数，保留FieldChange)
-func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, req *types.UpdateOrganizationRequest, oldOrg, newOrg *types.Organization, actorID, requestID, operationReason string) error {
+func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, _ *types.UpdateOrganizationRequest, oldOrg, newOrg *types.Organization, actorID, requestID, operationReason string) error {
 	changes := a.calculateFieldChanges(oldOrg, newOrg)
 	modifiedFields := make([]string, len(changes))
 	for i, change := range changes {
@@ -465,7 +470,7 @@ func (a *AuditLogger) LogOrganizationUpdate(ctx context.Context, code string, re
 }
 
 // LogOrganizationSuspend 记录组织停用事件 (v4.3.0 - 简化参数)
-func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, org *types.Organization, actorID, requestID, operationReason string) error {
+func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, _ string, org *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(org.TenantID)
 	// 停用：记录状态字段变更
 	changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "INACTIVE", DataType: "string"}}
@@ -499,7 +504,7 @@ func (a *AuditLogger) LogOrganizationSuspend(ctx context.Context, code string, o
 }
 
 // LogOrganizationActivate 记录组织激活事件 (v4.3.0 - 简化参数)
-func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, code string, org *types.Organization, actorID, requestID, operationReason string) error {
+func (a *AuditLogger) LogOrganizationActivate(ctx context.Context, _ string, org *types.Organization, actorID, requestID, operationReason string) error {
 	tenantID, _ := uuid.Parse(org.TenantID)
 	// 激活：记录状态字段变更
 	changes := []FieldChange{{Field: "status", OldValue: org.Status, NewValue: "ACTIVE", DataType: "string"}}

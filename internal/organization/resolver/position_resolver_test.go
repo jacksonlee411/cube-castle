@@ -20,7 +20,7 @@ type stubPermissionChecker struct {
 	err       error
 }
 
-func (s *stubPermissionChecker) CheckQueryPermission(ctx context.Context, queryName string) error {
+func (s *stubPermissionChecker) CheckQueryPermission(_ context.Context, queryName string) error {
 	s.lastQuery = queryName
 	if s.err != nil {
 		return s.err
@@ -62,35 +62,35 @@ type stubRepository struct {
 	capturedAuditPagination          *dto.PaginationInput
 }
 
-func (s *stubRepository) GetOrganizations(ctx context.Context, tenantID uuid.UUID, filter *dto.OrganizationFilter, pagination *dto.PaginationInput) (*dto.OrganizationConnection, error) {
+func (s *stubRepository) GetOrganizations(_ context.Context, _ uuid.UUID, _ *dto.OrganizationFilter, _ *dto.PaginationInput) (*dto.OrganizationConnection, error) {
 	panic("GetOrganizations not expected")
 }
 
-func (s *stubRepository) GetOrganization(ctx context.Context, tenantID uuid.UUID, code string) (*dto.Organization, error) {
+func (s *stubRepository) GetOrganization(_ context.Context, _ uuid.UUID, _ string) (*dto.Organization, error) {
 	panic("GetOrganization not expected")
 }
 
-func (s *stubRepository) GetOrganizationAtDate(ctx context.Context, tenantID uuid.UUID, code string, date string) (*dto.Organization, error) {
+func (s *stubRepository) GetOrganizationAtDate(_ context.Context, _ uuid.UUID, _ string, _ string) (*dto.Organization, error) {
 	panic("GetOrganizationAtDate not expected")
 }
 
-func (s *stubRepository) GetOrganizationHistory(ctx context.Context, tenantID uuid.UUID, code string, fromDate string, toDate string) ([]dto.Organization, error) {
+func (s *stubRepository) GetOrganizationHistory(_ context.Context, _ uuid.UUID, _ string, _ string, _ string) ([]dto.Organization, error) {
 	panic("GetOrganizationHistory not expected")
 }
 
-func (s *stubRepository) GetOrganizationVersions(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]dto.Organization, error) {
+func (s *stubRepository) GetOrganizationVersions(_ context.Context, _ uuid.UUID, _ string, _ bool) ([]dto.Organization, error) {
 	panic("GetOrganizationVersions not expected")
 }
 
-func (s *stubRepository) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*dto.OrganizationStats, error) {
+func (s *stubRepository) GetOrganizationStats(_ context.Context, _ uuid.UUID) (*dto.OrganizationStats, error) {
 	panic("GetOrganizationStats not expected")
 }
 
-func (s *stubRepository) GetOrganizationHierarchy(ctx context.Context, tenantID uuid.UUID, code string) (*dto.OrganizationHierarchyData, error) {
+func (s *stubRepository) GetOrganizationHierarchy(_ context.Context, _ uuid.UUID, _ string) (*dto.OrganizationHierarchyData, error) {
 	panic("GetOrganizationHierarchy not expected")
 }
 
-func (s *stubRepository) GetOrganizationSubtree(ctx context.Context, tenantID uuid.UUID, code string, maxDepth int) (*dto.OrganizationHierarchyData, error) {
+func (s *stubRepository) GetOrganizationSubtree(_ context.Context, _ uuid.UUID, _ string, _ int) (*dto.OrganizationHierarchyData, error) {
 	panic("GetOrganizationSubtree not expected")
 }
 
@@ -198,27 +198,27 @@ func (s *stubRepository) GetPositionTransfers(ctx context.Context, tenantID uuid
 	return s.transferFn(ctx, tenantID, positionCode, organizationCode, pagination)
 }
 
-func (s *stubRepository) GetJobFamilyGroups(ctx context.Context, tenantID uuid.UUID, includeInactive bool, asOfDate *string) ([]dto.JobFamilyGroup, error) {
+func (s *stubRepository) GetJobFamilyGroups(_ context.Context, _ uuid.UUID, _ bool, _ *string) ([]dto.JobFamilyGroup, error) {
 	panic("GetJobFamilyGroups not expected")
 }
 
-func (s *stubRepository) GetJobFamilies(ctx context.Context, tenantID uuid.UUID, groupCode string, includeInactive bool, asOfDate *string) ([]dto.JobFamily, error) {
+func (s *stubRepository) GetJobFamilies(_ context.Context, _ uuid.UUID, _ string, _ bool, _ *string) ([]dto.JobFamily, error) {
 	panic("GetJobFamilies not expected")
 }
 
-func (s *stubRepository) GetJobRoles(ctx context.Context, tenantID uuid.UUID, familyCode string, includeInactive bool, asOfDate *string) ([]dto.JobRole, error) {
+func (s *stubRepository) GetJobRoles(_ context.Context, _ uuid.UUID, _ string, _ bool, _ *string) ([]dto.JobRole, error) {
 	panic("GetJobRoles not expected")
 }
 
-func (s *stubRepository) GetJobLevels(ctx context.Context, tenantID uuid.UUID, roleCode string, includeInactive bool, asOfDate *string) ([]dto.JobLevel, error) {
+func (s *stubRepository) GetJobLevels(_ context.Context, _ uuid.UUID, _ string, _ bool, _ *string) ([]dto.JobLevel, error) {
 	panic("GetJobLevels not expected")
 }
 
-func (s *stubRepository) GetAuditHistory(ctx context.Context, tenantID uuid.UUID, recordID string, startDate, endDate, operation, userID *string, limit int) ([]dto.AuditRecordData, error) {
+func (s *stubRepository) GetAuditHistory(_ context.Context, _ uuid.UUID, _ string, _ *string, _ *string, _ *string, _ *string, _ int) ([]dto.AuditRecordData, error) {
 	panic("GetAuditHistory not expected")
 }
 
-func (s *stubRepository) GetAuditLog(ctx context.Context, auditID string) (*dto.AuditRecordData, error) {
+func (s *stubRepository) GetAuditLog(_ context.Context, _ string) (*dto.AuditRecordData, error) {
 	panic("GetAuditLog not expected")
 }
 
@@ -232,7 +232,7 @@ func TestResolver_Positions_ForwardsParameters(t *testing.T) {
 	}
 
 	repo := &stubRepository{
-		positionsFn: func(ctx context.Context, tenantID uuid.UUID, f *dto.PositionFilterInput, p *dto.PaginationInput, s []dto.PositionSortInput) (*dto.PositionConnection, error) {
+		positionsFn: func(_ context.Context, tenantID uuid.UUID, _ *dto.PositionFilterInput, _ *dto.PaginationInput, _ []dto.PositionSortInput) (*dto.PositionConnection, error) {
 			now := time.Now().UTC()
 			position := dto.Position{
 				CodeField:               "P1000001",
@@ -293,7 +293,7 @@ func TestResolver_Positions_ForwardsParameters(t *testing.T) {
 
 func TestResolver_Positions_PermissionDenied(t *testing.T) {
 	repo := &stubRepository{
-		positionsFn: func(ctx context.Context, tenantID uuid.UUID, filter *dto.PositionFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionSortInput) (*dto.PositionConnection, error) {
+		positionsFn: func(_ context.Context, _ uuid.UUID, _ *dto.PositionFilterInput, _ *dto.PaginationInput, _ []dto.PositionSortInput) (*dto.PositionConnection, error) {
 			t.Fatalf("repository should not be called when permission denied")
 			return nil, nil
 		},
@@ -328,7 +328,7 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 	}
 
 	repo := &stubRepository{
-		assignmentsFn: func(ctx context.Context, tenantID uuid.UUID, code string, f *dto.PositionAssignmentFilterInput, p *dto.PaginationInput, s []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
+		assignmentsFn: func(_ context.Context, tenantID uuid.UUID, code string, _ *dto.PositionAssignmentFilterInput, _ *dto.PaginationInput, _ []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
 			now := time.Now().UTC()
 			assignment := dto.PositionAssignment{
 				AssignmentIDField:     uuid.New().String(),
@@ -411,7 +411,7 @@ func TestResolver_PositionAssignmentAudit_ForwardsParameters(t *testing.T) {
 	pagination := &dto.PaginationInput{Page: 2, PageSize: 20}
 
 	repo := &stubRepository{
-		assignmentAuditFn: func(ctx context.Context, tenantID uuid.UUID, code string, assignID *string, dr *dto.DateRangeInput, p *dto.PaginationInput) (*dto.PositionAssignmentAuditConnection, error) {
+		assignmentAuditFn: func(_ context.Context, _ uuid.UUID, _ string, _ *string, _ *dto.DateRangeInput, p *dto.PaginationInput) (*dto.PositionAssignmentAuditConnection, error) {
 			return &dto.PositionAssignmentAuditConnection{
 				DataField: []dto.PositionAssignmentAudit{},
 				PaginationField: dto.PaginationInfo{
@@ -476,7 +476,7 @@ func TestResolver_VacantPositions_ForwardsParameters(t *testing.T) {
 	}
 
 	repo := &stubRepository{
-		vacantFn: func(ctx context.Context, tenantID uuid.UUID, f *dto.VacantPositionFilterInput, p *dto.PaginationInput, s []dto.VacantPositionSortInput) (*dto.VacantPositionConnection, error) {
+		vacantFn: func(_ context.Context, _ uuid.UUID, _ *dto.VacantPositionFilterInput, p *dto.PaginationInput, _ []dto.VacantPositionSortInput) (*dto.VacantPositionConnection, error) {
 			return &dto.VacantPositionConnection{
 				DataField:  []dto.VacantPosition{},
 				EdgesField: []dto.VacantPositionEdge{},
@@ -531,7 +531,7 @@ func TestResolver_VacantPositions_ForwardsAsOfDate(t *testing.T) {
 		AsOfDate:          &asOf,
 	}
 	repo := &stubRepository{
-		vacantFn: func(ctx context.Context, tenantID uuid.UUID, f *dto.VacantPositionFilterInput, pagination *dto.PaginationInput, sorting []dto.VacantPositionSortInput) (*dto.VacantPositionConnection, error) {
+		vacantFn: func(_ context.Context, _ uuid.UUID, _ *dto.VacantPositionFilterInput, _ *dto.PaginationInput, _ []dto.VacantPositionSortInput) (*dto.VacantPositionConnection, error) {
 			return &dto.VacantPositionConnection{}, nil
 		},
 	}
@@ -562,7 +562,7 @@ func TestResolver_PositionTransfers_ForwardsParameters(t *testing.T) {
 	pagination := &dto.PaginationInput{Page: 2, PageSize: 5}
 
 	repo := &stubRepository{
-		transferFn: func(ctx context.Context, tenantID uuid.UUID, posCode *string, org *string, p *dto.PaginationInput) (*dto.PositionTransferConnection, error) {
+		transferFn: func(_ context.Context, _ uuid.UUID, _ *string, _ *string, p *dto.PaginationInput) (*dto.PositionTransferConnection, error) {
 			transfer := dto.PositionTransfer{
 				TransferIDField:           uuid.New().String(),
 				PositionCodeField:         positionCode,
@@ -618,7 +618,7 @@ func TestResolver_PositionTransfers_ForwardsParameters(t *testing.T) {
 
 func TestResolver_PositionHeadcountStats_CustomIncludeSubordinates(t *testing.T) {
 	repo := &stubRepository{
-		headcountFn: func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*dto.HeadcountStats, error) {
+		headcountFn: func(_ context.Context, _ uuid.UUID, organizationCode string, _ bool) (*dto.HeadcountStats, error) {
 			return &dto.HeadcountStats{OrganizationCodeField: organizationCode}, nil
 		},
 	}
@@ -641,7 +641,7 @@ func TestResolver_PositionHeadcountStats_CustomIncludeSubordinates(t *testing.T)
 func TestResolver_PositionHeadcountStats_UsesTenantFromContext(t *testing.T) {
 	targetTenant := uuid.New()
 	repo := &stubRepository{
-		headcountFn: func(ctx context.Context, tenantID uuid.UUID, organizationCode string, includeSubordinates bool) (*dto.HeadcountStats, error) {
+		headcountFn: func(_ context.Context, tenantID uuid.UUID, organizationCode string, _ bool) (*dto.HeadcountStats, error) {
 			if tenantID != targetTenant {
 				t.Fatalf("expected tenant %s, got %s", targetTenant, tenantID)
 			}
@@ -674,7 +674,7 @@ func TestResolver_PositionHeadcountStats_UsesTenantFromContext(t *testing.T) {
 func TestResolver_Position_ForwardsAsOfDate(t *testing.T) {
 	expectedDate := "2025-01-01"
 	repo := &stubRepository{
-		positionByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string, asOfDate *string) (*dto.Position, error) {
+		positionByCodeFn: func(_ context.Context, _ uuid.UUID, code string, asOfDate *string) (*dto.Position, error) {
 			if asOfDate == nil || *asOfDate != expectedDate {
 				t.Fatalf("expected asOfDate %s, got %v", expectedDate, asOfDate)
 			}
@@ -697,7 +697,7 @@ func TestResolver_PositionTimeline_ForwardsDateRange(t *testing.T) {
 	start := "2025-01-01"
 	end := "2025-12-31"
 	repo := &stubRepository{
-		timelineFn: func(ctx context.Context, tenantID uuid.UUID, code string, startDate, endDate *string) ([]dto.PositionTimelineEntry, error) {
+		timelineFn: func(_ context.Context, _ uuid.UUID, _ string, startDate, endDate *string) ([]dto.PositionTimelineEntry, error) {
 			if startDate == nil || *startDate != start {
 				t.Fatalf("unexpected startDate %v", startDate)
 			}
@@ -728,7 +728,7 @@ func newTestLogger() pkglogger.Logger {
 
 func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
 	repo := &stubRepository{
-		versionsFn: func(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]dto.Position, error) {
+		versionsFn: func(_ context.Context, _ uuid.UUID, code string, _ bool) ([]dto.Position, error) {
 			if code != "P1000001" {
 				t.Fatalf("unexpected code: %s", code)
 			}
@@ -770,7 +770,7 @@ func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
 func TestResolver_PositionVersions_IncludeDeletedFlag(t *testing.T) {
 	trueVal := true
 	repo := &stubRepository{
-		versionsFn: func(ctx context.Context, tenantID uuid.UUID, code string, includeDeleted bool) ([]dto.Position, error) {
+		versionsFn: func(_ context.Context, _ uuid.UUID, _ string, includeDeleted bool) ([]dto.Position, error) {
 			if !includeDeleted {
 				t.Fatalf("expected includeDeleted true")
 			}

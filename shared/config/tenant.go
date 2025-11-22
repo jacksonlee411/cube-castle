@@ -1,3 +1,4 @@
+// Package config exposes shared tenant defaults for development workflows.
 package config
 
 import "github.com/google/uuid"

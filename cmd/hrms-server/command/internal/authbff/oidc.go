@@ -103,7 +103,7 @@ func (c *OIDCClient) Discover() (*DiscoveryDoc, error) {
 }
 
 // BuildAuthURL 构建授权码+PKCE跳转地址
-func (c *OIDCClient) BuildAuthURL(authzEndpoint, state, nonce, codeChallenge string, redirect string) (string, error) {
+func (c *OIDCClient) BuildAuthURL(authzEndpoint, state, nonce, codeChallenge string, _ string) (string, error) {
 	u, err := url.Parse(authzEndpoint)
 	if err != nil {
 		return "", err

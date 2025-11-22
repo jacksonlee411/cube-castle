@@ -216,14 +216,14 @@ type mockL3Query struct {
 	statsCalls   int
 }
 
-func (m *mockL3Query) GetOrganizations(ctx context.Context, tenantID uuid.UUID, params QueryParams) ([]Organization, error) {
+func (m *mockL3Query) GetOrganizations(_ context.Context, _ uuid.UUID, _ QueryParams) ([]Organization, error) {
 	m.listCalls++
 	result := make([]Organization, len(m.listResult))
 	copy(result, m.listResult)
 	return result, nil
 }
 
-func (m *mockL3Query) GetOrganization(ctx context.Context, tenantID uuid.UUID, code string) (*Organization, error) {
+func (m *mockL3Query) GetOrganization(_ context.Context, _ uuid.UUID, code string) (*Organization, error) {
 	m.singleCalls++
 	if org, ok := m.singleResult[code]; ok && org != nil {
 		clone := *org
@@ -232,7 +232,7 @@ func (m *mockL3Query) GetOrganization(ctx context.Context, tenantID uuid.UUID, c
 	return nil, nil
 }
 
-func (m *mockL3Query) GetOrganizationStats(ctx context.Context, tenantID uuid.UUID) (*OrganizationStats, error) {
+func (m *mockL3Query) GetOrganizationStats(_ context.Context, _ uuid.UUID) (*OrganizationStats, error) {
 	m.statsCalls++
 	if m.statsResult == nil {
 		return nil, nil

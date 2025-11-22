@@ -1,10 +1,11 @@
+// Package types defines GraphQL query response helpers.
 package types
 
 import (
 	"time"
 )
 
-// 企业级成功响应结构
+// SuccessResponse 表示 GraphQL 查询层的统一成功响应。
 type SuccessResponse struct {
 	Success   bool        `json:"success"`
 	Data      interface{} `json:"data"`
@@ -13,7 +14,7 @@ type SuccessResponse struct {
 	RequestID string      `json:"requestId"`
 }
 
-// 企业级错误响应结构
+// EnterpriseErrorResponse 表示 GraphQL 查询层的统一错误响应。
 type EnterpriseErrorResponse struct {
 	Success   bool      `json:"success"`
 	Error     ErrorInfo `json:"error"`
@@ -21,6 +22,7 @@ type EnterpriseErrorResponse struct {
 	RequestID string    `json:"requestId"`
 }
 
+// ErrorInfo 记录错误代码及描述信息。
 type ErrorInfo struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`

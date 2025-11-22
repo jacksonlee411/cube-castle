@@ -52,6 +52,20 @@ type ScheduledTask struct {
 	mu               sync.Mutex
 }
 
+// TaskSnapshot 是对 ScheduledTask 的只读视图，避免暴露内部锁。
+type TaskSnapshot struct {
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	CronExpr     string        `json:"cron"`
+	Enabled      bool          `json:"enabled"`
+	ScriptFile   string        `json:"scriptFile"`
+	InitialDelay time.Duration `json:"initialDelay"`
+	Timeout      time.Duration `json:"timeout"`
+	LastRun      *time.Time    `json:"lastRun,omitempty"`
+	NextRun      time.Time     `json:"nextRun"`
+	Running      bool          `json:"running"`
+}
+
 // NewOperationalScheduler 创建运维任务调度器。
 func NewOperationalScheduler(
 	db *sql.DB,
@@ -396,11 +410,22 @@ func (s *OperationalScheduler) recordTaskExecution(task *ScheduledTask, status, 
 }
 
 // ListTasks 返回当前任务状态副本。
-func (s *OperationalScheduler) ListTasks() []ScheduledTask {
-	results := make([]ScheduledTask, 0, len(s.tasks))
+func (s *OperationalScheduler) ListTasks() []TaskSnapshot {
+	results := make([]TaskSnapshot, 0, len(s.tasks))
 	for _, task := range s.tasks {
 		task.mu.Lock()
-		clone := *task
+		clone := TaskSnapshot{
+			Name:         task.Name,
+			Description:  task.Description,
+			CronExpr:     task.CronExpr,
+			Enabled:      task.Enabled,
+			ScriptFile:   task.ScriptFile,
+			InitialDelay: task.InitialDelay,
+			Timeout:      task.Timeout,
+			LastRun:      task.LastRun,
+			NextRun:      task.NextRun,
+			Running:      task.Running,
+		}
 		task.mu.Unlock()
 		results = append(results, clone)
 	}

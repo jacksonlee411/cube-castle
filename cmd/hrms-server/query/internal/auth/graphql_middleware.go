@@ -11,6 +11,7 @@ import (
 	pkglogger "cube-castle/pkg/logger"
 )
 
+// GraphQLPermissionMiddleware 强制 GraphQL 请求执行 PBAC 校验。
 type GraphQLPermissionMiddleware struct {
 	jwtMiddleware     *JWTMiddleware
 	permissionChecker *PBACPermissionChecker
@@ -53,6 +54,7 @@ func requestLogger(base pkglogger.Logger, r *http.Request, action string, extra 
 	return base.WithFields(fields)
 }
 
+// NewGraphQLPermissionMiddleware 创建 GraphQL 权限中间件。
 func NewGraphQLPermissionMiddleware(
 	jwtMiddleware *JWTMiddleware,
 	permissionChecker *PBACPermissionChecker,
@@ -70,6 +72,7 @@ func NewGraphQLPermissionMiddleware(
 	}
 }
 
+// Middleware 返回标准 HTTP 中间件。
 func (g *GraphQLPermissionMiddleware) Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

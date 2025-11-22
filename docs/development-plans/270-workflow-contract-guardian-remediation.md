@@ -119,4 +119,4 @@
 
 仍存阻塞：
 
-- 由于 E2E smoke 目前在 CI 环境仅启动后端容器，数据库健康端点返回的 payload 未包含 `database` 字段，脚本暂时按“未返回内容视为跳过”处理；待 Query Service / health payload 回补字段后需恢复严格校验并同步更新脚本说明。
+- 2025-11-22：Plan 272 已回收 Query Service 健康端点豁免，`scripts/simplified-e2e-test.sh` 现要求 `database` 字段存在且状态为 healthy，缺失即失败；若远端 health payload 再度缺字段，需在 Plan 06/272 记录 Blocker 并暂停合并。

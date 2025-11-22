@@ -2,6 +2,7 @@ package utils
 
 import "strings"
 
+// RootParentCode 表示根节点占位符编码。
 const RootParentCode = "0000000"
 
 var legacyRootCodes = []string{"0", RootParentCode}

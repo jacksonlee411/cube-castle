@@ -282,7 +282,7 @@ func (a *Application) buildRouter(graphqlServer http.Handler, permission *auth.G
 	r.Handle("/graphql", graphqlHandler)
 
 	if devMode {
-		r.Get("/graphiql", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/graphiql", func(w http.ResponseWriter, _ *http.Request) {
 			html := graphiqlPage()
 			if _, err := w.Write([]byte(html)); err != nil {
 				http.Error(w, "failed to write GraphiQL page", http.StatusInternalServerError)

@@ -262,7 +262,7 @@ func (v *BusinessRuleValidator) newOrgCircularRule(parentCode string) RuleHandle
 }
 
 func (v *BusinessRuleValidator) newOrgStatusRule(existing *types.Organization) RuleHandler {
-	return func(ctx context.Context, subject interface{}) (*RuleOutcome, error) {
+	return func(_ context.Context, subject interface{}) (*RuleOutcome, error) {
 		update, ok := subject.(*organizationUpdateSubject)
 		if !ok {
 			return nil, fmt.Errorf("ORG-STATUS rule expects organizationUpdateSubject, got %T", subject)

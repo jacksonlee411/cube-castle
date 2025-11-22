@@ -14,8 +14,8 @@ import (
 
 func TestValidateCreatePosition_PosOrgInactive(t *testing.T) {
 	tenant := uuid.New()
-	orgRepo := &StubOrganizationRepository{
-		GetByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+		orgRepo := &StubOrganizationRepository{
+			GetByCodeFn: func(_ context.Context, _ uuid.UUID, code string) (*types.Organization, error) {
 			status := "INACTIVE"
 			return &types.Organization{Code: code, Status: status, Name: "Finance"}, nil
 		},
@@ -58,13 +58,13 @@ func TestValidateCreatePosition_PosOrgInactive(t *testing.T) {
 func TestValidateFillPosition_PosHeadcountExceeded(t *testing.T) {
 	tenant := uuid.New()
 	orgRepo := &StubOrganizationRepository{
-		GetByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+		GetByCodeFn: func(_ context.Context, _ uuid.UUID, code string) (*types.Organization, error) {
 			return &types.Organization{Code: code, Status: "ACTIVE", Name: "IT"}, nil
 		},
 	}
 	jobCatalog := activeJobCatalogStub()
 	positionRepo := &StubPositionRepository{
-		GetCurrentPositionFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.Position, error) {
+		GetCurrentPositionFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.Position, error) {
 			return &types.Position{
 				Code:              code,
 				OrganizationCode:  "1000001",
@@ -74,7 +74,7 @@ func TestValidateFillPosition_PosHeadcountExceeded(t *testing.T) {
 		},
 	}
 	assignRepo := &StubAssignmentRepository{
-		SumActiveFTEFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, positionCode string) (float64, error) {
+		SumActiveFTEFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ string) (float64, error) {
 			return 0.9, nil
 		},
 	}
@@ -112,7 +112,7 @@ func TestValidateCreateAssignment_AssignFTEInvalid(t *testing.T) {
 	jobCatalog := activeJobCatalogStub()
 	positionRepo := activePositionStub()
 	assignRepo := &StubAssignmentRepository{
-		SumActiveFTEFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, positionCode string) (float64, error) {
+		SumActiveFTEFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ string) (float64, error) {
 			return 0, nil
 		},
 	}
@@ -147,14 +147,14 @@ func TestValidateCreateAssignment_AssignFTEInvalid(t *testing.T) {
 func TestValidateCreateAssignment_CrossActiveOrganizationInactive(t *testing.T) {
 	tenant := uuid.New()
 	orgRepo := &StubOrganizationRepository{
-		GetByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+		GetByCodeFn: func(_ context.Context, _ uuid.UUID, code string) (*types.Organization, error) {
 			return &types.Organization{Code: code, Status: "INACTIVE", Name: "Finance"}, nil
 		},
 	}
 	jobCatalog := activeJobCatalogStub()
 	positionRepo := activePositionStub()
 	assignRepo := &StubAssignmentRepository{
-		SumActiveFTEFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, positionCode string) (float64, error) {
+		SumActiveFTEFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ string) (float64, error) {
 			return 0, nil
 		},
 	}
@@ -192,14 +192,14 @@ func TestValidateCloseAssignment_AssignStateGuard(t *testing.T) {
 	jobCatalog := activeJobCatalogStub()
 	positionRepo := activePositionStub()
 	assignRepo := &StubAssignmentRepository{
-		GetByIDFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, assignmentID uuid.UUID) (*types.PositionAssignment, error) {
+		GetByIDFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, assignmentID uuid.UUID) (*types.PositionAssignment, error) {
 			return &types.PositionAssignment{
 				AssignmentID:     assignmentID,
 				PositionCode:     "P1000001",
 				AssignmentStatus: "PENDING",
 			}, nil
 		},
-		SumActiveFTEFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, positionCode string) (float64, error) {
+		SumActiveFTEFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ string) (float64, error) {
 			return 0, nil
 		},
 	}
@@ -230,16 +230,16 @@ func TestValidateCreatePosition_PosJobCatalogInactive(t *testing.T) {
 	tenant := uuid.New()
 	orgRepo := activeOrgRepoStub()
 	jobCatalog := &StubJobCatalogRepository{
-		GetCurrentFamilyGroupFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobFamilyGroup, error) {
+		GetCurrentFamilyGroupFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobFamilyGroup, error) {
 			return &types.JobFamilyGroup{Code: code, Status: "ACTIVE", Name: "Operations"}, nil
 		},
-		GetCurrentJobFamilyFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobFamily, error) {
+		GetCurrentJobFamilyFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobFamily, error) {
 			return &types.JobFamily{Code: code, Status: "ACTIVE", Name: "HR"}, nil
 		},
-		GetCurrentJobRoleFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobRole, error) {
+		GetCurrentJobRoleFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobRole, error) {
 			return &types.JobRole{Code: code, Status: "INACTIVE", Name: "Lead"}, nil
 		},
-		GetCurrentJobLevelFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobLevel, error) {
+		GetCurrentJobLevelFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobLevel, error) {
 			return &types.JobLevel{Code: code, Status: "ACTIVE", Name: "P1"}, nil
 		},
 	}
@@ -288,7 +288,7 @@ func TestValidateUpdateAssignment_PosHeadcountExceeded(t *testing.T) {
 	orgRepo := activeOrgRepoStub()
 	jobCatalog := activeJobCatalogStub()
 	positionRepo := &StubPositionRepository{
-		GetCurrentPositionFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.Position, error) {
+		GetCurrentPositionFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.Position, error) {
 			return &types.Position{
 				Code:              code,
 				OrganizationCode:  "1000001",
@@ -298,7 +298,7 @@ func TestValidateUpdateAssignment_PosHeadcountExceeded(t *testing.T) {
 		},
 	}
 	assignRepo := &StubAssignmentRepository{
-		GetByIDFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, assignmentID uuid.UUID) (*types.PositionAssignment, error) {
+		GetByIDFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, assignmentID uuid.UUID) (*types.PositionAssignment, error) {
 			return &types.PositionAssignment{
 				AssignmentID:     assignmentID,
 				PositionCode:     "P1000001",
@@ -306,7 +306,7 @@ func TestValidateUpdateAssignment_PosHeadcountExceeded(t *testing.T) {
 				FTE:              0.8,
 			}, nil
 		},
-		SumActiveFTEFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, positionCode string) (float64, error) {
+		SumActiveFTEFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ string) (float64, error) {
 			return 1.0, nil
 		},
 	}
@@ -337,7 +337,7 @@ func TestValidateUpdateAssignment_PosHeadcountExceeded(t *testing.T) {
 func TestValidateTransferPosition_TargetOrgMissing(t *testing.T) {
 	tenant := uuid.New()
 	orgRepo := &StubOrganizationRepository{
-		GetByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+		GetByCodeFn: func(_ context.Context, _ uuid.UUID, _ string) (*types.Organization, error) {
 			return nil, nil
 		},
 	}
@@ -370,16 +370,16 @@ func TestValidateTransferPosition_TargetOrgMissing(t *testing.T) {
 
 func activeJobCatalogStub() *StubJobCatalogRepository {
 	return &StubJobCatalogRepository{
-		GetCurrentFamilyGroupFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobFamilyGroup, error) {
+		GetCurrentFamilyGroupFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobFamilyGroup, error) {
 			return &types.JobFamilyGroup{Code: code, Status: "ACTIVE", Name: "Operations"}, nil
 		},
-		GetCurrentJobFamilyFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobFamily, error) {
+		GetCurrentJobFamilyFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobFamily, error) {
 			return &types.JobFamily{Code: code, Status: "ACTIVE", Name: "HR"}, nil
 		},
-		GetCurrentJobRoleFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobRole, error) {
+		GetCurrentJobRoleFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobRole, error) {
 			return &types.JobRole{Code: code, Status: "ACTIVE", Name: "Manager"}, nil
 		},
-		GetCurrentJobLevelFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.JobLevel, error) {
+		GetCurrentJobLevelFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.JobLevel, error) {
 			return &types.JobLevel{Code: code, Status: "ACTIVE", Name: "P1"}, nil
 		},
 	}
@@ -458,7 +458,7 @@ func TestValidateVacateAndApplyEventNoOp(t *testing.T) {
 
 func TestValidateCreateVersion_PosOrgRule(t *testing.T) {
 	orgRepo := &StubOrganizationRepository{
-		GetByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+		GetByCodeFn: func(_ context.Context, _ uuid.UUID, _ string) (*types.Organization, error) {
 			return nil, nil
 		},
 	}
@@ -485,7 +485,7 @@ func buildDefaultValidationService() (PositionValidationService, AssignmentValid
 		activeJobCatalogStub(),
 		activePositionStub(),
 		&StubAssignmentRepository{
-			SumActiveFTEFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, positionCode string) (float64, error) {
+			SumActiveFTEFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, _ string) (float64, error) {
 				return 0, nil
 			},
 		},
@@ -499,7 +499,7 @@ func pointerString(value string) *string {
 
 func activeOrgRepoStub() *StubOrganizationRepository {
 	return &StubOrganizationRepository{
-		GetByCodeFn: func(ctx context.Context, tenantID uuid.UUID, code string) (*types.Organization, error) {
+		GetByCodeFn: func(_ context.Context, _ uuid.UUID, code string) (*types.Organization, error) {
 			return &types.Organization{Code: code, Status: "ACTIVE", Name: "HQ"}, nil
 		},
 	}
@@ -507,7 +507,7 @@ func activeOrgRepoStub() *StubOrganizationRepository {
 
 func activePositionStub() *StubPositionRepository {
 	return &StubPositionRepository{
-		GetCurrentPositionFn: func(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, code string) (*types.Position, error) {
+		GetCurrentPositionFn: func(_ context.Context, _ *sql.Tx, _ uuid.UUID, code string) (*types.Position, error) {
 			return &types.Position{
 				Code:              code,
 				OrganizationCode:  "1000001",

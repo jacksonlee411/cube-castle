@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	// Register PostgreSQL driver.
 	_ "github.com/lib/pq"
 )
 

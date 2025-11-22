@@ -13,16 +13,21 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type monitoringCollector interface {
+	CollectMetrics(ctx context.Context) (*scheduler.MonitoringMetrics, error)
+	CheckAlerts(ctx context.Context) ([]string, error)
+}
+
 // OperationalHandler 运维管理处理器
 type OperationalHandler struct {
-	monitor   *scheduler.TemporalMonitor
+	monitor   monitoringCollector
 	scheduler *scheduler.OperationalScheduler
 	logger    pkglogger.Logger
 	rateLimit *middleware.RateLimitMiddleware
 }
 
 // NewOperationalHandler 创建运维管理处理器
-func NewOperationalHandler(monitor *scheduler.TemporalMonitor, scheduler *scheduler.OperationalScheduler, rateLimit *middleware.RateLimitMiddleware, baseLogger pkglogger.Logger) *OperationalHandler {
+func NewOperationalHandler(monitor monitoringCollector, scheduler *scheduler.OperationalScheduler, rateLimit *middleware.RateLimitMiddleware, baseLogger pkglogger.Logger) *OperationalHandler {
 	return &OperationalHandler{
 		monitor:   monitor,
 		scheduler: scheduler,
@@ -88,6 +93,10 @@ func (h *OperationalHandler) GetRateLimitStats(w http.ResponseWriter, r *http.Re
 
 // GetHealth 获取系统健康状态
 func (h *OperationalHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
+	if h.monitor == nil {
+		http.Error(w, "Monitor module disabled", http.StatusServiceUnavailable)
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 	logger := h.requestLogger(r, "GetHealth", nil)
@@ -130,6 +139,10 @@ func (h *OperationalHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 // GetMetrics 获取详细监控指标
 func (h *OperationalHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
+	if h.monitor == nil {
+		http.Error(w, "Monitor module disabled", http.StatusServiceUnavailable)
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 	logger := h.requestLogger(r, "GetMetrics", nil)
@@ -155,6 +168,10 @@ func (h *OperationalHandler) GetMetrics(w http.ResponseWriter, r *http.Request) 
 
 // GetAlerts 获取当前告警
 func (h *OperationalHandler) GetAlerts(w http.ResponseWriter, r *http.Request) {
+	if h.monitor == nil {
+		http.Error(w, "Monitor module disabled", http.StatusServiceUnavailable)
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 	logger := h.requestLogger(r, "GetAlerts", nil)
@@ -216,7 +233,8 @@ func (h *OperationalHandler) GetTaskStatus(w http.ResponseWriter, r *http.Reques
 
 	// 计算任务统计
 	var enabledCount, runningCount int
-	for _, task := range tasks {
+	for i := range tasks {
+		task := &tasks[i]
 		if task.Enabled {
 			enabledCount++
 		}

@@ -340,6 +340,20 @@ func (rlm *RateLimitMiddleware) ResetStats() {
 	rlm.logger.Info("rate limit stats reset")
 }
 
+// Config 返回当前限流配置副本，防止调用方修改内部状态。
+func (rlm *RateLimitMiddleware) Config() *RateLimitConfig {
+	if rlm == nil {
+		return nil
+	}
+	rlm.mutex.RLock()
+	defer rlm.mutex.RUnlock()
+	if rlm.config == nil {
+		return nil
+	}
+	cfgCopy := *rlm.config
+	return &cfgCopy
+}
+
 // UpdateConfig 更新限流配置
 func (rlm *RateLimitMiddleware) UpdateConfig(config *RateLimitConfig) {
 	rlm.mutex.Lock()

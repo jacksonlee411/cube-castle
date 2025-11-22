@@ -6,12 +6,11 @@ run:
     - GOTOOLCHAIN=go1.24.9
 
 linters:
+  disable-all: true
   enable:
+    - typecheck
     - depguard
     - tagliatelle
-  disable:
-    # TODO-TEMPORARY(2025-11-30): depguard/tagliatelle 仅依赖 import graph，禁止 typecheck 噪音阻断本地 push
-    - typecheck
 
 linters-settings:
   depguard:
@@ -37,6 +36,11 @@ linters-settings:
       json: camel
 
 issues:
+  exclude-dirs:
+    - third_party
+    - tools
+  exclude-files:
+    - cmd/hrms-server/query/internal/graphql/generated.go
   exclude-use-default: false
   exclude-rules:
     - linters:

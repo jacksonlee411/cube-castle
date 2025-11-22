@@ -8,14 +8,21 @@ import (
 )
 
 const (
-	OperationCreate     = "create"
-	OperationUpdate     = "update"
-	OperationDelete     = "delete"
-	OperationSuspend    = "suspend"
+	// OperationCreate 表示创建操作。
+	OperationCreate = "create"
+	// OperationUpdate 表示更新操作。
+	OperationUpdate = "update"
+	// OperationDelete 表示删除操作。
+	OperationDelete = "delete"
+	// OperationSuspend 表示停用操作。
+	OperationSuspend = "suspend"
+	// OperationReactivate 表示恢复操作。
 	OperationReactivate = "reactivate"
 
+	// StatusSuccess 表示操作成功。
 	StatusSuccess = "success"
-	StatusError   = "error"
+	// StatusError 表示操作失败。
+	StatusError = "error"
 )
 
 var (
@@ -65,6 +72,7 @@ func ensureRegistered() {
 	})
 }
 
+// RecordTemporalOperation 记录时态操作的成功/失败次数。
 func RecordTemporalOperation(operation string, err error) {
 	ensureRegistered()
 
@@ -76,6 +84,7 @@ func RecordTemporalOperation(operation string, err error) {
 	temporalOperationsTotal.WithLabelValues(operation, status).Inc()
 }
 
+// RecordAuditWrite 记录审计写入结果。
 func RecordAuditWrite(err error) {
 	ensureRegistered()
 
@@ -87,6 +96,7 @@ func RecordAuditWrite(err error) {
 	auditWritesTotal.WithLabelValues(status).Inc()
 }
 
+// RecordHTTPRequest 记录 HTTP 请求维度的指标。
 func RecordHTTPRequest(method, route string, statusCode int) {
 	ensureRegistered()
 

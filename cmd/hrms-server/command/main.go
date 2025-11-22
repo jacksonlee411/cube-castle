@@ -328,7 +328,7 @@ func main() {
 
 	// 限流状态监控端点（Dev-only）
 	if devMode {
-		r.Get("/debug/rate-limit/stats", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/debug/rate-limit/stats", func(w http.ResponseWriter, _ *http.Request) {
 			stats := rateLimitMiddleware.GetStats()
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintf(w, `{
@@ -342,7 +342,7 @@ func main() {
 				float64(stats.BlockedRequests)/float64(stats.TotalRequests)*100)
 		})
 
-		r.Get("/debug/rate-limit/clients", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/debug/rate-limit/clients", func(w http.ResponseWriter, _ *http.Request) {
 			clients := rateLimitMiddleware.GetActiveClients()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -397,7 +397,7 @@ func main() {
 
 	// 路由枚举（调试）
 	if devMode {
-		_ = chi.Walk(r, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		_ = chi.Walk(r, func(method string, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
 			commandLogger.WithFields(pkglogger.Fields{
 				"method": method,
 				"route":  route,

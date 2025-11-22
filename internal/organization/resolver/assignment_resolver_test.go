@@ -49,7 +49,7 @@ func TestResolver_Assignments_ForwardsParameters(t *testing.T) {
 	pagination := &dto.PaginationInput{Page: 2, PageSize: 10}
 	sorting := []dto.PositionAssignmentSortInput{{Field: "EFFECTIVE_DATE", Direction: "DESC"}}
 
-	facade.assignmentsFn = func(ctx context.Context, tenantID uuid.UUID, code string, f *dto.PositionAssignmentFilterInput, p *dto.PaginationInput, s []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
+	facade.assignmentsFn = func(_ context.Context, tenantID uuid.UUID, code string, f *dto.PositionAssignmentFilterInput, p *dto.PaginationInput, s []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
 		if code != positionCode {
 			t.Fatalf("unexpected position code: %s", code)
 		}
@@ -91,7 +91,7 @@ func TestResolver_AssignmentHistory_UsesFacade(t *testing.T) {
 	facade := &stubAssignmentFacade{}
 	res := NewResolverWithAssignments(repo, facade, pkglogger.NewNoopLogger(), perm)
 
-	facade.historyFn = func(ctx context.Context, tenantID uuid.UUID, code string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
+	facade.historyFn = func(_ context.Context, _ uuid.UUID, code string, _ *dto.PositionAssignmentFilterInput, _ *dto.PaginationInput, _ []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
 		if code != "P1002" {
 			t.Fatalf("unexpected position code: %s", code)
 		}
@@ -133,7 +133,7 @@ func TestResolver_AssignmentStats_ForwardsParameters(t *testing.T) {
 
 	positionCode := "P2001"
 	orgCode := "DEPT01"
-	facade.statsFn = func(ctx context.Context, tenantID uuid.UUID, pos string, org string) (*dto.AssignmentStats, error) {
+	facade.statsFn = func(_ context.Context, _ uuid.UUID, pos string, org string) (*dto.AssignmentStats, error) {
 		if pos != positionCode {
 			t.Fatalf("unexpected position code: %s", pos)
 		}

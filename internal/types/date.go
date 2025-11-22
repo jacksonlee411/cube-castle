@@ -1,3 +1,4 @@
+// Package types provides shared primitive types (e.g. Date).
 package types
 
 import (
@@ -34,7 +35,7 @@ func (d *Date) MarshalJSON() ([]byte, error) {
 	if d == nil {
 		return []byte("null"), nil
 	}
-	return json.Marshal(d.Format("2006-01-02"))
+	return json.Marshal(d.Time.Format("2006-01-02"))
 }
 
 // UnmarshalJSON 实现JSON反序列化
@@ -85,7 +86,7 @@ func (d *Date) String() string {
 	if d == nil {
 		return ""
 	}
-	return d.Format("2006-01-02")
+	return d.Time.Format("2006-01-02")
 }
 
 // NewDateFromTime 从time.Time创建Date

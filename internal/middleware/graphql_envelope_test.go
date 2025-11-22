@@ -12,7 +12,7 @@ func executeMiddleware(t *testing.T, payload []byte) map[string]interface{} {
 	t.Helper()
 	mw := NewGraphQLEnvelopeMiddleware()
 	recorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(payload)
 	})

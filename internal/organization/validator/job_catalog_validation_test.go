@@ -15,7 +15,7 @@ import (
 func TestJobCatalogTemporalAllowsInitialVersion(t *testing.T) {
 	tenant := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListFamilyGroupTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListFamilyGroupTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return []repository.JobCatalogTimelineEntry{}, nil
 		},
 	}
@@ -40,7 +40,7 @@ func TestJobCatalogTemporalRejectsOverlappingVersion(t *testing.T) {
 	tenant := uuid.New()
 	latestRecord := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListJobFamilyTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListJobFamilyTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return []repository.JobCatalogTimelineEntry{
 				{
 					RecordID:      latestRecord,
@@ -77,7 +77,7 @@ func TestJobCatalogSequenceRejectsMismatchedParent(t *testing.T) {
 	tenant := uuid.New()
 	expectedParent := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListJobRoleTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListJobRoleTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return []repository.JobCatalogTimelineEntry{
 				{
 					RecordID:      expectedParent,
@@ -120,7 +120,7 @@ func TestJobCatalogSequenceAcceptsMatchingParent(t *testing.T) {
 	tenant := uuid.New()
 	parent := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListJobLevelTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListJobLevelTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return []repository.JobCatalogTimelineEntry{
 				{
 					RecordID:      parent,
@@ -170,7 +170,7 @@ func TestJobCatalogRequiresValidEffectiveDate(t *testing.T) {
 func TestJobCatalogTimelineFailure(t *testing.T) {
 	tenant := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListJobFamilyTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListJobFamilyTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return nil, fmt.Errorf("boom")
 		},
 	}
@@ -199,7 +199,7 @@ func TestJobCatalogSequenceMissingParent(t *testing.T) {
 	tenant := uuid.New()
 	expected := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListJobRoleTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListJobRoleTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return []repository.JobCatalogTimelineEntry{
 				{
 					RecordID:      expected,
@@ -243,7 +243,7 @@ func TestJobCatalogSequenceMissingParent(t *testing.T) {
 func TestJobCatalogSequenceMissingTimeline(t *testing.T) {
 	tenant := uuid.New()
 	stub := &StubJobCatalogTimelineRepository{
-		ListJobLevelTimelineFn: func(ctx context.Context, tenantID uuid.UUID, code string) ([]repository.JobCatalogTimelineEntry, error) {
+		ListJobLevelTimelineFn: func(_ context.Context, _ uuid.UUID, _ string) ([]repository.JobCatalogTimelineEntry, error) {
 			return []repository.JobCatalogTimelineEntry{}, nil
 		},
 	}

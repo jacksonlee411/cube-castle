@@ -16,8 +16,11 @@ import (
 type AlertLevel string
 
 const (
-	AlertLevelInfo     AlertLevel = "info"
-	AlertLevelWarning  AlertLevel = "warning"
+	// AlertLevelInfo 表示信息类告警。
+	AlertLevelInfo AlertLevel = "info"
+	// AlertLevelWarning 表示警告级别告警。
+	AlertLevelWarning AlertLevel = "warning"
+	// AlertLevelCritical 表示严重告警。
 	AlertLevelCritical AlertLevel = "critical"
 )
 
@@ -84,14 +87,17 @@ func NewWebhookChannel(name, url string) *WebhookChannel {
 	}
 }
 
+// Name 返回 webhook 渠道的名称。
 func (w *WebhookChannel) Name() string {
 	return w.name
 }
 
+// AddHeader 为 webhook 请求添加自定义头。
 func (w *WebhookChannel) AddHeader(key, value string) {
 	w.headers[key] = value
 }
 
+// Send 通过 webhook 推送告警。
 func (w *WebhookChannel) Send(ctx context.Context, alert Alert) error {
 	payload := map[string]interface{}{
 		"alert":     alert,
@@ -149,10 +155,12 @@ func NewSlackChannel(webhookURL, channel, username string) *SlackChannel {
 	}
 }
 
+// Name 返回 Slack 渠道标识。
 func (s *SlackChannel) Name() string {
 	return "slack"
 }
 
+// Send 将告警推送到 Slack webhook。
 func (s *SlackChannel) Send(ctx context.Context, alert Alert) error {
 	// 根据告警级别选择颜色和emoji
 	var color, emoji string
@@ -259,11 +267,12 @@ type EmailChannel struct {
 	logger   pkglogger.Logger
 }
 
+// Name 返回邮件渠道标识。
 func (e *EmailChannel) Name() string {
 	return "email"
 }
 
-// SetLogger 允许注入结构化日志器
+// SetLogger 允许注入结构化日志器。
 func (e *EmailChannel) SetLogger(logger pkglogger.Logger) {
 	if logger != nil {
 		e.logger = logger.WithFields(pkglogger.Fields{
@@ -272,7 +281,8 @@ func (e *EmailChannel) SetLogger(logger pkglogger.Logger) {
 	}
 }
 
-func (e *EmailChannel) Send(ctx context.Context, alert Alert) error {
+// Send 模拟发送告警邮件。
+func (e *EmailChannel) Send(_ context.Context, alert Alert) error {
 	// 这里应该实现SMTP邮件发送
 	// 为了简化，这里只是记录日志
 	logger := e.logger

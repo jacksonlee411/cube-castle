@@ -62,7 +62,7 @@ func TestRS256JWTValidationWithJWKS_Success(t *testing.T) {
 	pk, pub := generateRSA()
 	jwks := buildJWKS(pub, "test-kid")
 	// JWKS test server
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(jwks)
 	}))
@@ -79,7 +79,7 @@ func TestRS256JWTValidationWithJWKS_Success(t *testing.T) {
 func TestRS256JWTValidationWithJWKS_InvalidAudience(t *testing.T) {
 	pk, pub := generateRSA()
 	jwks := buildJWKS(pub, "test-kid")
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(jwks)
 	}))

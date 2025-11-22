@@ -21,20 +21,20 @@ type fakeRepo struct {
 	retryCalls        int32
 }
 
-func (r *fakeRepo) Save(ctx context.Context, tx database.Transaction, event *database.OutboxEvent) error {
+func (r *fakeRepo) Save(_ context.Context, _ database.Transaction, _ *database.OutboxEvent) error {
 	return nil
 }
 
-func (r *fakeRepo) GetUnpublishedForUpdate(ctx context.Context, tx database.Transaction, limit int) ([]*database.OutboxEvent, error) {
+func (r *fakeRepo) GetUnpublishedForUpdate(_ context.Context, _ database.Transaction, _ int) ([]*database.OutboxEvent, error) {
 	return r.events, nil
 }
 
-func (r *fakeRepo) MarkPublished(ctx context.Context, eventID string) error {
+func (r *fakeRepo) MarkPublished(_ context.Context, _ string) error {
 	atomic.AddInt32(&r.markPublishedCall, 1)
 	return nil
 }
 
-func (r *fakeRepo) IncrementRetryCount(ctx context.Context, eventID string, nextAvailable time.Time) error {
+func (r *fakeRepo) IncrementRetryCount(_ context.Context, _ string, _ time.Time) error {
 	atomic.AddInt32(&r.retryCalls, 1)
 	return nil
 }
@@ -43,7 +43,7 @@ type fakeBus struct {
 	fail bool
 }
 
-func (b *fakeBus) Publish(ctx context.Context, event eventbus.Event) error {
+func (b *fakeBus) Publish(_ context.Context, _ eventbus.Event) error {
 	if b.fail {
 		return errors.New("fail")
 	}
@@ -59,7 +59,7 @@ type fakeCache struct {
 	fail         bool
 }
 
-func (f *fakeCache) RefreshPositionCache(ctx context.Context, tenantID uuid.UUID, positionCode string) error {
+func (f *fakeCache) RefreshPositionCache(_ context.Context, tenantID uuid.UUID, positionCode string) error {
 	atomic.AddInt32(&f.calls, 1)
 	f.lastTenant = tenantID
 	f.lastPosition = positionCode

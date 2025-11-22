@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,30 +16,42 @@ import (
 
 type fakeMonitor struct {
 	metrics *scheduler.MonitoringMetrics
+	alerts  []string
 	err     error
 }
 
-func (m *fakeMonitor) CollectMetrics(_ interface{}) (*scheduler.MonitoringMetrics, error) {
-	return m.metrics, m.err
+func (m *fakeMonitor) CollectMetrics(_ context.Context) (*scheduler.MonitoringMetrics, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.metrics != nil {
+		return m.metrics, nil
+	}
+	return &scheduler.MonitoringMetrics{}, nil
 }
 
-func (m *fakeMonitor) CollectMetricsContext() {}
+func (m *fakeMonitor) CheckAlerts(_ context.Context) ([]string, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.alerts, nil
+}
 
 type fakeScheduler struct {
 	running bool
-	tasks   []scheduler.ScheduledTask
+	tasks   []scheduler.TaskSnapshot
 	runErr  error
 }
 
-func (s *fakeScheduler) ListTasks() []scheduler.ScheduledTask { return s.tasks }
-func (s *fakeScheduler) IsRunning() bool                      { return s.running }
+func (s *fakeScheduler) ListTasks() []scheduler.TaskSnapshot { return s.tasks }
+func (s *fakeScheduler) IsRunning() bool                     { return s.running }
 func (s *fakeScheduler) RunTask(_ interface{}, _ string) error {
 	return s.runErr
 }
 
-func newOperationalHandlerForTest(mon *fakeMonitor, sch *fakeScheduler, rl *middleware.RateLimitMiddleware) *OperationalHandler {
+func newOperationalHandlerForTest(mon monitoringCollector, _ *fakeScheduler, rl *middleware.RateLimitMiddleware) *OperationalHandler {
 	return &OperationalHandler{
-		monitor:   (*scheduler.TemporalMonitor)(nil),
+		monitor:   mon,
 		scheduler: (*scheduler.OperationalScheduler)(nil),
 		rateLimit: rl,
 		logger:    pkglogger.NewNoopLogger(),
@@ -68,7 +82,6 @@ func TestOperationalHandler_GetHealth_Failure(t *testing.T) {
 	h := newOperationalHandlerForTest(monitor, nil, middleware.NewRateLimitMiddleware(nil, pkglogger.NewNoopLogger()))
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/operational/health", nil)
-	h.monitor = (*scheduler.TemporalMonitor)(monitor)
 
 	h.GetHealth(rr, req)
 	if rr.Code != http.StatusInternalServerError {
