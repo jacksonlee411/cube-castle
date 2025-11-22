@@ -13,7 +13,7 @@
 
 ## 范围
 - 文档：`docs/archive/development-plans/222-organization-verification.md`、`reports/phase2-execution-report.md`、`docs/development-plans/215-phase2-execution-log.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`（若需）。  
-- 索引/摘要：`docs/development-plans/HRMS-DOCUMENTATION-INDEX.md`, `logs/plan222/ACCEPTANCE-SUMMARY-*.md`。
+- 索引/摘要：`docs/archive/development-plans/HRMS-DOCUMENTATION-INDEX.md`, `logs/plan222/ACCEPTANCE-SUMMARY-*.md`。
 - 变更只涉及文档与报告，不改代码。
 
 ## 任务清单
@@ -26,7 +26,7 @@
    - `215-phase2-execution-log.md`：勾选相关 checklist（测试、文档）。  
    - 若 implementation inventory 需要更新“Plan 222 完成”，同步 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`。
 3) 索引与档案  
-   - `HRMS-DOCUMENTATION-INDEX.md` 中 Plan 222 状态更新。  
+   - `docs/archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` 中 Plan 222 状态更新。  
    - 确保 `docs/archive/development-plans/222-closure-pr.md` 与本子计划一致（如需 PR 文案）。
 4) 验收声明  
    - 在 `reports/phase2-execution-report.md` “风险”部分确认无未解事项或列出 residual risks。  

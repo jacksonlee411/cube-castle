@@ -2,9 +2,9 @@
 
 **版本**: v2.0（简化版，仅保留路线图/框架/子任务关联/关键决策）  
 **创建日期**: 2025-11-02  
-**最后修改**: 2025-11-15  
+**最后修改**: 2025-11-21  
 **文档类型**: 决策与路线图（Execution Guide）  
-**状态**: 活跃（详尽分析已从本文件移除；存档见 `docs/archive/development-plans/202-CQRS-mixed-architecture-analysis-v1.1.md`）
+**状态**: 已完成（阶段 1/2 全部归档；详尽分析见 `docs/archive/development-plans/202-CQRS-mixed-architecture-analysis-v1.1.md`）
 
 ---
 

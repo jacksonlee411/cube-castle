@@ -56,7 +56,7 @@
 - `internal/organization/query_facade.go:28`, `internal/organization/query_facade.go:136` —— 查询 Facade 与缓存刷新逻辑。
 - `internal/organization/query_facade_test.go:42` —— Facade 行为覆盖示例。
 - `docs/development-plans/215-phase2-execution-log.md:35`, `docs/development-plans/215-phase2-execution-log.md:370` —— Plan 219 完成记录与验证摘要。
-- `docs/development-plans/204-HRMS-Implementation-Roadmap.md:21` —— Phase2 基础设施最新状态，用于计划对齐描述。
+- `docs/archive/development-plans/204-HRMS-Implementation-Roadmap.md:21` —— Phase2 基础设施最新状态，用于计划对齐描述。
 
 ---
 
