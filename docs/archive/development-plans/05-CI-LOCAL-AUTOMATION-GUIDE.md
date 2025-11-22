@@ -2,10 +2,15 @@
 
 版本: v2.0  
 最后更新: 2025-11-17  
-适用范围: GitHub Actions 自托管 Runner 的部署/运维/故障排除  
+适用范围: GitHub Actions 自托管 Runner 的部署/运维/故障排除（**2025-11-22 起已停用，仅供历史查阅**）  
 唯一事实来源: Plan 262（已归档，见 `docs/archive/development-plans/262-self-hosted-runner.md`）、`docker-compose.runner*.yml`、`scripts/ci/runner/*`
 
 ---
+
+> ⚠️ **归档声明（2025-11-22）**  
+> - Plan 269 终局决议：禁止启用任何 `self-hosted,cubecastle,wsl`/Docker Runner，所有工作流统一在 GitHub 平台 runner (`ubuntu-latest`) 上执行。  
+> - 本文档随之归档，仅保留历史背景；请勿按下文步骤重新启用 Runner，如需重启自托管 Runner 必须建立新计划并获批。  
+> - 现行指引请参考 `docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md` 与 `AGENTS.md`。
 
 > 约束提醒（AGENTS.md）
 > - 所有 Runner 也属于“服务/中间件”，必须由 Docker Compose 管理，禁止在宿主直接安装或裸 `docker run`；如端口冲突必须卸载宿主服务，不能改 compose 端口。
