@@ -120,9 +120,9 @@ jobs:
         run: |
           #              
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+            CHANGED_FILES="$(git diff --name-only "${{ github.event.pull_request.base.sha }}".."${{ github.event.pull_request.head.sha }}")"
           else
-            CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
+            CHANGED_FILES="$(git diff --name-only HEAD~1..HEAD)"
           fi
           
           echo "      :"
@@ -142,7 +142,7 @@ jobs:
             FEATURE_TYPE="backend-service"
           fi
           
-          echo "DETECTED_FEATURE_TYPE=$FEATURE_TYPE" >> $GITHUB_ENV
+          printf 'DETECTED_FEATURE_TYPE=%s\n' "$FEATURE_TYPE" >>"$GITHUB_ENV"
           echo "         : $FEATURE_TYPE"
 
       - name: "Guardian:   IIG      "
@@ -155,7 +155,7 @@ jobs:
           #   IIG    
           node scripts/quality/iig-guardian.js "$FEATURE_DESCRIPTION" --guard || exit_code=$?
           
-          echo "IIG_GUARDIAN_EXIT_CODE=${exit_code:-0}" >> $GITHUB_ENV
+          printf 'IIG_GUARDIAN_EXIT_CODE=%s\n' "${exit_code:-0}" >>"$GITHUB_ENV"
           
           #              
           if [ "${exit_code:-0}" -ne 0 ]; then
@@ -164,10 +164,10 @@ jobs:
               exit 1
             elif [ "$RISK_TOLERANCE" = "medium" ]; then
               echo "          : IIG            "
-              echo "IIG_GUARDIAN_WARNING=true" >> $GITHUB_ENV
+              printf 'IIG_GUARDIAN_WARNING=true\n' >>"$GITHUB_ENV"
             else
               echo "         : IIG          "
-              echo "IIG_GUARDIAN_INFO=true" >> $GITHUB_ENV
+              printf 'IIG_GUARDIAN_INFO=true\n' >>"$GITHUB_ENV"
             fi
           else
             echo "  IIG      "

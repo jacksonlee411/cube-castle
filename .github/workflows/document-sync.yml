@@ -105,17 +105,17 @@ jobs:
       run: |
         # 获取变更文件列表
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD)
+          CHANGED_FILES="$(git diff --name-only "${{ github.event.pull_request.base.sha }}"..HEAD)"
         elif [[ "${{ github.event_name }}" == "push" ]]; then
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..HEAD)
+          CHANGED_FILES="$(git diff --name-only "${{ github.event.before }}"..HEAD)"
         else
           # 定时任务或手动触发，检查所有文档
-          CHANGED_FILES="docs/ README.md CLAUDE.md frontend/package.json frontend/src/shared/config/"
+          CHANGED_FILES=$'docs/\nREADME.md\nCLAUDE.md\nfrontend/package.json\nfrontend/src/shared/config/'
         fi
         
-        echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+        printf 'changed_files=%s\n' "$CHANGED_FILES" >>"$GITHUB_OUTPUT"
         echo "🔍 检测到变更文件:"
-        echo "$CHANGED_FILES" | tr ' ' '\n'
+        printf '%s\n' "$CHANGED_FILES" | sed '/^[[:space:]]*$/d'
 
     - name: 🔒 目录边界检查（Reference vs Plans）
       if: github.event_name == 'workflow_dispatch' || (steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.ci_only != 'true')
@@ -124,55 +124,58 @@ jobs:
         echo "🔒 执行 Reference vs Plans 目录边界检查..."
         mkdir -p reports/document-sync
         CHANGED_FILES="${{ steps.detect_changes.outputs.changed_files }}"
-        echo "$CHANGED_FILES" | tr ' ' '\n' > reports/document-sync/changed_files.txt || true
-
+        printf '%s\n' "$CHANGED_FILES" > reports/document-sync/changed_files.txt || true
+	
         VIOLATIONS=0
         REPORT=reports/document-sync/boundary-check.md
-        echo "## 📁 目录边界检查结果 (Reference vs Plans)" > "$REPORT"
-        echo "" >> "$REPORT"
-
+        {
+          echo "## 📁 目录边界检查结果 (Reference vs Plans)"
+          echo ""
+        } >"$REPORT"
+	
         # 扫描文件名与内容关键字（轻量规则，避免误报）
-        for f in $CHANGED_FILES; do
+        while IFS= read -r f || [[ -n "$f" ]]; do
+          [[ -z "$f" ]] && continue
           # 仅检查文档相关
           case "$f" in
             docs/reference/*|docs/development-plans/*) :;;
             *) continue;;
           esac
-
+	
           if [ -f "$f" ]; then
             if [[ "$f" == docs/reference/* ]]; then
               if echo "$f" | grep -Ei '(plan|progress|roadmap|archiv|路线|进展|计划|阶段|log)'; then
-                echo "- ❌ Reference 目录包含计划/进展语义的文件名: $f" >> "$REPORT"
+                echo "- ❌ Reference 目录包含计划/进展语义的文件名: $f" >>"$REPORT"
                 VIOLATIONS=$((VIOLATIONS+1))
               fi
               if grep -E -m1 -n '进展|阶段|计划|归档|路线图|路线|Roadmap|Progress|Plan' "$f" >/dev/null 2>&1; then
-                echo "- ❌ Reference 文档包含计划/进展类内容: $f" >> "$REPORT"
+                echo "- ❌ Reference 文档包含计划/进展类内容: $f" >>"$REPORT"
                 VIOLATIONS=$((VIOLATIONS+1))
               fi
             fi
-
+	
             if [[ "$f" == docs/development-plans/* ]]; then
               # 允许的特殊文件不检查内容语义
               case "$f" in
                 */00-README.md|docs/development-plans/02-technical-architecture-design.md|docs/development-plans/06-integrated-teams-progress-log.md) :;;
                 *)
                   if grep -E -m1 -n '快速参考|使用指南|手册|Implementation Inventory|API使用指南|Quick Reference' "$f" >/dev/null 2>&1; then
-                    echo "- ❌ Plans 文档包含参考/手册类内容: $f" >> "$REPORT"
+                    echo "- ❌ Plans 文档包含参考/手册类内容: $f" >>"$REPORT"
                     VIOLATIONS=$((VIOLATIONS+1))
                   fi
                 ;;
               esac
             fi
           fi
-        done
-
+        done <<<"$CHANGED_FILES"
+	
         if [ "$VIOLATIONS" -eq 0 ]; then
-          echo "✅ 目录边界检查通过" >> "$REPORT"
-          echo "boundary_ok=true" >> $GITHUB_OUTPUT
+          echo "✅ 目录边界检查通过" >>"$REPORT"
+          printf 'boundary_ok=true\n' >>"$GITHUB_OUTPUT"
         else
-          echo "\n共发现 $VIOLATIONS 处目录边界违规。" >> "$REPORT"
-          echo "boundary_ok=false" >> $GITHUB_OUTPUT
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          printf '\n共发现 %s 处目录边界违规。\n' "$VIOLATIONS" >>"$REPORT"
+          printf 'boundary_ok=false\n' >>"$GITHUB_OUTPUT"
+          printf 'violations=%s\n' "$VIOLATIONS" >>"$GITHUB_OUTPUT"
         fi
 
     - name: 📊 文档同步一致性检查
@@ -197,7 +200,7 @@ jobs:
             const report = JSON.parse(require('fs').readFileSync('reports/document-sync/document-sync-report.json', 'utf8'));
             console.log(report.summary.conflicts === 0 && report.summary.errors === 0 ? 'true' : 'false');
           ")
-          echo "sync_success=$SYNC_SUCCESS" >> $GITHUB_OUTPUT
+          printf 'sync_success=%s\n' "$SYNC_SUCCESS" >>"$GITHUB_OUTPUT"
           
           # 提取统计信息
           TOTAL_PAIRS=$(node -e "
@@ -215,14 +218,14 @@ jobs:
             console.log(report.summary.conflicts);
           ")
           
-          echo "total_pairs=$TOTAL_PAIRS" >> $GITHUB_OUTPUT
-          echo "synced_pairs=$SYNCED_PAIRS" >> $GITHUB_OUTPUT
-          echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
+          printf 'total_pairs=%s\n' "$TOTAL_PAIRS" >>"$GITHUB_OUTPUT"
+          printf 'synced_pairs=%s\n' "$SYNCED_PAIRS" >>"$GITHUB_OUTPUT"
+          printf 'conflicts=%s\n' "$CONFLICTS" >>"$GITHUB_OUTPUT"
         else
-          echo "sync_success=false" >> $GITHUB_OUTPUT
-          echo "total_pairs=0" >> $GITHUB_OUTPUT
-          echo "synced_pairs=0" >> $GITHUB_OUTPUT
-          echo "conflicts=1" >> $GITHUB_OUTPUT
+          printf 'sync_success=false\n' >>"$GITHUB_OUTPUT"
+          printf 'total_pairs=0\n' >>"$GITHUB_OUTPUT"
+          printf 'synced_pairs=0\n' >>"$GITHUB_OUTPUT"
+          printf 'conflicts=1\n' >>"$GITHUB_OUTPUT"
         fi
         
         # 如果有冲突且不是自动同步模式，则失败

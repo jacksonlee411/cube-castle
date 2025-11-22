@@ -25,6 +25,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          : "${PR_TITLE:=}"
+          : "${PR_BODY:=}"
+          : "${PR_NUMBER:=}"
+          : "${PR_HTML_URL:=}"
+          : "${INPUT_PR_NUMBER:=}"
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             if [ -z "$INPUT_PR_NUMBER" ]; then
               echo "::error::workflow_dispatch 触发必须提供 pr_number"

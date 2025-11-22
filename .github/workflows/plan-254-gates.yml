@@ -62,7 +62,7 @@ jobs:
         run: |
           set -e
           echo "⏳ Waiting for backend (9090) health..."
-          for i in {1..60}; do
+          for _ in {1..60}; do
             if curl -sf http://localhost:9090/health >/dev/null; then
               echo "✅ Backend healthy"; break
             fi
@@ -76,8 +76,9 @@ jobs:
         run: |
           sudo apt-get update -y && sudo apt-get install -y jq curl
           make jwt-dev-mint
-          echo "PW_TENANT_ID=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" >> $GITHUB_ENV
-          echo "PW_JWT=$(cat .cache/dev.jwt)" >> $GITHUB_ENV
+          printf 'PW_TENANT_ID=%s\n' "3b99930c-4dc6-4cc9-8e4d-7d960a931cb9" >>"$GITHUB_ENV"
+          PW_JWT_CONTENT="$(cat .cache/dev.jwt)"
+          printf 'PW_JWT=%s\n' "$PW_JWT_CONTENT" >>"$GITHUB_ENV"
 
       - name: Architecture Gate (CQRS/Ports/Forbidden)
         run: |
@@ -98,7 +99,14 @@ jobs:
         continue-on-error: true
         run: |
           set -eo pipefail
-          FILE="$(ls -t logs/plan254/results-*.json | head -1)"
+FILE="$(python - <<'PY'
+import pathlib
+base = pathlib.Path("logs/plan254")
+files = sorted((p for p in base.glob("results-*.json") if p.is_file()), key=lambda p: p.stat().st_mtime, reverse=True)
+if files:
+    print(files[0])
+PY
+)"
           if [ -z "$FILE" ]; then
             echo "No results JSON found under logs/plan254/"
             exit 0
