@@ -48,19 +48,36 @@
 - E2E（统一推荐）：`frontend-e2e-devserver.yml` 仅 compose 后端（postgres/redis/rest/graphql），前端由 Playwright dev server 启动（`PW_SKIP_SERVER=0`）
 - 历史 E2E：`frontend-e2e.yml` / `e2e-tests.yml` 使用包含前端容器的完整栈（逐步迁移中）
 
+### Plan 263 – 性能影响分析门禁 Runbook
+- **脚本去重（一次性/回归验证均需记录）**  
+  - 运行 `node scripts/dev/plan263-merge-quality-preflight.js`，自动合并 `package.json` 的双份 `quality:preflight` 定义，并生成 `logs/plan263/plan263-quality-preflight-<ts>.log`。
+  - 脚本会将守卫链路固定为：`document-sync` → `guard:selectors-246` → `npm --prefix frontend run lint` → `guard:fields` → `architecture-validator（frontend cqrs/ports/forbidden）` → `npm run lint:docs`。
+- **构建验证（阻断 warning）**  
+  - 命令：`cd frontend && npm run build:verify | tee ../logs/plan263/plan263-build-verify-$(date +%Y%m%dT%H%M%S).log`
+  - Vite 配置已将 `build.logLevel` 设为 `error`，出现 warning 即退出码 1（确保“zero-warning”门禁）。
+- **Required check 切换/回滚**  
+  - 启用：`scripts/ci/workflows/toggle-performance-gate.sh --mode enable --reason "<why>" [--context <name>]`
+  - 回滚：`scripts/ci/workflows/toggle-performance-gate.sh --mode disable --reason "build:verify failures>2 in 24h"`
+  - 脚本会调用 GitHub Ruleset API，更新 `feat/shared-dev` 的 Required status checks 并记录日志至 `logs/plan263/plan263-gate-toggle-<ts>.log`。
+- **证据与登记**  
+  - 成功 run 的 `gh run list` 结果（过滤 `performance-impact-analysis`）附加到 `reports/plan263/plan263-green-runs.json`。
+  - Branch Protection/Ruleset 状态快照落盘 `reports/plan263/plan263-branch-protection-YYYYMMDD.json`。
+  - 在 `docs/development-plans/215-phase2-execution-log.md` 的“Plan 263 进度”表格中引用上述日志路径与 Run ID。
+
 ## 自托管 Runner 选型（Plan 265 + Plan 269）
 - **阶段性策略（2025-11-22 起）**
-  - WSL Runner 方案已取消，仓库禁止启用任何 `self-hosted,cubecastle,wsl` 标签，所有 workflow（含原 `ci-selfhosted-smoke`）一律使用 GitHub 平台 runner (`ubuntu-latest`)。
-  - 如需重新引入自托管 Runner，必须另行立项并通过审批；在没有新的审批前，`scripts/ci/runner/*` 仅供历史参考，禁止执行安装/启用操作。
-- **历史方案：Docker Runner（已退役）**
-  - 旧版通过 `docker-compose.runner*.yml` 维护容器 Runner；现已关闭，不再作为默认路径。
-  - 如确需恢复 Docker Runner，必须创建新的计划条目并重新审批。
-- **CI 工作流调整**
-  - 所有引用自托管 Runner 的 workflow（`document-sync`, `api-compliance`, `consistency-guard`, `ci-selfhosted-*`, `iig-guardian`, `contract-testing`, `plan-254-gates`, `e2e-smoke` 等）均已增加 `wsl` 标签。
-  - Workflow matrix 需包含 `[self-hosted, cubecastle, wsl]` 并在 job 注释中声明：Runner 必须具备 Docker CLI/Compose，业务服务依旧在容器中运行。
+  - Plan 269 最终决议：禁止启用任何 `self-hosted,cubecastle,wsl` 标签，所有 workflow（含原 `ci-selfhosted-smoke`）一律使用 GitHub 平台 runner (`ubuntu-latest`)。
+  - `docs/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md` 已归档至 `docs/archive/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md`；仅作历史参考。
+  - `scripts/ci/runner/*`（Docker/WSL 安装脚本）视作冻结的证据，请勿在现有环境执行；若误触发需立即回滚并登记在 215/265。
+- **现状：统一使用 GitHub 平台 Runner**
+  - `.github/workflows/*` 必须明确 `runs-on: ubuntu-latest`（如需 matrix，请仅包含 GitHub runner），不得残留 `self-hosted`/`cubecastle`/`wsl` 标签。
+  - 历史 `ci-selfhosted-*` workflows 只保留归档记录（必要时禁用/删除），相关 Required checks 统一切换到 GitHub runner 并在 `docs/development-plans/215-phase2-execution-log.md` 中登记。
+- **历史方案：Docker/WSL Runner（仅供回溯）**
+  - Docker Runner 通过 `docker-compose.runner*.yml` 维护；WSL Runner 通过 `scripts/ci/runner/wsl-*.sh` 安装，均已退役。
+  - 如确需恢复任一方案，必须新建计划（建议以 Plan 262/265/269 为模板）并获得审批后方可执行。
 - **记录与监控**
-  - 每次切换或新增 Runner 节点，必须在 Plan 265/266 中记录 Run ID、脚本日志与回滚方案。
-  - `scripts/network/verify-github-connectivity.sh` 与 `docs/reference/docker-network-playbook.md` 提供网络守护；`scripts/ci/runner/watchdog.sh` 可扩展自动校验。
+  - 任何“尝试恢复/新增自托管 Runner”的提议必须首先在 `docs/development-plans/` 建立计划，并在 Plan 265/266 中记录审批链、Run ID 与回滚路径。
+  - `scripts/network/verify-github-connectivity.sh`、`docs/reference/docker-network-playbook.md`、`docs/reference/wsl-runner-comparison.md` 仅作为历史资料；如需重新启用，应先根据最新计划更新这些文档。
 
 ## 本地一键（VS Code/命令行）
 - VS Code 任务（Terminal → Run Task…）：

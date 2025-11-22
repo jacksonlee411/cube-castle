@@ -57,9 +57,13 @@
 
 ### **归档文档** (docs/archive/development-plans/)
 
-> **最新归档时间**: 2025-11-16
-> **最新归档原因**: Plan 250（模块化单体合流）与 Plan 256（契约 SSoT 生成链路）已完成并通过签收，按规范移入归档；Phase1（Plans 210-214）历史记录保持不变
+> **最新归档时间**: 2025-11-22
+> **最新归档原因**: Plan 270（Workflow 守卫修复）收官、以及自托管 Runner 指南（05）因统一改用 GitHub 平台 runner 而停止维护，按规范移入归档
 > **访问方式**: `../archive/development-plans/` 子目录中可继续访问所有归档文档
+
+#### **最近新增归档（2025-11-22）**
+- `../archive/development-plans/270-workflow-contract-guardian-remediation.md` - Workflow 契约与守卫门禁修复（Plan 270 已关闭，actionlint 守卫与 Required workflows 全量恢复）
+- `../archive/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md` - 自托管 Runner 使用手册（Plan 269 决议生效后停用，仅保留历史记录，当前所有工作流统一使用 GitHub 平台 runner）
 
 #### **最近新增归档（2025-11-16）**
 - `../archive/development-plans/250-modular-monolith-merge.md` - 模块化单体合流与边界治理（Plan 250 主文档；plan-250-gates CI 守卫与日志登记保持不变）
