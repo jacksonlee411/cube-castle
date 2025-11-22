@@ -207,7 +207,7 @@
   - 证据：`logs/plan<ID>/*`（报告、trace、JSON、可选 HAR）；`reports/architecture/architecture-validation.json`
 - 登记路径：
   - 在 `docs/development-plans/215-phase2-execution-log.md` 登记 run 链接/工件与 SUMMARY 摘要
-  - 在 `docs/development-plans/HRMS-DOCUMENTATION-INDEX.md` 更新状态为“已交付”
+  - 在 `docs/archive/development-plans/HRMS-DOCUMENTATION-INDEX.md`（已归档索引）更新状态为“已交付”
 
 ---
 

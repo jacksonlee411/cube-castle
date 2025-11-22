@@ -46,7 +46,7 @@
 - `203-hrms-module-division-plan.md` - **🌟 当前重点** HRMS 系统模块化演进与领域划分（v2.0，对齐度 95%+）
 - `204-HRMS-Implementation-Roadmap.md` - HRMS 系统实施路线图与时间表
 - `206-Alignment-With-200-201.md` - HRMS 计划与 200、201 文档的对齐分析
-- `HRMS-DOCUMENTATION-INDEX.md` - HRMS 文档体系索引与快速导航
+- `../archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` - HRMS 文档体系索引与快速导航（2025-11-23 归档，仅保留导读）
 
 #### **271 - 文档归档一致性守卫**
 - `271-archive-integrity-guard.md` - Plan 264-269 复现事件复盘、归档流程守卫与 CI 自动化方案（Plan 271）
@@ -57,12 +57,13 @@
 
 ### **归档文档** (docs/archive/development-plans/)
 
-> **最新归档时间**: 2025-11-22
-> **最新归档原因**: Plan 270（Workflow 守卫修复）收官、以及自托管 Runner 指南（05）因统一改用 GitHub 平台 runner 而停止维护，按规范移入归档
+> **最新归档时间**: 2025-11-23
+> **最新归档原因**: Plan 222 收官与 HRMS 文档索引合流归档，完成 Phase2 文档对齐与导读收口
 > **访问方式**: `../archive/development-plans/` 子目录中可继续访问所有归档文档
 
 #### **最近新增归档（2025-11-23）**
 - `../archive/development-plans/222-organization-verification.md` - Plan 222 最终验收文档；Phase2 验收已完成并关单，后续测试覆盖/契约/性能补位改由 Plan 222A-D 与 Plan 255/256 承接。
+- `../archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` - HRMS 文档体系索引；完成 24x/25x/203-206 导读合流后转入归档，仅作历史索引参考。
 #### **最近新增归档（2025-11-22）**
 - `../archive/development-plans/270-workflow-contract-guardian-remediation.md` - Workflow 契约与守卫门禁修复（Plan 270 已关闭，actionlint 守卫与 Required workflows 全量恢复）
 - `../archive/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md` - 自托管 Runner 使用手册（Plan 269 决议生效后停用，仅保留历史记录，当前所有工作流统一使用 GitHub 平台 runner）
@@ -187,7 +188,7 @@
 **版本演进**: v4.7.0（organization）→ v5.2.0（完整 Core HRMS）
 **文档入口**:
   - 🌟 `203-hrms-module-division-plan.md` - 主计划（强烈推荐）
-  - `HRMS-DOCUMENTATION-INDEX.md` - 文档体系索引
+  - `../archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` - 文档体系索引（历史归档，仅供参考）
 **历史文档**: 职位管理等历史阶段性工作已归档，后续工作统一在 203 号计划框架下推进
 
 ## 📋 API契约文档快速访问

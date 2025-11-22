@@ -161,21 +161,17 @@
 
 仅给出顺序与索引，实施细节与验收标准以对应计划文档为唯一事实来源。
 
-- P0 · 222 收口验收与文档更新  
-  - 索引：`215-phase2-execution-log.md`、`215-phase2-summary-overview.md`、`../archive/development-plans/222-organization-verification.md`  
-  - 说明：补齐单元/集成/REST/GraphQL/E2E/性能与覆盖率证据，更新 README/开发者指南，形成 Phase2 验收报告
+- ✅ 222 收口验收与文档更新（计划已关闭，不再新增验收轮次；索引：`215-phase2-execution-log.md`、`215-phase2-summary-overview.md`、`../archive/development-plans/222-organization-verification.md`）  
+  - 说明：现有验收证据与文档已沉淀，后续覆盖率/契约/性能补强交由 Plan 219E、Plan 221、Plan 240E/245A 承接
 
-- P0 · 202 阶段1：模块化单体合流（不改协议，仅合并进程与共享中间件/连接池）  
-  - 索引：`202-CQRS混合架构深度分析与演进建议.md`（“阶段 1: 架构回归”）  
-  - 说明：统一端口与健康/metrics/JWT/数据库连接池，保留“命令=REST、查询=GraphQL”，降低运维与一致性成本
+- ✅ 202 阶段 1+2 完成（模块化单体 + 契约 SSoT & API Facade）  
+  - 索引：`../archive/development-plans/202-CQRS混合架构深度分析与演进建议.md`、`../archive/development-plans/250-modular-monolith-merge.md`、`../archive/development-plans/256-contract-ssot-generation-pipeline.md` 等  
+  - 说明：阶段 1（250/251/253/254）与阶段 2（256/257/258）现已归档，后续仅跟踪 221/219E 等收口工作
 
 - P1 · 221 基座 CI 化与常态运行  
   - 索引：`221-docker-integration-testing.md`  
   - 说明：将本地已通过的 Docker 集成测试基座接入 CI，预拉取镜像、冷启动 < 10s、Goose up/down 循环复跑、覆盖率产物上报
 
-- P1 · 202 阶段2：契约 SSoT 与前端 API Facade  
-  - 索引：`202-CQRS混合架构深度分析与演进建议.md`（“阶段 2: 工程优化”）  
-  - 说明：以 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql` 为唯一事实来源，固化生成/校验流水线；前端统一领域 Facade，削减双协议耦合
 
 - P1 · 219E 回归补强（面向 222 覆盖率目标）  
   - 索引：`215-phase2-execution-log.md`（Plan 219 完成登记）、`../archive/development-plans/222-organization-verification.md`、`internal/organization/README.md`  
@@ -190,27 +186,27 @@
 ## 25x 主线（202 计划分解实施）
 
 - 250：模块化单体合流实施计划（阶段1·核心）
-  - 文件: `250-modular-monolith-merge.md`（状态：未启动；合流后单进程/单端口/共享中间件）
+  - 文件: `../archive/development-plans/250-modular-monolith-merge.md`（状态：已完成；单体进程/单端口/共享中间件 + 守卫到位）
 - 251：运行时统一与健康/指标整合
-  - 文件: `251-runtime-unification-health-metrics.md`（状态：已完成；单体主路径/统一健康与指标/配置来源单一）
+  - 文件: `../archive/development-plans/251-runtime-unification-health-metrics.md`（状态：已完成；单体主路径/统一健康与指标/配置来源单一）
 - 252：权限一致性与契约对齐（REST x-scopes ↔ GraphQL）
   - 文件: `../archive/development-plans/252-permission-consistency-and-contract-alignment.md`（状态：已完成 · 已归档；签字：`../archive/development-plans/252-signoff-20251115.md`）
 - 253：部署与流水线简化（单体优先）
-  - 文件: `253-deployment-pipeline-simplification.md`（状态：已完成）
+  - 文件: `../archive/development-plans/253-deployment-pipeline-simplification.md`（状态：已完成）
 - 254：前端端点与代理收敛（单基址）
-  - 文件: `254-frontend-endpoint-and-proxy-consolidation.md`（状态：进行中）
+  - 文件: `../archive/development-plans/254-frontend-endpoint-and-proxy-consolidation.md`（状态：已完成）
 - 256：契约 SSoT 生成流水线（阶段2）
-  - 文件: `256-contract-ssot-generation-pipeline.md`（状态：已完成；生成链路与门禁接线已落地：生成→快照→工作树clean→漂移对比（报告模式；阻断在 258））
+  - 文件: `../archive/development-plans/256-contract-ssot-generation-pipeline.md`（状态：已完成；生成链路与门禁接线已落地：生成→快照→工作树 clean→漂移对比（报告模式；阻断在 258））
 - 257：前端领域 API 门面采纳（阶段2）
-  - 文件: `257-frontend-domain-api-facade-adoption.md`（状态：已完成（验收通过 · 2025-11-16）；Facade 覆盖率门禁为阻断（阈值≥0.8））
+  - 文件: `../archive/development-plans/257-frontend-domain-api-facade-adoption.md`（状态：已完成（验收通过 · 2025-11-16）；Facade 覆盖率门禁为阻断（阈值≥0.8））
 - 258：契约漂移校验与门禁（阶段2）
-  - 文件: `258-contract-drift-validation-gate.md`（状态：进行中；字段矩阵阻断门禁已接线，allowlist 设定一个迭代窗口）
+  - 文件: `../archive/development-plans/258-contract-drift-validation-gate.md`（状态：已完成；字段矩阵阻断门禁已接线，allowlist 处于回收流程）
 - 259：协议策略复盘与评估（已完成，business GET=0，门禁阈值=0）
   - 文件: `../archive/development-plans/259-protocol-strategy-review.md`（归档：2025-11-20；Run ID 19537850179）
 - 260：审计历史页签异常调查与整改方案（组织详情 1333848）
   - 文件: `260-audit-history-1333848-investigation.md`（状态：已完成（验收通过 · 2025-11-16）；短期前端矫正与查询层一致性整改已落地）
 
-说明：25x 仅分解 202 的实施目标与门禁，不重述技术结论；唯一事实来源为 `202-CQRS混合架构深度分析与演进建议.md`，执行与证据登记以 215 为准。
+说明：25x 仅分解 202 的实施目标与门禁，不重述技术结论；唯一事实来源为 `../archive/development-plans/202-CQRS混合架构深度分析与演进建议.md`，执行与证据登记以 215 为准。
 
 ---
 

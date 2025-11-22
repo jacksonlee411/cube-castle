@@ -1,283 +1,68 @@
 # 技术架构设计方案
 
-版本: v3.0 | 最后更新: 2025-09-13 | 状态: 生产就绪架构
+版本: v4.1 | 最后更新: 2025-11-16 | 状态: 生产就绪架构
 
 ---
 
-## 🏗️ CQRS架构设计
+## 事实来源与目标
+- 契约优先：REST 以 `docs/api/openapi.yaml`、GraphQL 以 `docs/api/schema.graphql` 为唯一事实来源，权限 scope 由契约派生。
+- 数据真源：所有结构演进均经 `database/migrations/`，禁止直接改表或依赖历史脚本；`sql/seed` 仅供演示。
+- 模块化单体：命令=REST、查询=GraphQL，同一进程遵循 PostgreSQL 单一数据源；跨模块只能经依赖注入或事务性 outbox。
+- Docker 强制：`make run-dev`/`docker-compose.dev.yml` 拉起 PostgreSQL 16 与 Redis 7；如端口冲突需卸载宿主服务而非改映射。
 
-### 契约与版本
-- OpenAPI version 对齐（唯一事实来源 `docs/api/openapi.yaml`）：version: "4.7.0"
-- 前端关键依赖版本（以 `frontend/package.json` 为准）：
-  - React 19.1.0
-  - Vite 7.0.4
-  - TypeScript 5.8.3
+## 运行时拓扑
+- 单体服务 `cmd/hrms-server/command` 在 9090 端口托管 REST、GraphQL、BFF、监控端点；`ENABLE_LEGACY_DUAL_SERVICE=true` 时可附带 8090 旧查询进程，仅供本地排障。
+- 内部依赖：`internal/organization` 聚合组织、职位、职位目录、运维模块；`pkg/database` 暴露连接池/指标；`pkg/eventbus` 提供内存事件总线。
+- 前端 `frontend/` 通过 `frontend/src/shared/api` 的客户端访问 REST/GraphQL，状态由 React Query+Zustand 组合驱动。
+- 异步链路：`cmd/hrms-server/command/internal/outbox` + `internal/organization/events` 负责 outbox 持久化、重放与回退，禁止直接用内存队列跨边界。
 
-### 核心原则
-- **CQRS分离**: GraphQL查询(8090) + REST命令(9090)
-- **单一数据源**: PostgreSQL 16+ 时态数据，无同步复杂性
-- **性能目标**: 查询<100ms, 命令<200ms (已达到)
+## 前端体验层
+- 栈：React 19.1 + Vite 7 + TypeScript 5.8 + Canvas Kit 13；GraphQL 客户端为 Apollo，REST 统一在 `frontend/src/shared/api/restClient.ts`。
+- 时态实体框架：`frontend/src/features/temporal-entities` 与 `docs/reference/temporal-entity-experience-guide.md` 定义 UX 契约，QueryKey/重试策略集中在 `frontend/src/shared/api/queryKeys.ts`。
+- 质量守卫：Vitest + Playwright 1.56（`frontend/tests/e2e`），提交前需跑 `npm run lint`、`npm run validate:field-naming` 与 `npm run validate:ports`。
+- 构建输出通过 `vite build` 生成静态资源，由反向代理或静态托管服务提供；开发态 `make frontend-dev` 绑定 3000 端口。
 
-### 服务架构
-```yaml
-前端应用: React 18+ + Canvas Kit v13 + TypeScript 5+
-  - 端口: 3000 (开发) / 生产端口
-  - 状态管理: React Query + Zustand + Apollo Client
-  - 构建工具: Vite + ESLint + Prettier
+## 命令域 (REST + BFF)
+- 核心路由：`internal/organization/handler/*` 暴露 `/api/v1/organization-units`、`/positions`、`/job-catalog`、`/operational` 族群；端点示例 `POST /organization-units/{code}/versions`、`POST /positions/{code}/timeline`。
+- 认证链：`internal/auth` 的 JWT 中间件 + `auth.NewPBACPermissionChecker` 检查 scope；`authbff` 模块负责 `/auth/*`、`/.well-known/jwks.json`、OIDC 模拟登录并可选 Redis 会话存储。
+- 业务协作：`internal/organization/service` 和 `.../scheduler` 提供时态写入、级联、审计、职位编制等能力；`organization.CascadeService` 确保多层更新与回滚。
+- 数据访问：命令侧通过 `internal/organization/repository` 使用 `database/sql` + 预编译语句写入，所有写操作进入 outbox（事件由 `pkg/eventbus` 异步广播）。
+- 防护：`internal/organization/middleware` 实现请求 ID、速率限制、性能标记；`cmd/hrms-server/command` 将 `/health`、`/metrics`、`/debug/rate-limit/*` 对外暴露。
 
-查询服务: PostgreSQL原生GraphQL服务
-  - 端口: 8090 (/graphql + /graphiql)
-  - 技术栈: graph-gophers/graphql-go + pgx v5
-  - 特性: 时态查询、层级查询、统计聚合
+## GraphQL 查询域
+- 运行模式：GraphQL 由 `cmd/hrms-server/query/publicgraphql` 在单体进程挂载 `/graphql`（GET/POST）与 `/graphiql`；legacy 独立进程保留 `//go:build legacy`，仅在需要独立伸缩时编译。
+- 技术栈：gqlgen (`cmd/hrms-server/query/internal/graphql`) + chi + `internal/middleware` 的 GraphQL Envelope；Resolver 依赖 `organization.NewQueryResolver`。
+- 支持的核心查询：`organizations`、`organization`、`organizationStats`、`organizationHierarchy/Subtree`、`positions`、`positionTimeline/Versions`，全部支持时态参数与租户隔离。
+- 缓存与派生：`organization.NewAssignmentFacade` + Redis 缓存常用分配数据，Audit 配置由 `internal/config` 注入，可在 `AllowFallback` 与 `circuitThreshold` 间调优。
 
-命令服务: REST API服务
-  - 端口: 9090 (/api/v1)
-  - 技术栈: chi v5 + pgx/sqlc + validator
-  - 特性: CRUD操作、业务命令、事务性发件箱 + 事件中继
+## 数据与迁移
+- PostgreSQL 16 单库：主 schema 由 Atlas+Goose 管理；`PRIMARY KEY (code, effective_date)` + `record_id UUID` 保证版本唯一，`is_future/is_temporal` 均为派生字段。
+- 时态编排：`internal/organization/repository/temporal_*.go` 负责插入、更新、截断和删除；`scheduler/temporal_monitor.go` 做巡检并写审计。
+- Redis 7：可选缓存（assignment、职位列表）与 BFF 会话；离线可降级为内存实现，但需记录 WARN。
+- 观测表：审计事件、outbox、操作日志在 `database/migrations/*audit*` 中维护，任何新增表都需 Down 语句与相应索引。
+- 备份流程：`make db-migrate-all` 前默认执行快照（CI 以容器卷代替），生产需结合云平台快照；文档记录在 `CHANGELOG.md` 与 `docs/development-plans/`。
 
-认证授权: JWT + OAuth 2.0
-  - 算法: RS256（开发 / 生产统一）
-  - 权限模型: 租户隔离 + 角色权限
-  - 特性: JWKS支持、时钟偏差容忍
+## 安全与权限
+- 令牌：全链路 RS256 JWT（`make jwt-dev-setup` 生成密钥，`.cache/dev.jwt` 供开发）；BFF 会生成受控短期 token，为前端注入 `PW_JWT`。
+- 权限：PBAC + scope 外部化，任何变更先改 OpenAPI/GraphQL，再同步 `internal/auth/scopes.go` 的映射；角色→scope 禁止硬编码在 UI。
+- 多租户：`tenant_id` 是所有主数据表、GraphQL 查询、REST 输入的必填字段；`X-Tenant-ID` 请求头由中间件校验并注入上下文。
+- 传输：默认启用 CORS 限制与 `SECURE_COOKIES`；OIDC 真正落地前的模拟登录以 `// TODO-TEMPORARY` 注记，截止不超过一个迭代。
 
-基础设施: PostgreSQL + Redis
-  - 数据库: PostgreSQL 16.x (主存储)
-  - 缓存: Redis 7.x (可选缓存)
-  - 监控: 健康检查端点 + 日志系统
-```
+## 可观测性与运维
+- 健康检查：`internal/monitoring/health` + `v9RedisChecker` 在 `/health` 输出 PostgreSQL/Redis 状态；CI 使用 `curl http://localhost:9090/health`/`8090` 验证。
+- 指标：`pkg/database`、`cmd/hrms-server/query/internal/app`、`command/main.go` 注册 Prometheus 指标，默认收集 HTTP、DB 池、outbox；Grafana/Alertmanager 由平台对接。
+- 日志：`pkg/logger` 输出 JSON，写入 stdout 并可由 Docker logging driver 收集；`audit.Logger` 记录安全关键操作到 PostgreSQL。
+- 性能守卫：`performanceMiddleware` 标记关键路径，`/debug/rate-limit/stats` 在 DEV 暴露限流数据；`run-dev*.log` 存放于仓库根 `logs/`。
 
-### 统一配置管理
-- **配置源**: `frontend/src/shared/config/ports.ts`
-- **优势**: 单一真源、类型安全、自动验证、零配置冲突
-- **覆盖**: 前端、后端、CI/CD、开发工具全栈配置统一
+## 质量门禁与交付
+- Go 侧：`make test`、`make coverage`、`make lint`、`make fmt`、`node scripts/quality/architecture-validator.js`、`scripts/check-temporary-tags.sh` 必须绿灯。
+- 前端：`npm run lint`、`npm run test`、`npm run test:e2e`、`npm run validate:no-direct-backend`、`npm run typecheck`，必要时附加 `npm run dashboard:generate` 更新可视文档。
+- 库存校验：提交前运行 `node scripts/generate-implementation-inventory.js` 并核对 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`，防止重复造轮子。
+- CI 策略：全部 workflow 运行在 GitHub `ubuntu-latest`，禁用 `self-hosted,cubecastle,wsl` 标签；仅允许 `feat/shared-dev` 分支推送并经 PR squash。
+- 发布：`make build` 生成命令服务二进制；镜像构建由 Dockerfile + `docker-compose`.yml 驱动，升级需同步 `CHANGELOG.md`。
 
----
-
-## 🗄️ 数据库架构
-
-### PostgreSQL单表时态设计
-- **架构模式**: 单表多版本时态架构 (Temporal Database)
-- **主键设计**: 复合主键 `(code, effective_date)` 支持版本共存
-- **时态字段**: `effective_date`, `end_date`, `is_current`
-  - 说明：`is_temporal` 与 `is_future` 物理列已移除；
-    - isTemporal = (end_date != null) 派生
-    - isFuture = (effective_date > 今日[北京时区]) 派生
-- **索引策略**: 26个专用时态索引，覆盖所有查询场景
-- **审计模式**: 独立审计表 + JSONB变更追踪
-
-### 架构优势
-1. **ACID事务一致性**: 版本操作原子性，无数据同步问题
-2. **查询性能**: 时态索引直接支持，响应时间1.5-8ms
-3. **存储效率**: 共享索引结构，避免数据重复
-4. **开发简化**: 单一数据模型，统一CRUD逻辑
-5. **迁移治理**: Atlas diff + Goose up/down，所有迁移必须包含 `-- +goose Down`
-
-### 数据模型核心字段
-```sql
--- 核心标识
-code VARCHAR(50) NOT NULL,           -- 组织编码 (业务主键)
-record_id UUID NOT NULL DEFAULT gen_random_uuid(), -- 版本唯一标识
-
--- 时态管理
-effective_date DATE NOT NULL,        -- 生效日期
-end_date DATE,                      -- 结束日期
-is_current BOOLEAN DEFAULT false,   -- 当前版本标记
--- is_future 已移除；读时派生（北京时间业务日）
-
--- 业务字段
-name VARCHAR(200) NOT NULL,         -- 组织名称
-unit_type organization_unit_type,   -- 组织类型枚举
-status organization_status,         -- 状态枚举
-parent_code VARCHAR(50),            -- 父组织编码
-
--- 审计字段
-created_at TIMESTAMP DEFAULT now(),
-updated_at TIMESTAMP DEFAULT now(),
-tenant_id UUID NOT NULL,            -- 租户隔离
-
--- 复合主键
-PRIMARY KEY (code, effective_date)
-```
-
----
-
-## 📡 API设计
-
-### GraphQL查询API (端口8090)
-**核心查询能力**:
-- `organizations`: 分页组织列表，支持过滤和排序
-- `organization`: 单个组织查询，支持时态参数 `asOfDate`
-- `organizationStats`: 统计信息，包含时态分布统计
-- `organizationHierarchy`: 层级结构查询，支持深度控制
-
-**时态查询特性**:
-- 历史状态查询：`organization(code: "DEPT001", asOfDate: "2024-12-31")`
-- 版本历史查询：支持组织版本演进追踪
-- 统计时点查询：特定日期的组织统计快照
-
-*详细Schema定义: `/docs/api/schema.graphql`*
-
-### REST命令API (端口9090)
-**核心操作端点**:
-- `POST /organization-units`: 创建组织
-- `PUT /organization-units/{code}`: 完整更新
-- `PATCH /organization-units/{code}`: 部分更新
-- `POST /organization-units/{code}/suspend`: 业务暂停
-- `POST /organization-units/{code}/activate`: 业务激活
-- `POST /organization-units/{code}/versions`: 创建新版本
-
-**企业级响应格式**:
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "Operation completed successfully",
-  "timestamp": "2025-09-13T10:30:00Z",
-  "requestId": "req-uuid"
-}
-```
-
-*详细API规范: `/docs/api/openapi.yaml`*
-
-#### 命令服务 · 组织业务文件索引
-- `cmd/organization-command-service/internal/handlers/organization_routes.go` — `SetupRoutes`（组织业务路由注册）
-- `cmd/organization-command-service/internal/handlers/organization_create.go` — `CreateOrganization` / `CreateOrganizationVersion`
-- `cmd/organization-command-service/internal/handlers/organization_update.go` — `UpdateOrganization` / `SuspendOrganization` / `ActivateOrganization`
-- `cmd/organization-command-service/internal/handlers/organization_events.go` — `CreateOrganizationEvent`
-- `cmd/organization-command-service/internal/handlers/organization_history.go` — `UpdateHistoryRecord`
-
----
-
-## 🔧 技术栈选型
-
-### 后端技术栈 (Go语言)
-- **运行时**: Go 1.24+（仓库指定 `toolchain go1.24.9`，提交前需通过 `go version` 自检）
-- **GraphQL**: graph-gophers/graphql-go (Schema优先开发)
-- **REST框架**: chi v5 (轻量、与 net/http 兼容)
-- **数据访问**: pgx v5 + sqlc (编译期类型安全)
-- **认证**: JWT + OAuth 2.0 + PBAC权限模型
-- **监控**: 结构化日志 + Prometheus 指标（HTTP、DB池、outbox）
-
-### 前端技术栈 (React生态)
-- **核心**: React 18+ + TypeScript 5+ (类型安全)
-- **UI组件**: Canvas Kit v13 (Workday设计系统)
-- **状态管理**: React Query (服务端) + Zustand (客户端)
-- **GraphQL**: Apollo Client (查询缓存和状态管理)
-- **开发工具**: Vite (构建) + ESLint/Prettier (代码规范)
-
-### 基础设施
-- **数据库**: PostgreSQL 16+ (主存储 + 时态查询)
-- **缓存**: Redis 7.x (可选，会话和查询缓存)
-- **容器化**: Docker + Docker Compose (开发环境)
-- **监控**: 健康检查 + 结构化日志 + 指标收集
-
----
-
-## 🔐 安全架构
-
-### 认证系统
-- **协议**: OAuth 2.0 Client Credentials Flow
-- **Token**: JWT (RS256 全环境统一)
-- **特性**: JWKS支持、时钟偏差容忍、自动刷新
-
-### 权限模型
-- **当前状态**: 基于属性的访问控制 (PBAC) 内嵌策略
-- **演进路线**: 阶段1 配置文件外部化 → 阶段2 数据库存储 → 阶段3 Casbin 引擎
-- **隔离/审计**: 租户级隔离 + 全量操作日志
-
-### API安全
-- **认证头**: `Authorization: Bearer <token>` + `X-Tenant-ID: <uuid>`
-- **数据验证**: 输入验证 + SQL注入防护 + XSS防护
-- **速率限制**: API调用频次限制 + DoS防护
-
----
-
-## 📊 监控与可观测性
-
-### 健康监控
-- **服务健康**: `/health` 端点 (数据库连接验证)
-- **系统指标**: HTTP延迟、数据库连接池、内存使用
-- **业务指标**: API调用统计、错误率、响应时间分布
-
-### 日志系统
-- **格式**: 结构化JSON日志
-- **级别**: ERROR/WARN/INFO/DEBUG 分级记录
-- **内容**: 请求追踪、错误详情、业务操作审计
-- **保留**: 30天滚动保留策略
-
-### 性能基准
-- **查询性能**: GraphQL查询 < 100ms (95%分位)
-- **命令性能**: REST命令 < 200ms (95%分位)
-- **数据库**: 时态查询响应时间 1.5-8ms
-- **并发**: 支持1000+ RPS处理能力
-- **异步可靠性**: outbox 未发布事件监控 < 100 条、重试成功率 > 99%
-
----
-
-## 🛡️ 质量保证体系
-
-### 开发质量工具
-- **实现清单**: 自动生成API/组件/服务清单，防重复开发
-- **代码质量**: 重复代码检测、架构一致性验证、文档同步检查
-- **API契约**: OpenAPI/GraphQL Schema规范驱动开发
-- **类型安全**: 前后端TypeScript类型生成和校验
-
-### CI/CD质量门禁
-- **自动化测试**: 契约测试、Docker 实库集成测试(`make test-db`)、端到端测试
-- **质量检查**: ESLint、代码重复检测、架构违规检测
-- **部署验证**: 健康检查、`make db-migrate-verify`、配置一致性检查
-- **回滚机制**: 自动化回滚 + 数据备份恢复
-
-### 质量指标监控
-- **代码质量**: 重复率<5%、架构违规0个、文档同步>80%
-- **API质量**: 契约测试覆盖100%、响应时间达标率>95%
-- **系统稳定性**: 可用率>99.9%、错误率<0.1%
-
----
-
-## 🚀 部署架构
-
-### 开发环境
-- **启动方式**: `make docker-up` + `make run-dev` + `make frontend-dev`
-- **组件**: PostgreSQL + Redis + 前后端服务
-- **特性**: 热重载、开发工具集成、调试支持
-
-### 测试环境
-- **容器化**: Docker Compose多服务编排
-- **数据**: 测试数据集 + 数据库迁移验证
-- **自动化**: CI/CD集成测试 + 质量门禁验证
-
-### 生产环境 (规划)
-- **部署形态**: 当前命令/查询双二进制，按203号文档计划回收为模块化单体
-- **容器化**: Kubernetes + Helm Charts
-- **高可用**: 多副本部署 + 负载均衡
-- **数据**: PostgreSQL主从复制 + 备份策略
-- **监控**: Prometheus + Grafana + 告警系统（含 outbox / DB 池指标）
-
----
-
-## 📈 架构成熟度成果
-
-### 代码质量优化
-- **重复消除**: 代码重复率从80%降至2.11% (93%改善)
-- **架构统一**: Hook数量7→2个 (71%减少)，API客户端6→1个 (83%减少)
-- **类型系统**: 接口90+→8个核心接口 (80%+精简)
-- **配置管理**: 端口配置15+文件→1个统一源 (95%+集中)
-
-### 开发体验提升
-- **文档简化**: 参考文档从6份精简到3份，维护负担减少50%
-- **工具集成**: 统一的开发工具链 + 自动化质量检查
-- **类型安全**: 前后端完整TypeScript覆盖，编译时错误检查
-- **开发效率**: CQRS架构清晰，API使用路径明确，减少选择困惑
-
-### 系统性能优化
-- **查询性能**: PostgreSQL原生时态查询，响应时间1.5-8ms
-- **架构简化**: 单数据源架构，相比双库+CDC方案复杂度降低60%
-- **部署简化**: 单一二进制部署，容器化支持，运维负担大幅降低
-
----
-
-**文档状态**: 生产就绪架构设计
-**版本历史**: v1.0(初版) → v2.0(P3系统集成) → v3.0(架构成熟化)
-**最后更新**: 2025-09-13
-**下次审查**: 根据项目发展阶段需要
+## 演进与风险
+- 当前重点：完成 PBAC 策略外部化（配置→数据库）与 OIDC 对接，预计分两迭代；未完成前保留模拟登录，并在每次发布前验证 `AUTH_ONLY_MODE=true` 流程。
+- GraphQL 独立化：保留 legacy 8090 进程作为回滚通道，计划在完成负载验证后于 2026Q1 删除 build tag；如需单独扩缩容，可通过 `cmd/hrms-server/query` 独立部署。
+- Outbox 与 Redis 依赖：Redis 不可用时会回退至内存缓存但丢失共享状态，需要在运营手册中记录恢复流程。
+- 临时方案清单：所有 `// TODO-TEMPORARY` 带截止日期，集中在 `scripts/todo-temporary-allowlist.txt`，每次迭代由架构守卫复盘。

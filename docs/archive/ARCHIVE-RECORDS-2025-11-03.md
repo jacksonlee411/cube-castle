@@ -120,6 +120,12 @@
 
 > 备注：本次追加归档由 Plan 271 文档治理守卫发起，记录了资源唯一性违规的调查与整改。归档动作在 30 分钟内完成 push，并通过 `npm run lint:docs` 自检；Agents Compliance workflow 已新增 Plan 271 Guard 作为门禁。
 
+## 追加归档（2025-11-23 · HRMS 导读收口）
+
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| HRMS 文档体系索引（v1.2） | `docs/archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` | 203/24x/25x 导读与索引已完成合流；Phase2 执行日志改由 `docs/development-plans/215-phase2-execution-log.md` 与 `06-integrated-teams-progress-log.md` 维护，此索引转入归档仅供历史参考。 |
+
 ---
 
 ## 后续工作方向

@@ -113,7 +113,7 @@
 
 - 严格遵守 `CLAUDE.md` 中资源唯一性、Docker 强制、中文沟通与“先契约后实现”原则。任何临时方案须使用 `// TODO-TEMPORARY:` 标注原因、计划、截止日期（≤1 个迭代），并登记在跟踪清单。
 - 禁止在宿主机安装 PostgreSQL/Redis/Temporal；如需释放端口需卸载宿主服务，并在 `reports/environment-adjustments.md`（若不存在需新建并纳入事实来源）记录。
-- 阶段结束时，在 `docs/development-plans/204-HRMS-Implementation-Roadmap.md` 第一阶段总结中引用本计划成果，并更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 中的模块结构记录。
+- 阶段结束时，在 `docs/archive/development-plans/204-HRMS-Implementation-Roadmap.md` 第一阶段总结中引用本计划成果，并更新 `docs/reference/02-IMPLEMENTATION-INVENTORY.md` 中的模块结构记录。
 
 ---
 

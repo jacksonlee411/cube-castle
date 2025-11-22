@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-11-15T16:37:37.215Z",
+  "timestamp": "2025-11-22T12:29:38.982Z",
   "summary": {
     "openapiPaths": 49,
     "graphqlQueries": 25,
-    "goHandlers": 62,
-    "goServices": 31,
+    "goHandlers": 68,
+    "goServices": 32,
     "tsExports": 267
   },
   "openapiPaths": [
@@ -127,6 +127,11 @@
       "kind": "method"
     },
     {
+      "name": "Error",
+      "file": "internal/organization/handler/devtools_database_status_test.go",
+      "kind": "method"
+    },
+    {
       "name": "SetupRoutes",
       "file": "internal/organization/handler/job_catalog_handler.go",
       "kind": "method"
@@ -239,6 +244,31 @@
     {
       "name": "TriggerConsistencyCheck",
       "file": "internal/organization/handler/operational.go",
+      "kind": "method"
+    },
+    {
+      "name": "CollectMetrics",
+      "file": "internal/organization/handler/operational_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "CheckAlerts",
+      "file": "internal/organization/handler/operational_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "ListTasks",
+      "file": "internal/organization/handler/operational_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "IsRunning",
+      "file": "internal/organization/handler/operational_test.go",
+      "kind": "method"
+    },
+    {
+      "name": "RunTask",
+      "file": "internal/organization/handler/operational_test.go",
       "kind": "method"
     },
     {
@@ -465,6 +495,11 @@
     },
     {
       "name": "ScheduledTask",
+      "file": "internal/organization/scheduler/operational_scheduler.go",
+      "kind": "type"
+    },
+    {
+      "name": "TaskSnapshot",
       "file": "internal/organization/scheduler/operational_scheduler.go",
       "kind": "type"
     },
