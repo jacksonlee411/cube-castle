@@ -118,7 +118,7 @@
 - 221T：Docker 集成测试基座验证记录
   - 文件: `221t-docker-integration-validation.md`（状态：验证记录/滚动维护）
 - 222：organization 模块 Phase2 验收
-  - 文件: `222-organization-verification.md`（状态：阶段性通过·PARTIAL PASS；待 232/252 与覆盖率/222B 达标后最终验收）
+  - 文件: `../archive/development-plans/222-organization-verification.md`（状态：✅ 已关闭；Phase2 验收完成，后续覆盖率/契约/性能由 Plan 222A-D 与 Plan 255/256 承接）
 - 231：Outbox Dispatcher 接入差距分析
   - 文件: `../archive/development-plans/231-outbox-dispatcher-gap.md`（状态：已完成（验收通过 · 2025-11-08）；Outbox→Dispatcher→Query 链路 Runbook 证据已落盘）
 - 232：Playwright P0 稳定专项
@@ -162,7 +162,7 @@
 仅给出顺序与索引，实施细节与验收标准以对应计划文档为唯一事实来源。
 
 - P0 · 222 收口验收与文档更新  
-  - 索引：`215-phase2-execution-log.md`、`215-phase2-summary-overview.md`、`222-organization-verification.md`  
+  - 索引：`215-phase2-execution-log.md`、`215-phase2-summary-overview.md`、`../archive/development-plans/222-organization-verification.md`  
   - 说明：补齐单元/集成/REST/GraphQL/E2E/性能与覆盖率证据，更新 README/开发者指南，形成 Phase2 验收报告
 
 - P0 · 202 阶段1：模块化单体合流（不改协议，仅合并进程与共享中间件/连接池）  
@@ -178,7 +178,7 @@
   - 说明：以 `docs/api/openapi.yaml` 与 `docs/api/schema.graphql` 为唯一事实来源，固化生成/校验流水线；前端统一领域 Facade，削减双协议耦合
 
 - P1 · 219E 回归补强（面向 222 覆盖率目标）  
-  - 索引：`215-phase2-execution-log.md`（Plan 219 完成登记）、`222-organization-verification.md`、`internal/organization/README.md`  
+  - 索引：`215-phase2-execution-log.md`（Plan 219 完成登记）、`../archive/development-plans/222-organization-verification.md`、`internal/organization/README.md`  
   - 说明：在组织模块上补齐关键路径与回归脚本，作为模板为后续新模块提供可复制的验收脚本
 
 一致性与登记

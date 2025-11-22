@@ -248,7 +248,9 @@ internal/organization/
 
 ---
 
-### Plan 222: 验证与文档更新
+### Plan 222: 验证与文档更新（✅ 已关闭）
+
+> 2025-11-23 更新：Phase2 最终验收证据已经沉淀，Plan 222 正式关单并迁移至归档；覆盖率/契约/性能补位转交 Plan 222A-D 及 Plan 255/256，不再在本计划内继续登记或推进测试覆盖。
 
 **交付成果**:
 - 完整的验收测试报告
@@ -271,10 +273,10 @@ internal/organization/
 
 ---
 
-## 3.x 进度补充（2025-11-15）
+## 3.x 进度补充（2025-11-15 · 2025-11-23 更新）
 
 - Plan 221 已完成（本地验收），证据：`logs/plan221/integration-run-*.log`
-- Plan 222 阶段性通过项：
+- Plan 222 阶段性通过项（2025-11-23 已正式关闭；以下记录作为历史背景）：
   - REST/GraphQL 核心路径可用：`logs/plan222/create-response-*.json`、`logs/plan222/graphql-query-*.json`
   - E2E 烟测（Chromium/Firefox 各 1 轮）通过
   - 健康/JWKS 验证：`logs/plan222/health-*.json`、`logs/plan222/jwks-*.json`
@@ -488,7 +490,7 @@ Phase2 详细方案：
 ├── 219-organization-restructuring.md      → 模块重构
 ├── 220-module-template-documentation.md   → 开发模板
 ├── 221-docker-integration-testing.md      → 测试基座
-└── 222-organization-verification.md       → 验证报告
+└── ../archive/development-plans/222-organization-verification.md       → 验证报告（已归档）
 
 基础建设文档：
 ├── 210-database-baseline-reset-plan.md    → 数据库基线（已完成）

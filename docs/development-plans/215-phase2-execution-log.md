@@ -1013,13 +1013,13 @@ make test-db-down
 **计划完成**: Day 19 (W4-D3)
 **状态**: 🔄 进行中（阶段性证据已登记：REST/GraphQL/E2E 烟测/健康与 JWKS/覆盖率）
 
-**详细文档**: 见 `docs/development-plans/222-organization-verification.md`
+**详细文档**: 见 `../archive/development-plans/222-organization-verification.md`
 
 ---
 
 ### 行动项 2.10 - 更新 README 与开发指南 (Plan 222)
 
-**对应计划**: **Plan 222 - organization-verification.md**（第二部分）
+**对应计划**: **Plan 222 - organization-verification.md**（已归档：`../archive/development-plans/222-organization-verification.md`，第二部分）
 
 **计划行动**:
 - [ ] 更新项目 README（新目录结构说明）
@@ -1029,7 +1029,7 @@ make test-db-down
 - [ ] 更新实现清单
 - [ ] 完成 Phase2 执行验收报告
 
-**文档更新** (来自 Plan 222):
+**文档更新** (来自 Plan 222，已归档):
 
 **1. README.md 更新**
 - 项目结构说明（cmd/、internal/、pkg/）
@@ -1074,7 +1074,7 @@ make test-db-down
 **计划完成**: Day 20-21 (W4-D4-5)
 **状态**: ⏳ 待启动
 
-**详细文档**: 见 `docs/development-plans/222-organization-verification.md`
+**详细文档**: 见 `../archive/development-plans/222-organization-verification.md`
 
 ---
 
@@ -1172,7 +1172,7 @@ make test-db-down
 | **Plan 219** | 219-organization-restructuring.md | organization 重构 | 标准模块结构 |
 | **Plan 220** | 220-module-template-documentation.md | 模块开发指南 | 模板文档、样本代码 |
 | **Plan 221** | 221-docker-integration-testing.md | Docker 测试基座 | Compose 配置、脚本 |
-| **Plan 222** | 222-organization-verification.md | 验证与文档更新 | 验收报告、文档更新 |
+| **Plan 222** | ../archive/development-plans/222-organization-verification.md | 验证与文档更新 | 验收报告、文档更新（已归档） |
 
 ### 相关规划文档
 
@@ -1215,3 +1215,10 @@ make test-db-down
 - 前端：Lint ⚠️ · Typecheck ✅
 - 证据：`logs/plan240/E`（run、guards、trace） · HAR 见 `logs/plan240/B`/BT
 - 执行日志：`logs/plan240/E/playwright-run-20251115142132.log`
+
+### Plan 240E – 验收登记（2025-11-22 18:18:25 CST）
+
+- 守卫：选择器 ✅ · 架构 ✅ · 临时标签 ✅（沿用 2025-11-15 门禁日志）
+- 前端：Lint ✅ · Typecheck ✅（`logs/plan240/E/frontend-lint.log`、`logs/plan240/E/frontend-typecheck.log`）
+- 证据：`logs/plan240/E`（前端守卫、run、trace；HAR 仍见 `logs/plan240/B`/BT）
+- 执行日志：`logs/plan240/E/playwright-run-20251115142132.log`（本次仅补录前端门禁，通过 CI 产物仍适用）

@@ -53,7 +53,7 @@
 ## 产物与落盘
 - 覆盖率：`logs/plan222/coverage-org-*.{out,txt,html}`（最新：`coverage-org-20251118-001054`，33.9%，差距登记：`logs/plan222/coverage-gap-20251118-000105.md`）
 - 稳健性：`logs/plan222/race-org-*.log`、必要的内存观察记录（同目录）
-- 文档同步：`docs/development-plans/222-organization-verification.md` 覆盖率章节更新
+- 文档同步：`docs/archive/development-plans/222-organization-verification.md` 覆盖率章节更新
 
 ## 最新进展（2025-11-18）
 - ✅ 新增单测：`internal/organization/events/outbox_test.go`、`internal/organization/dto/scalars_test.go`、`internal/organization/service/position_service_more_test.go`，覆盖事件 payload、GraphQL 标量与 PositionService 辅助方法。
