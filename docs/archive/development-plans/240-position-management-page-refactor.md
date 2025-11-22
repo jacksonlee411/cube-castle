@@ -25,7 +25,7 @@
   - 事实来源：`docs/archive/development-plans/240D-position-observability.md`、`CHANGELOG.md:3`（v1.5.7）  
   - 证据：`logs/plan240/D/obs-position-observability-chromium.log`、`frontend/playwright-report/index.html`
 - 240E – 回归与 Runbook：已完成（本地 Smoke + 守卫通过；登记见 Plan 215）  
-  - 事实来源：`docs/development-plans/240E-position-regression-and-runbook.md`、`docs/development-plans/215-phase2-execution-log.md`  
+  - 事实来源：`docs/archive/development-plans/240E-position-regression-and-runbook.md`、`docs/development-plans/215-phase2-execution-log.md`  
   - 证据：`logs/plan240/E/playwright-smoke-20251115142851.log`、`logs/plan240/E/architecture-validator.log`、`logs/plan240/E/selector-guard.log`、`logs/plan240/E/temporary-tags.log`
  - 240BT – 组织详情“白屏”治理（路由解耦）：已完成（验收通过）  
    - 事实来源：`docs/archive/development-plans/240bt-org-detail-blank-page-mitigation.md`  

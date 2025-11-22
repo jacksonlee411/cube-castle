@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # It appends a short acceptance note into:
 #   - docs/development-plans/215-phase2-execution-log.md
-#   - docs/development-plans/240E-position-regression-and-runbook.md (adds "关闭确认")
+#   - docs/archive/development-plans/240E-position-regression-and-runbook.md (adds "关闭确认")
 #
 # Idempotency: Multiple runs on the same timestamp will append multiple blocks. Use git if you need cleanup.
 
@@ -69,7 +69,6 @@ note "Updating 215 execution log..."
 printf "\n%s" "${ACCEPT_SNIPPET_215}" >> "${ROOT_DIR}/docs/development-plans/215-phase2-execution-log.md"
 
 note "Updating 240E close confirmation..."
-printf "\n%s" "${ACCEPT_SNIPPET_240E}" >> "${ROOT_DIR}/docs/development-plans/240E-position-regression-and-runbook.md"
+printf "\n%s" "${ACCEPT_SNIPPET_240E}" >> "${ROOT_DIR}/docs/archive/development-plans/240E-position-regression-and-runbook.md"
 
 echo "✅ Done. Please review git diff and commit."
-

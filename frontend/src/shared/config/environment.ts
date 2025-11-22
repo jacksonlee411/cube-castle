@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger';
+
 type RawEnv = Record<string, string | boolean | undefined>;
 
 type ImportMetaContainer = { env?: unknown };
@@ -183,9 +185,8 @@ export const validateEnvironmentConfig = (): void => {
     );
   }
 
-  if (env.isDevelopment && typeof console !== 'undefined') {
-    // eslint-disable-next-line no-console -- 开发态打印一次关键配置，便于排查环境变量
-    console.info('[Environment] 开发环境配置已加载', {
+  if (env.isDevelopment) {
+    logger.info('[Environment] 开发环境配置已加载', {
       mode: env.mode,
       apiBaseUrl: env.apiBaseUrl || 'relative:/api/v1',
       graphqlEndpoint: env.graphqlEndpoint || 'relative:/graphql',

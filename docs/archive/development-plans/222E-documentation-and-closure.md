@@ -8,11 +8,11 @@
 
 ## 目标
 - 将 Plan 222 的所有验收项与证据同步到文档/报告/索引，确保唯一事实来源一致。
-- 更新 `docs/development-plans/222-organization-verification.md`、`reports/phase2-execution-report.md`、`docs/development-plans/215-phase2-execution-log.md` 中的勾选状态。
+- 更新 `docs/archive/development-plans/222-organization-verification.md`、`reports/phase2-execution-report.md`、`docs/development-plans/215-phase2-execution-log.md` 中的勾选状态。
 - 输出最终验收结论（从阶段性通过 → ✅ 完成），并记录回滚/风险状态。
 
 ## 范围
-- 文档：`docs/development-plans/222-organization-verification.md`、`reports/phase2-execution-report.md`、`docs/development-plans/215-phase2-execution-log.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`（若需）。  
+- 文档：`docs/archive/development-plans/222-organization-verification.md`、`reports/phase2-execution-report.md`、`docs/development-plans/215-phase2-execution-log.md`、`docs/reference/02-IMPLEMENTATION-INVENTORY.md`（若需）。  
 - 索引/摘要：`docs/development-plans/HRMS-DOCUMENTATION-INDEX.md`, `logs/plan222/ACCEPTANCE-SUMMARY-*.md`。
 - 变更只涉及文档与报告，不改代码。
 
@@ -21,13 +21,13 @@
    - 汇总 222A-D 落盘的日志/报告；更新 `logs/plan222/ACCEPTANCE-SUMMARY-*.md`。  
    - 确认所有勾选项有对应证据链接（health/jwks/REST/GraphQL/coverage/perf/E2E）。
 2) 文档更新  
-   - `222-organization-verification.md`：补充最终覆盖率/性能/E2E 结果，勾选剩余任务。  
+   - `../archive/development-plans/222-organization-verification.md`：补充最终覆盖率/性能/E2E 结果，勾选剩余任务。  
    - `reports/phase2-execution-report.md`：将 Plan 222 状态更新为 ✅，同步核心结论。  
    - `215-phase2-execution-log.md`：勾选相关 checklist（测试、文档）。  
    - 若 implementation inventory 需要更新“Plan 222 完成”，同步 `docs/reference/02-IMPLEMENTATION-INVENTORY.md`。
 3) 索引与档案  
    - `HRMS-DOCUMENTATION-INDEX.md` 中 Plan 222 状态更新。  
-   - 确保 `docs/development-plans/222-closure-pr.md` 与本子计划一致（如需 PR 文案）。
+   - 确保 `docs/archive/development-plans/222-closure-pr.md` 与本子计划一致（如需 PR 文案）。
 4) 验收声明  
    - 在 `reports/phase2-execution-report.md` “风险”部分确认无未解事项或列出 residual risks。  
    - 输出最终验收结论（包含回滚路径、日志索引）。

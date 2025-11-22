@@ -12,7 +12,7 @@
 ## 变更范围
 - 文档
   - 更新 Plan 222 文档（修正本地开发/测试命令为 Make 目标、补充产物登记路径、调整阶段状态与证据引用）
-    - docs/development-plans/222-organization-verification.md
+    - docs/archive/development-plans/222-organization-verification.md
   - 新增 Phase2 执行验收报告（草案）
     - reports/phase2-execution-report.md
 - 脚本

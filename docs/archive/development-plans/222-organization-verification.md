@@ -1,11 +1,15 @@
 # Plan 222 - organization 模块验证与文档更新
 
-**文档编号**: 222
-**标题**: Phase2 最终验收 - 模块验证与项目文档更新
-**创建日期**: 2025-11-04
-**分支**: `feature/204-phase2-infrastructure`
-**版本**: v1.0
-**关联计划**: Plan 219-221（前置工作）、Plan 215（Phase2 执行日志）
+**文档编号**: 222  
+**标题**: Phase2 最终验收 - 模块验证与项目文档更新  
+**创建日期**: 2025-11-04  
+**分支**: `feature/204-phase2-infrastructure`  
+**版本**: v1.0  
+**关联计划**: Plan 219-221（前置工作）、Plan 215（Phase2 执行日志）  
+**状态**: ✅ 已关闭（2025-11-23）  
+**关闭说明**: Phase2 最终验收证据（日志、报告、Runner 产物）已沉淀，Plan 222 不再推进新增测试或覆盖率工作；后续覆盖率/契约/性能补位统一由 Plan 222A-D 与 Plan 255/256 承接。
+
+> ⚠️ **提醒**：本计划已关单，任何新的测试覆盖率或回归项不得在此计划登记，需在对应子计划 / 新计划中执行。
 
 ---
 
@@ -60,7 +64,7 @@
 ### 1.4 依赖与解锁条件
 
 - **前置计划**: Plan 219（organization 重构完成）、Plan 220（模板文档）、Plan 221（Docker 集成测试基座）。若 `make test-db` 尚未稳定通过且没有 `logs/plan221/run-*.log` 佐证，则 Plan 222 仅能进行筹备。
-- **硬阻塞**: Plan 232（Playwright P0 稳定）。`docs/development-plans/232-playwright-p0-stabilization.md:1065-1094` 明确其双浏览器全绿是 Plan 215/222 的 100% 解锁条件，未满足前不可宣告 Plan 222 完成。（Plan 252 已完成，不再作为阻塞项）
+- **硬阻塞**: Plan 232（Playwright P0 稳定）。`docs/archive/development-plans/232-playwright-p0-stabilization.md:1065-1094` 明确其双浏览器全绿是 Plan 215/222 的 100% 解锁条件，未满足前不可宣告 Plan 222 完成。（Plan 252 已完成，不再作为阻塞项）
 - **环境约束**: 必须通过 Docker Compose/`make` 目标启动服务，禁止在宿主机直接运行 PostgreSQL、Redis 或 `go run cmd/...`（参考 `AGENTS.md:3-44`）。
 
 ---

@@ -29,7 +29,7 @@
    - 对比上一轮样本（如 `perf-rest-20251116-094327.log`, `perf-rest-20251116-100552.log`），标注是否达标/无退化。  
    - 如不达标，登记瓶颈与回滚方案（不在本子计划直接优化业务逻辑，可开后续计划）。
 4) 文档同步  
-   - 在 `222-organization-verification.md` 性能章节更新结论与日志索引。  
+   - 在 `../archive/development-plans/222-organization-verification.md` 性能章节更新结论与日志索引。  
    - 如有风险，记录到 `reports/phase2-execution-report.md` 风险区。
 
 ## 验收标准
@@ -39,7 +39,7 @@
 
 ## 产物与落盘
 - 基准日志：`logs/219E/perf-rest-*.log`（新增样本）
-- 文档：`docs/development-plans/222-organization-verification.md` 性能章节更新；必要时更新 `reports/phase2-execution-report.md`
+- 文档：`docs/archive/development-plans/222-organization-verification.md` 性能章节更新；必要时更新 `reports/phase2-execution-report.md`
 
 ## 安全与回滚
 - 仅运行基准与分析；不调整端口映射或宿主服务。  
