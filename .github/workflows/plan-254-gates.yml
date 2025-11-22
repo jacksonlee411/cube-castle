@@ -99,14 +99,14 @@ jobs:
         continue-on-error: true
         run: |
           set -eo pipefail
-FILE="$(python - <<'PY'
-import pathlib
-base = pathlib.Path("logs/plan254")
-files = sorted((p for p in base.glob("results-*.json") if p.is_file()), key=lambda p: p.stat().st_mtime, reverse=True)
-if files:
-    print(files[0])
-PY
-)"
+          FILE="$(python - <<'PY'
+            import pathlib
+            base = pathlib.Path("logs/plan254")
+            files = sorted((p for p in base.glob("results-*.json") if p.is_file()), key=lambda p: p.stat().st_mtime, reverse=True)
+            if files:
+                print(files[0])
+          PY
+          )"
           if [ -z "$FILE" ]; then
             echo "No results JSON found under logs/plan254/"
             exit 0
