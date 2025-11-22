@@ -1,5 +1,7 @@
 # WSL 自托管 Runner 安装与回滚手册（Plan 269）
 
+> ⚠️ **2025-11-22 更新**：Plan 269 已正式取消 WSL Runner 方案，禁止在未获新审批前启用 `self-hosted,cubecastle,wsl` 标签。本手册仅作为历史记录留存，内容请勿在现有环境执行。
+
 **最后更新**：2025-11-20  
 **适用范围**：经 Plan 269 批准的 WSL 环境（Windows 11 + WSL2 Ubuntu 22.04 默认），Runner 仅用于 GitHub Actions，自身仍依赖 Docker Compose 运行业务服务。
 

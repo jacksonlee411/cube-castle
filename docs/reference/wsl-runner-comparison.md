@@ -1,5 +1,7 @@
 # WSL Runner vs Docker Runner 对比指引（Plan 269）
 
+> ⚠️ **2025-11-22 更新**：Plan 269 已撤销 WSL Runner 方案，本指引仅保留历史内容，勿据此重新启用 `self-hosted,cubecastle,wsl`。所有 workflow 必须运行在 GitHub 平台 runner 上，如需新的自托管方案须另行审批。
+
 **最后更新**：2025-11-20（Plan 269 批准，阶段性策略：GitHub runner 为主、WSL Runner 仅用于 smoke）  
 **关联文档**：AGENTS.md、Plan 262/265/266/267、`docs/reference/05-CI-LOCAL-AUTOMATION-GUIDE.md`
 

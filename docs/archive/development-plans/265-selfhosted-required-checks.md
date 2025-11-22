@@ -4,7 +4,8 @@
 **标题**: 自托管 Runner 门禁扩展（Plan 263/264 衔接）  
 **版本**: v0.1  
 **创建日期**: 2025-11-19  
-**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）
+**关联计划**: Plan 262（自托管 Runner 持续化），Plan 263（性能影响分析 Required），Plan 264（Workflow 治理）  
+**状态更新（2025-11-22）**：WSL Runner 方案已取消，本文档仅保留历史记录；请勿重新启用任何 `self-hosted` 标签，所有 Required workflow 必须运行在 GitHub 平台 runner。
 
 ---
 

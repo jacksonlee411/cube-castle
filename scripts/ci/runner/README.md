@@ -61,9 +61,9 @@ docker compose -f docker-compose.runner.yml down -v
 
 ---
 
-## 六、WSL Runner（Plan 269 正式通道）
+## 六、WSL Runner（已取消，仅供历史参考）
 
-> 2025-11-20 起，Plan 269 批准在满足“业务服务依旧运行在 Docker Compose 中”的前提下，将 WSL 发行版（Ubuntu 20.04+/22.04）中的原生 Runner 作为唯一的自托管通道。标签固定为 `self-hosted,cubecastle,wsl`；Docker Runner 已退役，如需恢复必须重新走计划审批。
+> ⚠️ 2025-11-22 起，Plan 269 撤销 WSL Runner 例外，禁止再次启用 `self-hosted,cubecastle,wsl` 标签。以下内容仅保留用于审计与历史追溯，请勿据此重新部署 Runner；如确需自托管方案，必须另行立项并获得审批。
 
 1. **安装 / 升级**
    ```bash
