@@ -10,13 +10,27 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 REPORT_FILE="$REPORT_DIR/actionlint-${TIMESTAMP}.txt"
 ACTIONLINT_VERSION="${ACTIONLINT_VERSION:-1.7.4}"
 
+ensure_go_bin_path() {
+  if ! command -v go >/dev/null 2>&1; then
+    return
+  fi
+
+  local go_bin
+  go_bin="$(go env GOPATH 2>/dev/null)/bin"
+  if [[ -d "$go_bin" && ":$PATH:" != *":${go_bin}:"* ]]; then
+    export PATH="${go_bin}:${PATH}"
+  fi
+}
+
 ensure_actionlint() {
+  ensure_go_bin_path
   if command -v actionlint >/dev/null 2>&1; then
     return 0
   fi
 
   echo "🛠️ 安装 actionlint v${ACTIONLINT_VERSION}..."
   GO111MODULE=on go install "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}"
+  ensure_go_bin_path
 }
 
 run_actionlint() {
