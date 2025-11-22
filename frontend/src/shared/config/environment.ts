@@ -1,4 +1,4 @@
-import { logger } from '@/shared/utils/logger';
+import { logger } from '../utils/logger';
 
 type RawEnv = Record<string, string | boolean | undefined>;
 
