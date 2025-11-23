@@ -1,5 +1,5 @@
 {
-  "timestamp": "20251123_153247",
+  "timestamp": "20251123_153500",
   "whitelist": [
     "/.well-known/jwks.json",
     "/api/v1/operational/**",

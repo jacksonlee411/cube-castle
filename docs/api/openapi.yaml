@@ -2509,48 +2509,6 @@ paths:
         '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/standard-objects/{objectType}:
-    get:
-      operationId: listStandardObjects
-      tags: [standard-objects]
-      summary: List Standard Object aggregates (contract-first, Feature Flag gated)
-      description: |
-        返回给定 `objectType` 的 SOM 聚合（kernel + version + links）。
-
-        > ⚠️ 402A 阶段仅提供契约：当 `STANDARD_OBJECTS_ENABLED=false` 时，命令服务会返回 `standardobject: feature flag disabled`；
-        > 启用 Feature Flag 但尚未绑定仓储时返回 `standardobject: adapter not configured`，以便在未完成实现前阻断写入。
-      parameters:
-        - $ref: '#/components/parameters/TenantIdHeader'
-        - $ref: '#/components/parameters/StandardObjectTypeParam'
-        - name: asOfDate
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date
-          description: 可选，按有效时间查询版本。
-        - name: cursor
-          in: query
-          schema:
-            type: string
-          description: 分页游标（future implementation）。
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-          description: 每页条数（默认为 50）。
-      security:
-        - OAuth2ClientCredentials: ['standard-object:read']
-      responses:
-        '200':
-          description: OK（Feature Flag 开启并绑定仓储后返回数据）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StandardObjectListResponse'
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createStandardObject
       tags: [standard-objects]
@@ -3140,13 +3098,6 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/StandardObjectAggregate'
-    StandardObjectListResponse:
-      allOf:
-        - $ref: '#/components/schemas/SuccessResponse'
-        - type: object
-          properties:
-            data:
-              $ref: '#/components/schemas/StandardObjectList'
     OrganizationUnit:
       type: object
       description: Complete organization unit model with temporal and audit data
