@@ -1,2 +1,0 @@
-ℹ️  下载运行日志压缩包: jacksonlee411/cube-castle run_id=19411098135
-curl: (22) The requested URL returned error: 404

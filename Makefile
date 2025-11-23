@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint workflow-lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint workflow-lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch archive-run-artifacts
 .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 .PHONY: generate-contracts verify-contracts
 .PHONY: guard-plan258
@@ -124,6 +124,10 @@ clean-untracked-binaries:
 	  if [ -f "$$f" ]; then rm -f "$$f"; echo "  ✂ $$f"; removed=1; fi; \
 	done; \
 	if [ "$$removed" = "0" ]; then echo "  ✅ 未发现可清理的二进制"; fi
+
+archive-run-artifacts:
+	@echo "📦 Plan 272 运行产物归档..."
+	@bash scripts/plan272/archive-run-artifacts.sh
 
 # ======================
 # PR 自动化（Plan 255）
@@ -337,6 +341,8 @@ lint:
 	  golangci-lint version || true; \
 	  golangci-lint run; \
 	fi
+	@echo "🛡️ Plan 272 artifact guard..."
+	npm run guard:plan272
 
 workflow-lint:
 	@echo "🔍 使用 actionlint 校验 .github/workflows ..."

@@ -1,7 +1,0 @@
---- database/schema/current_schema.sql	2025-11-03 18:51:46.287066811 +0800
-+++ database/schema.sql	2025-11-03 18:51:46.287066811 +0800
-@@ -1665,4 +1665,3 @@
- --
- -- PostgreSQL database dump complete
- --
--

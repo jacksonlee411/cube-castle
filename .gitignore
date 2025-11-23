@@ -38,6 +38,11 @@ startup.log
 # Allow curated plan221 logs to be tracked for audit evidence
 !logs/plan221/
 !logs/plan221/*.log
+# Allow Plan 272 守卫/归档日志
+!logs/plan272/
+!logs/plan272/**/*.log
+!logs/plan272/**/*.txt
+!logs/plan272/**/*.csv
 # Ignore local Plan 255 evidence logs (local-only, CI will archive separately)
 logs/plan255/
 # Ignore local Plan 254 evidence logs（CI 工件已保存）

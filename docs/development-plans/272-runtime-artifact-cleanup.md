@@ -115,4 +115,6 @@
 **最近更新**  
 - 2025-11-23：建立 Plan 272 新版文档，记录 cloc 基线与治理范围（Codex 代理）。  
 - 2025-11-23：完成 W1 运行产物盘点，落盘 `logs/plan272/inventory/cloc-20251123T030106Z.txt`、`logs/plan272/inventory/du-20251123T030106Z.txt` 与 `reports/plan272/runtime-artifacts-inventory-20251123T030106Z.csv`。  
-- 2025-11-23：完成 W2 保留策略基线——新增 `logs/README.md`、`reports/README.md`、`test-results/README.md`、`templates/plan272-manifest.example.json`，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/development-plans/00-README.md` 记录入口。
+- 2025-11-23：完成 W2 保留策略基线——新增 `logs/README.md`、`reports/README.md`、`test-results/README.md`、`templates/plan272-manifest.example.json`，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/development-plans/00-README.md` 记录入口。  
+- 2025-11-23：完成 W3/W4 首次交付——新增 `scripts/plan272/archive-run-artifacts.sh`、`scripts/quality/plan272-artifact-guard.js`，执行 `make archive-run-artifacts` 生成 `archive/runtime-artifacts/2025-11/run-artifacts-20251123T031657Z.tar.gz`（sha256: `3ab65f…7613ed`）及 manifest，`npm run guard:plan272` 已产出首份报告 (`logs/plan272/guard/plan272-guard-20251123T031757Z.log`)。  
+- 2025-11-23：Stage 1 cloc/du 压降完成，最新数据见 `logs/plan272/inventory/cloc-20251123T031818Z-post.txt`、`logs/plan272/inventory/du-20251123T031818Z-post.txt` 与 `reports/plan272/cloc-delta-20251123T031818Z.md`（总行数降至 1,095,061，logs 目录空间 168KB）。

@@ -1,0 +1,6 @@
+🏁 Plan 272 运行产物归档启动 @ 20251123T031657Z
+📦 归档目录: logs reports test-results
+🎯 输出: /home/shangmeilin/cube-castle/archive/runtime-artifacts/2025-11/run-artifacts-20251123T031657Z.tar.gz (compressor: gzip)
+🔐 archive sha256: 3ab65fa5c4d148762586fb3d9539eb72141ecc5fdcd9ceed3a3c6157307613ed
+🗃️ manifest: /home/shangmeilin/cube-castle/archive/runtime-artifacts/2025-11/run-artifacts-20251123T031657Z.manifest.json
+✅ Plan 272 运行产物归档完成

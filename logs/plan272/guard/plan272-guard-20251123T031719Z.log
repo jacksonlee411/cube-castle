@@ -1,0 +1,15 @@
+❌ Plan 272 artifact guard 检测到以下问题：
+  - [ARTIFACT] logs/plan222/coverage-org-20251117-234305.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251117-235625.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-001054.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-014409.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-015441.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-015709.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-020350.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-020756.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-021257.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-021513.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-023621.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-025405.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-034157.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+  - [ARTIFACT] logs/plan222/coverage-org-20251118-093517.html (1304KB) 仍以 .html 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
