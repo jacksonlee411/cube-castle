@@ -51,30 +51,42 @@
 | 模块 | 说明 | 对应产物 |
 |------|------|----------|
 | `ObjectKernel` | 核心对象结构，含 `objectType`, `code`, `displayName`, `status`, `tenant`, `labels`, `createdBy` | `internal/standardobject/domain/object.go` |
-| `TemporalVersion` | 版本信息：`versionCode`, `effectiveFrom`, `effectiveTo`, `payload`（JSONB）、`auditTrail` | `standard_object_versions` 表 + sqlc |
+| `TemporalVersion` | 版本信息：`versionCode`, `effectiveDate`, `endDate`, `payload`（JSONB）、`auditTrail` | `standard_object_versions` 表 + sqlc |
 | `LifecyclePolicy` | 不同对象类型的状态转换/校验策略（组织可滞后，职位需校验梯队/编制） | `internal/standardobject/policy/*.go` |
 | `Link` | 层级与挂载关系，支持 parent-child、position->organization | `standard_object_links` 表、GraphQL `StandardObjectLink` |
 | `EventEnvelope` | 向 outbox 写 `standard_object.created/updated/versioned/status_changed` | `pkg/eventbus` + dispatcher |
+| `SchemaRegistry` | 管理 payload schema 版本、ISO 11179 Data Element Concept（DEC）语义 ID、OCL 守卫与发布策略，供后端/前端/生成脚本读取 | `standard_object_schemas` 表 + 文档化流程 |
+| `Translation`/`Attachment` | 多语言 label、外部文档/批复等扩展维度 | `standard_object_translations`、`standard_object_attachments` |
+| `Observability & Metrics` | 记录快照刷新、校验差异、事件消费等指标/OBS 事件 | `standard_object_metrics`、日志规范 |
+
+#### 4.1.1 语义锚点与 OCL 验证
+- Schema Registry 需与 Plan 403 提出的 ISO 11179 语义锚点保持一致：每个 payload 字段都绑定 Data Element Concept（DEC）ID、语义版本、可选同义词列表。`schema-registry.json` 在生成时必须输出 `{ fieldPath, decId, glossaryUrl }` 结构，QA 在 `logs/plan400/schema/*.log` 验证缺失项。
+- 同一 Schema 条目携带 `oclGuard` 数组，落地 403 文档的“组合层 OCL”要求。命令服务在写入前、migration/validator/Playwright 在验收前均调用共享 `pkg/ocl` 引擎执行 `preState`/`postState` 校验，违反则返回 `422 STANDARD_OBJECT_OCL_VIOLATION`。
+- Manifest/前端生成脚本使用 DEC ID 决定显示名称、默认提示与多语言描述，确保 UI/文档的唯一语义来源；任何新增字段若未在 Schema Registry 注册 DEC，将被 `scripts/quality/architecture-validator.js` 阻断。
 
 ### 4.2 生命周期与状态机
 状态：`DRAFT` → `READY` → `ACTIVE` → `SUSPENDED` → `RETIRED`。  
 规则：
 1. `READY` 仅可由 `DRAFT` 进入，需通过类型特定 `LifecyclePolicy.ValidateReady`.
-2. `ACTIVE` 必须有至少一个有效版本，版本的 `effectiveFrom` ≤ 当前时间。
+2. `ACTIVE` 必须有至少一个有效版本，版本的 `effectiveDate` ≤ 当前时间。
 3. `SUSPENDED` 可返回 `ACTIVE`，需记录原因（存储在版本 payload 内 `suspensionNote`）。
 4. `RETIRED` 为终态，不可再创建新版本；组织/职位 retire 时必须广播事件 `standard_object.retired`.
 5. 所有状态变更经由 `ObjectCommandService`（REST）执行，保证 CQRS 原则。
 
 ### 4.3 数据模型与迁移
 新增 Goose/Atlas 迁移（示例字段）：
-- `standard_objects`: `id (uuid)`, `code (text unique)`, `object_type`, `tenant_code`, `display_name`, `status`, `labels jsonb`, `created_by`, `created_at`, `updated_at`.
-- `standard_object_versions`: `id`, `object_id`, `version_code`, `effective_from`, `effective_to`, `payload jsonb`, `is_current`, `audit jsonb`.
-- `standard_object_links`: `id`, `source_object_id`, `target_object_id`, `link_type`, `attributes jsonb`.
+- `standard_objects`: `id (uuid)`, `code (text unique)`, `object_type`, `object_type_potency smallint`, `object_type_inheritance text`, `tenant_code`, `display_name`, `status`, `labels jsonb`, `created_by`, `created_at`, `updated_at`.
+- `standard_object_versions`: `id`, `object_id`, `version_code`, `effective_date`, `end_date`, `payload jsonb`, `is_current`, `audit jsonb`, `checksum`, `created_at`, `updated_at`.
+- `standard_object_links`: `id`, `source_object_id`, `target_object_id`, `link_type`, `attributes jsonb`, `tenant_code`, `created_by`, `created_at`, `updated_at`, `updated_by`.
+- `standard_object_schemas`: `id`, `object_type`, `schema_version`, `schema_hash`, `definition jsonb`, `dec_bindings jsonb`, `ocl_guards jsonb`, `glossary_url text`, `published_at`, `rollback_version`, `maintainer`.
+- `standard_object_translations`: `id`, `object_id`, `locale`, `display_name`, `description`, `labels jsonb`, `updated_at`, `updated_by`.
+- `standard_object_attachments`: `id`, `object_id`, `attachment_type`, `storage_uri`, `metadata jsonb`, `uploaded_by`, `uploaded_at`.
+- `standard_object_metrics`: `id`, `object_id`, `metric_type`, `metric_value numeric`, `recorded_at`, `labels jsonb`。
 
 实现要求：
-1. 采用 sqlc（Plan 201 差异项）生成仓储接口，生成命令置于 `internal/standardobject/repository/sqlc`.
-2. `internal/organization`、`internal/position` 仅通过 `ObjectService` 访问公共仓储；保留特定字段（如组织扩展属性）通过 `payload` + schema 校验。
-3. 迁移脚本命名 `20251201090000_create_standard_objects.sql`，必须包含 Up/Down。
+1. 采用 sqlc（Plan 201 差异项）生成仓储接口，生成命令置于 `internal/standardobject/repository/sqlc`；接口需提供 `LookupObjectTypeMetadata` 以读取 potency/继承策略。
+2. `internal/organization`、`internal/position` 仅通过 `ObjectService` 访问公共仓储；保留特定字段（如组织扩展属性）通过 `payload` + schema 校验。`ObjectService` 在创建/迁移时必须校验 `object_type_potency` 与 Schema Registry 中的 `dec_bindings`/`ocl_guards`。
+3. 迁移脚本命名 `20251201090000_create_standard_objects.sql`，必须包含 Up/Down，并在同一批次创建 Schema Registry、Translation、Attachment、Metrics 等扩展表；Schema Registry 表需包含 `dec_bindings`（字段路径 → DEC ID/语义版本）、`ocl_guards`（数组）、`glossary_url` 等列；操作规范需更新至 `docs/reference`。
 
 ### 4.4 契约与 API
 1. **REST**：`POST /standard-objects/{objectType}` 创建对象，`POST /standard-objects/{objectType}/{code}/versions` 创建版本，`PATCH /standard-objects/{objectType}/{code}/status`，`GET /standard-objects/{objectType}` 列表。路径参数统一 `{objectType}/{code}`。
@@ -87,6 +99,7 @@
 2. `OrganizationTemporalPage` 与 `PositionTemporalPage` 只注入对象类型、字段映射、表单 schema；页面骨架、tab、版本操作复用 `TemporalEntityLayout`。
 3. 表单配置：采用 JSON Schema + 动态组件，放置 `frontend/src/shared/forms/standard-object`，便于 workforce/contract 共享。
 4. Playwright：新增 `frontend/tests/e2e/standard-object-lifecycle.spec.ts`，收敛 selectors（`temporalEntitySelectors.*`），`logs/plan400/ui/*.log` 落盘 `[OBS]` 事件。
+5. Manifest/Schema 生成：结合 Plan 300，在 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts`、`schema-registry.json` 输出中引入 SOM 实体，记录证据到 `logs/plan400/manifest/*.log`。
 
 ### 4.6 开发阶段（建议 4 Sprint）
 | 阶段 | 时间 | 交付 | 依赖 |
@@ -102,6 +115,24 @@
 - **物化视图**：为常用日期（如 `CURRENT_DATE`、每月 1 日）创建 `CREATE MATERIALIZED VIEW standard_object_snapshot_mv AS ...`，并在 `cmd/tools/standardobject-snapshot-refresh` 中调用 `REFRESH MATERIALIZED VIEW CONCURRENTLY`。
 - **刷新流程**：Outbox dispatcher 捕获 `standard_object.*` 事件后，将任务写入刷新队列，Go Job 或 SQL 调度器（例如 `pg_cron`）执行 `UPSERT`/`DELETE + INSERT` 更新快照；运行日志写入 `logs/plan400/snapshots/*.log`。
 - **查询策略**：REST/GraphQL 读路径优先命中快照/物化视图；若缺少特定日期快照，则即时计算并触发异步刷新，保证体验。
+
+### 4.8 多视点矩阵
+结合 Plan 403 的 Multi-view Projection Pattern，SOM 的契约/实现/证据必须以视点矩阵交付：
+
+| 视点 | 关注点 | 产物/证据 |
+|------|--------|-----------|
+| **结构视点** | ObjectKernel/Link、Schema Registry、DEC 列表 | `docs/api/*`, `schema-registry.json`, `logs/plan400/schema/*.log` |
+| **运行视点** | 状态机、版本事件、快照/闭包刷新、Outbox 指标 | `pkg/eventbus` 事件、`standard_object_hierarchy_snapshots`, `logs/plan400/snapshots/*.log` |
+| **观察视点** | OBS 事件、Playwright 选择器守卫、性能指标 | `logs/plan400/ui/*.log`, `[OBS] standardObject.*` 事件、`standard_object_metrics` |
+| **协作视点** | Manifest/Slot 注册、PBAC scope、生成器输出 | `frontend/src/features/temporal/*`, `scripts/generate-*` 证据、`scripts/quality/auth-permission-contract-validator.js` |
+
+任何新增模块（如 contract/workforce）需声明其视点覆盖关系，并在 PR/验收模板中粘贴对应矩阵条目，避免“契约→实现→证据”跨层不一致。
+
+### 4.9 多级建模与对象类型效力
+为满足 403 文档提出的 Deep Instantiation 要求：
+- `objectType` 元数据引入 `potency`（默认 1）。`potency>1` 的类型（例如“POSITION_FAMILY”）可以在 M1 层继续派生子类型，再在 M0 赋值字段。Schema Registry 需记录 `potency`、允许派生的属性以及 `inheritanceStrategy`（`FIXED`/`EXTENDABLE`）。
+- `internal/standardobject/policy` 在加载类型配置时校验 `potency` 与状态机是否兼容（例如 `potency=2` 的类型在派生层同样遵循 `DRAFT→ACTIVE`）。
+- Migrator/Validator 需对旧表数据生成默认的 `potency=1` 记录，并在 `logs/plan400/migration/*.log` 给出“未声明 potency 的对象类型数量”，以防扩展时遗漏模型层语义。
 
 ---
 
@@ -142,6 +173,21 @@
 - Phase4 contract 模块接入 SOM（单独开 Plan 4xx 子文档）。
 - 将 SOM 纳入 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`，提供统一入口。
 - 评估将 SOM 事件写入数据仓库或审计总线的需求（与 `pkg/eventbus` Redis Adapter 计划同步）。
+
+---
+
+## 10. 与 Plan 200/201 的对齐要求
+
+为确保本方案完全继承 200/201 的工程基线，以下守卫为强制项：
+
+1. **端口/适配器模式**：`internal/standardobject/api.go` 暴露的接口需要在 `cmd/hrms-server/*` 入口统一注入，禁止服务层直接引用仓储实现。所有依赖关系必须通过 Go 原生的端口/适配器结构与 `internal/.../adapter` 目录实现。
+2. **sqlc + Atlas Pipeline**：仓库根需保留 `make sqlc-generate`、`atlas migrate diff` 守卫；在 PR/验收阶段必须提供 `logs/plan400/sqlc-generate.log`、`logs/plan400/atlas-diff.log`，证明生成产物与迁移脚本为最新版本。
+3. **Docker-first 测试**：所有数据库/集成测试须运行 `make test-db`（调用 `scripts/run-integration-tests.sh`，在 Docker Compose 中执行 Goose Up → Go Integration Tests → Goose Down），并在 `logs/plan400/test-db/*.log` 落证；禁止依赖宿主 PostgreSQL。
+4. **事务性发件箱与持久化 EventBus**：Outbox dispatcher 必须注入 Plan 201 规划的持久化传输（Redis/Faktory/Asynq adapter），并在 `pkg/eventbus` 层提供指标；`STANDARD_OBJECTS` 相关事件不得使用内存总线。
+5. **PBAC 外部化**：Plan 252/259 的策略源需纳入 Schema Registry/对象模型，命令/查询服务不得硬编码 scope；验收时需提供 `scripts/quality/auth-permission-contract-validator.js` 报告。
+6. **质量守卫**：在 `scripts/quality/*`（Plan 255/258/259）中新增/更新规则以检查 Schema Registry、Manifest/Slot、禁止 `_from/_to` 命名等；CI 必须运行 `make lint`, `make fmt`, `npm run lint`, `npm run quality:preflight` 并附日志。
+
+只有在满足以上守卫并提供相应日志的情况下，SOM 交付才视为与 Plan 200/201 对齐。
 
 ---
 

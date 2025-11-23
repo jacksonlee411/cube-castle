@@ -91,6 +91,29 @@ const config = {
       enabled: true,
       targetPattern: /eslint-disable-next-line\s+camelcase/,
       requireReasonPattern: /eslint-disable-next-line\s+camelcase\s+--\s+\S/
+    },
+
+    // 能力契约矩阵
+    capabilityContracts: {
+      enabled: true,
+      path: 'docs/development-plans/402-capability-contracts.md',
+      requiredColumns: [
+        '模块 (Federate)',
+        '提供能力',
+        '依赖能力',
+        '视点覆盖',
+        '证据/日志'
+      ],
+      requiredEntries: [
+        'Organization Federate',
+        'Position Federate',
+        'Shared Federate'
+      ],
+      requiredEvidencePaths: [
+        'logs/plan402/capability',
+        'logs/plan400/schema',
+        'logs/plan400/snapshots'
+      ]
     }
   }
 };
@@ -106,6 +129,7 @@ const stats = {
     contracts: 0,
     forbidden: 0,
     eslintExceptions: 0,
+    capabilityContracts: 0,
     total: 0
   },
   fixedIssues: 0
@@ -506,6 +530,89 @@ class ForbiddenEndpointValidator {
   }
 }
 
+// 📘 能力契约验证器
+class CapabilityContractValidator {
+  static validate(options = {}, projectRoot = process.cwd()) {
+    const violations = [];
+    const contractPath = options.path
+      ? path.join(projectRoot, options.path)
+      : null;
+
+    if (!contractPath || !fs.existsSync(contractPath)) {
+      violations.push({
+        type: 'capabilityContracts',
+        line: 1,
+        column: 1,
+        message: `未找到能力契约文件 ${options.path || '<未配置>'}，请参考 Plan 402 创建/更新`,
+        code: 'capability-contract-missing',
+        severity: 'error'
+      });
+      return {
+        filePath: contractPath || (options.path || 'docs/development-plans/402-capability-contracts.md'),
+        violations
+      };
+    }
+
+    const content = fs.readFileSync(contractPath, 'utf8');
+    const requiredColumns = options.requiredColumns || [];
+    requiredColumns.forEach(column => {
+      if (!column) return;
+      if (!content.includes(column)) {
+        violations.push({
+          type: 'capabilityContracts',
+          line: this.findLine(content, column),
+          column: 1,
+          message: `能力矩阵缺少列 "${column}"，请对齐 402 计划`,
+          code: 'capability-column-missing',
+          severity: 'error'
+        });
+      }
+    });
+
+    const requiredEntries = options.requiredEntries || [];
+    requiredEntries.forEach(entry => {
+      if (!entry) return;
+      if (!content.includes(entry)) {
+        violations.push({
+          type: 'capabilityContracts',
+          line: 1,
+          column: 1,
+          message: `能力矩阵缺少 Federate "${entry}" 记录`,
+          code: 'capability-entry-missing',
+          severity: 'error'
+        });
+      }
+    });
+
+    const requiredEvidence = options.requiredEvidencePaths || [];
+    requiredEvidence.forEach(evidencePath => {
+      if (!evidencePath) return;
+      if (!content.includes(evidencePath)) {
+        violations.push({
+          type: 'capabilityContracts',
+          line: 1,
+          column: 1,
+          message: `能力矩阵未引用证据路径 "${evidencePath}"，请在表格或正文中注明`,
+          code: 'capability-evidence-missing',
+          severity: 'warning'
+        });
+      }
+    });
+
+    return {
+      filePath: contractPath,
+      violations
+    };
+  }
+
+  static findLine(content, token) {
+    if (!token) return 1;
+    const idx = content.indexOf(token);
+    if (idx === -1) return 1;
+    return content.substring(0, idx).split('\n').length;
+  }
+}
+
 // 🚀 主验证引擎
 class ArchitectureValidator {
   constructor(options = {}) {
@@ -619,6 +726,33 @@ class ArchitectureValidator {
     
     return this.violations;
   }
+
+  async validateAdditionalArtifacts() {
+    if (!this.isRuleEnabled('capabilityContracts') ||
+        !this.options.rules.capabilityContracts?.enabled) {
+      return;
+    }
+
+    const result = CapabilityContractValidator.validate(
+      this.options.rules.capabilityContracts,
+      this.options.projectRoot || process.cwd()
+    );
+
+    const filePath = result.filePath;
+    stats.totalFiles++;
+
+    if (result.violations.length > 0) {
+      stats.failedFiles++;
+      stats.violations.capabilityContracts += result.violations.length;
+      stats.violations.total += result.violations.length;
+      this.violations.push({
+        filePath,
+        violations: result.violations
+      });
+    } else {
+      stats.passedFiles++;
+    }
+  }
   
   generateReport(outPath = null) {
     const report = {
@@ -632,10 +766,11 @@ class ArchitectureValidator {
           cqrs: stats.violations.cqrs,
           ports: stats.violations.ports,
           contracts: stats.violations.contracts,
-          forbidden: stats.violations.forbidden,
-          eslintExceptions: stats.violations.eslintExceptions
-        }
-      },
+        forbidden: stats.violations.forbidden,
+        eslintExceptions: stats.violations.eslintExceptions,
+        capabilityContracts: stats.violations.capabilityContracts
+      }
+    },
       violations: this.violations
     };
     
@@ -678,12 +813,16 @@ class ArchitectureValidator {
     if (stats.violations.eslintExceptions > 0) {
       log.warning(`   📝 ESLint例外说明缺失: ${stats.violations.eslintExceptions} 个`);
     }
+    if (stats.violations.capabilityContracts > 0) {
+      log.warning(`   📘 能力契约违规: ${stats.violations.capabilityContracts} 个`);
+    }
 
     // 质量门禁判定
     const criticalViolations = stats.violations.cqrs +
       stats.violations.ports +
       stats.violations.forbidden +
-      stats.violations.eslintExceptions;
+      stats.violations.eslintExceptions +
+      stats.violations.capabilityContracts;
     if (criticalViolations > 0) {
       log.error(`🚫 质量门禁失败: ${criticalViolations} 个关键违规`);
       return false;
@@ -707,7 +846,9 @@ async function main() {
     contracts: 'apiContracts',
     forbidden: 'forbiddenEndpoints',
     'eslint-exception-comment': 'eslintExceptionComment',
-    'eslintExceptionComment': 'eslintExceptionComment'
+    'eslintExceptionComment': 'eslintExceptionComment',
+    capability: 'capabilityContracts',
+    'capabilityContracts': 'capabilityContracts'
   };
   let ruleFilter = null;
   if (ruleArgIndex !== -1 && args[ruleArgIndex + 1]) {
@@ -732,6 +873,7 @@ async function main() {
   
   try {
     await validator.validateDirectory(targetPath);
+    await validator.validateAdditionalArtifacts();
     const report = validator.generateReport(outPath);
     const success = validator.printSummary();
     

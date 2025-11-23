@@ -35,20 +35,23 @@ HRMS 的架构演进已经在 Plan 400 中确认以 **Standard Object Model（SO
 
 SOM 将所有“可被时间管理的业务对象”抽象为同一个编排单元，并用对象类型（`objectType`）区分组织（`organization.unit`）、职位（`position.role`）以及未来的 workforce/contract 实体：
 
-* **ObjectKernel** – `standard_objects`：承载 `code`、`displayName`、`status`、`tenantCode`、`labels`、`createdBy` 等公共属性。每条记录都附带 `createdAt/updatedAt` 以满足审计和回滚需要。  
-* **TemporalVersion** – `standard_object_versions`：以 `versionCode` + `effective_from`/`effective_to` 捕捉时间维度。所有可配置 payload（JSONB）与 `auditTrail` 都放在版本层，保证“变更 = 新版本”而非覆盖式修改。  
-* **Link** – `standard_object_links`：用于维护 parent-child、position-to-organization、跨对象引用等层级关系。`linkType` + `attributes` 允许扩展更多类型的关系（例如 cost center、location）。
+* **ObjectKernel** – `standard_objects`：承载 `code`、`displayName`、`status`、`tenantCode`、`labels`、`schemaVersion`、`dataClassification`、`retentionPolicy` 等公共属性，并记录 `createdAt/updatedAt`/`createdBy`；该层负责对象级治理与权限派生。  
+* **TemporalVersion** – `standard_object_versions`：以 `versionCode` + `effective_date`/`end_date` 捕捉时间维度。所有版本化 payload（JSONB）与 `auditTrail`（changeReason/operation/actor…）都放在版本层，保证“变更 = 新版本”而非覆盖式修改。  
+* **Link** – `standard_object_links`：用于维护 parent-child、position-to-organization、跨对象引用等关系。`linkType` + `attributes`（sortOrder、hierarchyDepth、path 缓存、effectiveDate 等）允许扩展更多类型的挂载。  
+* **SchemaRegistry** – `standard_object_schemas`：记录各对象类型的 payload schema、hash、发布/回滚策略，为生成脚本（Plan 300）与校验器提供唯一事实来源。  
+* **Translations & Attachments** – `standard_object_translations`、`standard_object_attachments`：存放多语言展示文本、外部文档/批复等扩展维度，支撑全球化体验与合规审计。  
+* **Observability & Metrics** – `standard_object_metrics`（以及 `logs/plan400/*`）收集快照刷新、validator 差异、事件消费耗时等指标，供 Plan 272/402 的治理脚本消费。
 
-通过 SOM，组织/职位共享 `ObjectService`/`LifecyclePolicy`/`MetadataRepository` 等接口（参见 Plan 400），减少重复实现，也为 future modules 预留了统一入口。
+通过 SOM，组织/职位共享 `ObjectService`/`LifecyclePolicy`/`MetadataRepository` 等接口（参见 Plan 400），并由 Schema Registry/Translation/Attachment/Observability 模块提供扩展治理能力，减少重复实现，也为 future modules 预留统一入口。所有命名必须遵循 Plan 400/402 的“仅使用 `effective_date/end_date`”规则，禁止新增 `_from/_to` 变体。
 
 ### **2.2 SQL-first + sqlc 生成链**
 
 为了维持“迁移即真源”，SOM 采用 SQL-first 的管线：
 
-1. **Atlas schema** 描述数据库目标状态；  
-2. `atlas migrate diff` 生成 Goose 迁移（含 Up/Down），被纳入 `database/migrations/*`；  
-3. `sqlc generate` 解析上述 SQL/查询语句，输出类型安全的 Go 仓储代码；  
-4. 命令/查询服务通过接口层组合 sqlc 生成物，与事务性发件箱、PBAC 守卫共享相同的依赖注入模式。
+1. **Atlas schema** 描述数据库目标状态（含 `standard_object_schemas`、`standard_object_translations`、`standard_object_attachments`、`standard_object_metrics` 等扩展表）；  
+2. `atlas migrate diff` 生成 Goose 迁移（含 Up/Down），被纳入 `database/migrations/*`，确保扩展表与三表同步管理；  
+3. `sqlc generate` 解析上述 SQL/查询语句，输出类型安全的 Go 仓储代码，并同步生成 Schema Registry/Translation/Attachment/Metric DAO；  
+4. Schema Registry 通过 `schema-registry.json` 与 `scripts/generate-forms-from-openapi.ts` 等 Plan 300 工具共享；命令/查询服务通过接口层组合 sqlc 生成物，与事务性发件箱、PBAC 守卫共享相同的依赖注入模式。
 
 这种方式既保留了 DBA 友好的 SQL，可直接调优 `tstzrange`/GiST 索引，又能在编译期发现字段漂移，符合 200/201 号文档强调的“少依赖黑盒框架、保持透明”的长期原则。
 
@@ -172,6 +175,8 @@ HRMS 的读侧需要处理大量带时间过滤的复杂查询。我们依旧采
 2. **物化视图（Materialized View）**：针对审计常用的时间片（如每月 1 号、季度末）建立 `CREATE MATERIALIZED VIEW employee_roster_mv_20250101 AS ...`，利用 `REFRESH MATERIALIZED VIEW CONCURRENTLY` 在后台刷新，暴露给 GraphQL/REST 查询。
 
 当用户查询非常规日期时，可调用存储过程 `SELECT * FROM fetch_roster_snapshot($1)`：若快照存在则直接读取，否则运行一次按需计算并缓存结果，避免重复消耗。结合 PostgreSQL `pg_cron`/`SQL` Job，整个链路仍然只依赖数据库自身。
+
+此外，快照刷新/物化视图操作必须将关键指标写入 `standard_object_metrics`（例如刷新耗时、批量大小、差异计数），并同步输出到 `logs/plan400/snapshots/*.log`、`logs/plan400/metrics/*.log`。Plan 272/402 的治理脚本会读取这些指标，以监控读模型的可用性与延迟。
 
 ### **4.3 解决 SQL 复杂度爆炸：维度快照技术**
 
@@ -301,6 +306,19 @@ Oracle 提出了 **DateTrack** 概念，支持 Correction（修正历史）和 U
 | **维度关联** | 关联自然主键 (Natural Key) | 关联代理主键 (Surrogate Key) | 避免维度调整导致事实表的海量数据迁移。 |
 
 此架构蓝图旨在为技术决策者提供清晰的路径，平衡理论的完美性与工程的落地性。
+
+---
+
+## **8\. 与 Plan 200/201 的工程守卫对齐**
+
+1. **端口/适配器与 internal 结构**：所有时态作业、Schema Registry 服务、读模型刷新器必须通过 `internal/standardobject/**` 或独立模块定义接口，由 `cmd/hrms-server/*` / `cmd/tools/*` 入口集中注入，禁止直接 new 仓储；与 Plan 200 的模块化单体原则一致。
+2. **sqlc + Atlas 守卫**：`make sqlc-generate`、`atlas migrate diff` 为强制步骤，需在 `logs/plan401/sqlc-generate.log`、`logs/plan401/atlas-diff.log` 留证；CI 若出现漂移必须阻断，符合 Plan 201 的差异项要求。
+3. **Docker-first 测试**：`make test-db`/`scripts/run-integration-tests.sh` 必须在 Docker Compose 中执行 Goose Up → Go Integration Tests → Goose Down；验收需附 `logs/plan401/test-db/*.log`，与 Plan 200 的“迁移即真源 + Docker 环境”约束一致。
+4. **事务性发件箱 + 持久事件总线**：快照刷新、维度快照、时光机作业全部通过 Outbox 事件驱动，并使用持久 EventBus Adapter（Redis/Faktory/Asynq），不得依赖内存队列；对齐 201 中“可靠异步”的要求。
+5. **PBAC 与命名守卫**：Plan 252/259 的策略源需纳入 Schema Registry 与 Manifest；`scripts/quality/auth-permission-contract-validator.js`、`scripts/quality/architecture-validator.js` 必须验证仓库不存在 `_from/_to` 命名或硬编码 scope。
+6. **质量流水线**：CI 需执行 `make lint`, `make fmt`, `npm run lint`, `npm run quality:preflight`、`make security` 等守卫，并将日志写入 `logs/plan401/quality/*.log`；违反任一守卫视为不符合 200/201 基线。
+
+满足上述守卫后，Plan 401 的实施才视为与 Plan 200/201/400/402 完整对齐。
 
 #### **引用的著作**
 
