@@ -1,7 +1,7 @@
 # Cube Castle Makefile (PostgreSQL 原生)
 ## 目的：提供最小可用的本地开发/构建/测试命令，彻底移除 Neo4j/Kafka/CDC(Phoenix) 相关内容
 
-.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint workflow-lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch archive-run-artifacts
+.PHONY: help build clean docker-build docker-up docker-down docker-logs run-dev frontend-dev test test-integration fmt lint workflow-lint security bench coverage backup restore status reset jwt-dev-mint jwt-dev-info jwt-dev-export jwt-dev-setup db-migrate-all db-rollback-last dev-kill run-auth-rs256-sim auth-flow-test test-e2e-auth test-auth-unit e2e-full temporal-validate test-db test-db-up test-db-down test-db-logs test-db-psql protect-branch archive-run-artifacts sqlc-generate
 .PHONY: clean-root-logs clean-untracked-binaries guard-plan253 plan253-coldstart
 .PHONY: generate-contracts verify-contracts
 .PHONY: guard-plan258
@@ -59,6 +59,7 @@ help:
 	@echo "  restore          - 从备份文件恢复 (需 BACKUP_FILE)"
 	@echo "  db-migrate-all   - 使用 Goose 执行数据库迁移（迁移即真源）"
 	@echo "  db-rollback-last - 使用 Goose 回滚最近一条迁移"
+	@echo "  sqlc-generate    - 运行 sqlc 并将输出写入 logs/plan402/schema/*.log"
 	@echo ""
 	@echo "📊 运行状态:"
 	@echo "  status           - docker compose 服务状态 + 关键地址"
@@ -467,6 +468,13 @@ db-rollback-last:
 	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DB_URL" goose -dir database/migrations status >/dev/null ; \
 	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DB_URL" goose -dir database/migrations down ; \
 	echo "✅ Goose down 完成"
+
+sqlc-generate:
+	@echo "🛠️ 执行 sqlc generate ..."
+	@command -v sqlc >/dev/null 2>&1 || { echo "❌ 未找到 sqlc，请运行: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0"; exit 1; }
+	@mkdir -p logs/plan402/schema
+	@ts=$$(date -u +%Y%m%d-%H%M%S); \
+	sqlc generate 2>&1 | tee "logs/plan402/schema/$$ts-sqlc-generate.log"
 
 
 # 开发JWT工具

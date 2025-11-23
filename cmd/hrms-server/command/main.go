@@ -20,6 +20,7 @@ import (
 	health "cube-castle/internal/monitoring/health"
 	organization "cube-castle/internal/organization"
 	noadapter "cube-castle/internal/standardobject/adapter/noop"
+	sqlcadapter "cube-castle/internal/standardobject/adapter/sqlc"
 	standardflag "cube-castle/internal/standardobject/featureflag"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
@@ -118,6 +119,9 @@ func main() {
 		commandLogger.Info("✅ 数据库连接成功")
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
+
+		stdObjects = sqlcadapter.Provide(sqlDB, stdToggle)
+		commandLogger.Infof("✅ 标准对象服务已使用 sqlc adapter（impl=%T）", stdObjects)
 
 		redisClient = openRedis(commandLogger)
 		if redisClient != nil {

@@ -1,7 +1,7 @@
 # 402B · SOM Schema 与工具链
 
 **关联计划**：Plan 400、Plan 402、Plan 403  
-**状态**：待启动（依赖 402A 输出）  
+**状态**：进行中（schema/tooling 已落地，等待日志/守卫闭环）  
 **范围**：数据库迁移、sqlc 生成、迁移/校验工具、快照/Schema Registry、日志规范  
 **日志要求**：`logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/snapshots/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log`
 
@@ -83,5 +83,19 @@
 | DEC/OCL 数据缺失 | Schema Registry 不可用 | 在 Schema 生成脚本中强制校验，缺失即失败 |
 
 ---
+
+## 6. 当前进展与评审（2025-11-23）
+
+### 6.1 已交付内容
+- **SOM 三表与扩展表**：`database/migrations/20251201090000_create_standard_objects.sql` 已创建 `standard_objects`、`standard_object_versions`、`standard_object_links` 及快照、Schema Registry、翻译/附件/metadata/metrics 表，并为版本表补齐双时态 GiST 约束与 `is_current` 局部索引，`database/schema.sql` 同步更新。
+- **sqlc 仓储与 Port**：`sqlc.yaml`、`internal/standardobject/repository/sqlc` 与 `internal/standardobject/repository/repository.go` 提供 `Upsert/Get` 能力，命令服务通过 `internal/standardobject/adapter/sqlc` 注入（`cmd/hrms-server/command/main.go`），`Makefile` 的 `sqlc-generate` 目标会把生成日志落盘 `logs/plan402/schema/*.log`。
+- **工具链**：`cmd/tools/standardobject-migrator`、`standardobject-validator`、`standardobject-snapshot-refresh` 已实现核心行为并新增 `--log-file`/`--metrics-file` 等参数，默认把运行日志写入 `logs/plan402/migration|validator|snapshots`，validator 额外输出 `time-constraint-report.log` 与 `transaction-gap.log`，快照工具把 `transaction_lag` 指标追加到 `logs/plan402/metrics/*.jsonl`。
+- **端口文档**：`internal/standardobject/README.md` 更新了 402B 的仓储/工具现状，提醒 Feature Flag 行为与日志规范，便于后续 402C/402D 接力。
+
+### 6.2 待补差距
+1. **运行证据空缺**：目前尚未在 Docker Postgres 中实际运行 migrator/validator/snapshot-refresh，`logs/plan402/migration/*.log`、`validator/*.json`、`snapshots/*.log` 仍为空。需要在 compose 环境执行一次 `make db-migrate-all`、工具 dry-run/实跑并上传日志（含 `transaction_range` 推导说明）。
+2. **时间约束守卫不足**：`pkg/temporal/constraints` 仅实现 append-only 校验，仍缺 TC2/TC3 覆盖、自动裁剪与 `transaction_range` 上界回写逻辑；validator 虽能输出 overlap/gap，但未依据 Schema Registry 的 `time_constraint` 动态调整策略，需要在下一迭代补齐。
+3. **Schema Registry 与日志合规**：`docs/reference/schema-registry.json` 里已有组织条目，但没有结合本次迁移写入 ``logs/plan402/schema/*.log`` 的 DEC/OCL 缺口巡检；需在 402B 收尾时配合 `scripts/quality/architecture-validator.js --rule capabilityContracts` 输出证据。
+4. **CI 门禁**：`make test` 仍因 PBAC scope 旧问题失败（`cmd/hrms-server/query/internal/auth/pbac_mapping_test.go:47`），402B 提交需在 PR 备注中说明已知失败点，并等 PBAC 计划统一处理后再收敛。
 
 402B 验收通过后，方可启动 402C；在此之前禁止服务层引用 SOM 仓储，避免双事实来源。

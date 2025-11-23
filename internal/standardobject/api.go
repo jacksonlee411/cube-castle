@@ -45,26 +45,34 @@ type ObjectKernel struct {
 
 // TemporalVersion mirrors the payload and audit envelope defined for standard_object_versions.
 type TemporalVersion struct {
-	VersionID     string
-	VersionCode   string
-	EffectiveDate time.Time
-	EndDate       *time.Time
-	IsCurrent     bool
-	Payload       map[string]any
-	AuditTrail    map[string]any
-	Checksum      string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	VersionID        string
+	VersionCode      string
+	EffectiveDate    time.Time
+	EndDate          *time.Time
+	IsCurrent        bool
+	Payload          map[string]any
+	AuditTrail       map[string]any
+	Checksum         string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	TransactionFrom  time.Time
+	TransactionTo    *time.Time
 }
 
 // Link models the relationship entries that will be persisted in standard_object_links.
 type Link struct {
-	LinkID     string
-	LinkType   string
-	SourceCode string
-	TargetCode string
-	Attributes map[string]any
-	TenantCode string
+	LinkID          string
+	LinkType        string
+	SourceCode      string
+	TargetCode      string
+	TargetType      ObjectType
+	Attributes      map[string]any
+	TenantCode      string
+	ValidFrom       time.Time
+	ValidTo         *time.Time
+	TransactionFrom time.Time
+	TransactionTo   *time.Time
+	CreatedBy       string
 }
 
 // ObjectAggregate bundles the kernel, an active version and optional link metadata.
