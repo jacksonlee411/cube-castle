@@ -13,16 +13,16 @@
 
 1. 清除 `organization_units` 等旧表、触发器与遗留仓储，只保留受控视图或归档。
 2. 更新参考文档（Plan 400/401、开发者速查、Plan 00-README 等），确保 SOM 成为唯一事实来源。
-3. 完善监控/OBS/质量守卫，例如 capability-contract-check、schema hash 校验等。
-4. 产出《SOM 接入指南》，指导 payroll/workforce 等未来模块复用 Standard Object。
+3. 完善监控/OBS/质量守卫，例如 capability-contract-check、schema hash 校验、Time Constraint（TC1/TC2/TC3）与事务时间（transaction_lag）漂移告警。
+4. 产出《SOM 接入指南》，指导 payroll/workforce 等未来模块复用 Standard Object 并正确处理双时态。
 
 ---
 
 ## 2. 工作项
 
-### E1 · 数据与代码清理
-- 删除/归档旧表及触发器（必要时提供 Goose Down 脚本），保留只读视图以兼容历史查询。
-- 清理 `internal/organization` 等目录下不再使用的仓储/DTO，并确保所有生产代码仅调用 `internal/standardobject` Port。
+-### E1 · 数据与代码清理
+- 删除/归档旧表及触发器（必要时提供 Goose Down 脚本），保留只读视图以兼容历史查询；清理任何 residual `effective_from/effective_to` 字段。
+- 清理 `internal/organization` 等目录下不再使用的仓储/DTO，并确保所有生产代码仅调用 `internal/standardobject` Port，且读取/写入均使用 `validity_range/transaction_range` API。
 - 更新 `database/migrations`，附执行日志 `logs/plan402/cleanup/*.log`。
 
 ### E2 · 文档与索引
@@ -32,9 +32,9 @@
 - 发布《能力契约与视点维护指南》，并在 `scripts/quality/capability-contract-check.js` 或架构验证器中纳入检查。
 
 ### E3 · 监控 / OBS / 接入指南
-- 为 SOM 相关操作配置指标与告警，将日志采集纳入 Plan 272 的运行产物治理脚本。
-- 编写《SOM 接入指南》，说明如何使用 Schema Registry、Port、Manifest/Slot、能力契约，并给出回滚/日志要求。
-- 在 `scripts/quality/` 中新增守卫（如验证仓库不再引用旧表、Schema hash 校验、capability contract 检查）。
+- 为 SOM 相关操作配置指标与告警，将日志采集纳入 Plan 272 的运行产物治理脚本；指标需包含 `transaction_lag`、双时态回放耗时、TC1/TC2 违规计数。
+- 编写《SOM 接入指南》，说明如何使用 Schema Registry、Port、Manifest/Slot、能力契约，并给出双时态（valid/transaction）参数使用规范与回滚/日志要求。
+- 在 `scripts/quality/` 中新增守卫（如验证仓库不再引用旧表、Schema hash 校验、capability contract 检查、`timeConstraint`/`transaction_range` 监控脚本），确保 TC1/TC2 违规和事务时间倒退能被 CI 阻断。
 
 ---
 
@@ -42,7 +42,7 @@
 
 - 数据/代码清理脚本、执行日志 (`logs/plan402/cleanup/*.log`)。
 - 更新后的 Plan 400/401/403、开发者速查、参考指南，以及归档版本。
-- 监控/OBS 配置、SOM 接入指南、质量守卫脚本。
+- 监控/OBS 配置（含 Time Constraint 违规告警）、SOM 接入指南、质量守卫脚本。
 - `logs/plan402/capability/*.log` 中的维护记录。
 
 ---
@@ -51,8 +51,8 @@
 
 1. 生产代码中不再存在对 `organization_units` 的直接引用（除只读视图或归档），CI 守卫能够检测该情况。
 2. 文档索引与开发者速查全部指向 SOM，并在 `docs/development-plans/00-README.md` 登记。
-3. 监控/OBS 指标上线，Plan 272 的运行产物治理脚本记录最新产物。
-4. 质量守卫（capability contract、schema hash、旧表引用检测等）可阻止回退到旧实现。
+3. 监控/OBS 指标上线，Plan 272 的运行产物治理脚本记录最新产物（含 `transaction_lag`、TC 漂移、双时态回放指标）。
+4. 质量守卫（capability contract、schema hash、Time Constraint、`transaction_range`、旧表引用检测等）可阻止回退到旧实现。
 
 ---
 

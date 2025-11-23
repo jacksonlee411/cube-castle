@@ -21,27 +21,30 @@
 ## 2. 工作项
 
 ### B1 · 迁移脚本
-- 创建 `20251201090000_create_standard_objects.sql`（Up/Down），包含三表、索引、约束、触发器（`is_current`、链接级联等）。
+- 创建 `20251201090000_create_standard_objects.sql`（Up/Down），包含三表、索引、约束、触发器（`is_current`、链接级联、双时态 append-only 等）；`standard_object_versions`/`links` 必须引入 `validity_range/transaction_range`（tstzrange）、`EXCLUDE USING gist` 约束及 GiST 索引。
 - 在同批脚本中加入 `standard_object_hierarchy_snapshots` 等 Plan 401 依赖的骨架，并在注释中标明用途。
+- 在 `standard_object_schemas` 迁移中新增 `time_constraint text`、`transaction_policy text` 列，默认取自 402A 映射规格；为组织/职位预置 `TC1 + APPEND_ONLY`，Link 预置 `TC2 + APPEND_ONLY`，并提供检查约束。
 - 更新 `database/migrations/README.md`，记录执行顺序与回滚说明；`logs/plan402/migration/*.log` 保存 `atlas diff` / `goose up`。
 
 ### B2 · sqlc & 包结构
-- 调整 `sqlc.yaml`，生成 `internal/standardobject/repository/sqlc` 所需的 CRUD、列表、链接维护查询。
-- 在 `internal/standardobject/domain` 创建实体、DTO 与接口，提供 `ObjectRepository`、`LinkRepository` 等 Port。
-- 更新 `make sqlc-generate` pipeline 并记录日志，确保 CI/本地生成一致。
+- 调整 `sqlc.yaml`，生成 `internal/standardobject/repository/sqlc` 所需的 CRUD、列表、链接维护查询，并暴露 `AsOfValid`/`AsOfTransaction` 查询接口。
+- 在 `internal/standardobject/domain` 创建实体、DTO 与接口，提供 `ObjectRepository`、`LinkRepository` 等 Port，实体需包含 `ValidityRange` 与 `TransactionRange`。
+- 更新 `make sqlc-generate` pipeline 并记录日志，确保 CI/本地生成一致，并在 `logs/plan402/schema/*.log` 中输出 Range/EXCLUDE 约束校验结果。
+- 新增 `pkg/temporal/constraints`（或同名模块），封装 TC1/TC2/TC3 裁剪、补窗、撤销逻辑，与 `transaction_range` 更新策略，供命令服务/validator 复用。
 
 ### B3 · 迁移/校验工具
-- `cmd/tools/standardobject-migrator`：读取旧表写入 SOM，支持 dry-run、批次、失败回滚；输出 `logs/plan402/migration/migrator-*.log`。
-- `cmd/tools/standardobject-validator`：对比计数、哈希、层级一致性，并执行 Schema Registry/DEC/OCL 校验；输出 `logs/plan402/validator/*.json`。
+- `cmd/tools/standardobject-migrator`：读取旧表写入 SOM，支持 dry-run、批次、失败回滚；在写入时计算 `validity_range` 与 `transaction_range`（默认 `transaction_from = created_at`、`transaction_to = COALESCE(updated_at, 'infinity')`），输出 `logs/plan402/migration/migrator-*.log`。
+- `cmd/tools/standardobject-validator`：对比计数、哈希、层级一致性，并执行 Schema Registry/DEC/OCL/Time Constraint（TC1/TC2/TC3）与双时态（valid/transaction）校验；输出 `logs/plan402/validator/*.json`、`logs/plan402/migration/time-constraint-report.log`、`logs/plan402/migration/transaction-gap.log`。
 - 提供工具使用手册及异常回滚指引。
 
 ### B4 · 快照刷新骨架
-- 交付 `cmd/tools/standardobject-snapshot-refresh`（或同等 Job），实现快照/物化视图刷新、dry-run、限速、指标输出。
-- 在 `logs/plan402/snapshots/*.log` 保存运行记录（含快照版本、耗时）；失败场景需附回滚/重试说明。
+- 交付 `cmd/tools/standardobject-snapshot-refresh`（或同等 Job），实现快照/物化视图刷新、dry-run、限速、指标输出；内部需支持 `--as-of-valid` 与 `--as-of-transaction` 参数。
+- 在 `logs/plan402/snapshots/*.log` 保存运行记录（含快照版本、耗时、输入参数）；失败场景需附回滚/重试说明。
 - 在《Standard Object 映射规格》中补充快照/闭包校验项，并更新开发者速查命令。
+- 根据 `time_constraint` 选择刷新策略：TC1 的事件需触发即时刷新，TC2/TC3 可批量刷新，但指标中需记录延迟阈值；双时态快照需记录 `transaction_lag` 指标。
 
 ### B5 · 通用维度扩展
-- 建立 `standard_object_schemas` 表，包含 `dec_bindings`、`ocl_guards`、`glossary_url` 等字段，生成 `schema-registry.json`。
+- 建立 `standard_object_schemas` 表，包含 `dec_bindings`、`ocl_guards`、`glossary_url` 等字段，生成 `docs/reference/schema-registry.json`。
 - 创建 `standard_object_translations`、`standard_object_attachments`、`standard_object_metadata`、`standard_object_metrics` 等扩展表与 sqlc 代码。
 - 在 `logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 输出首批样例。
 
@@ -53,18 +56,19 @@
 - 更新后的 `sqlc.yaml`、`internal/standardobject/repository/sqlc` 代码与 `make sqlc-generate` 日志。
 - `cmd/tools/standardobject-migrator`、`standardobject-validator`、`standardobject-snapshot-refresh` 源码/说明及运行日志。
 - `logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/snapshots/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 样例。
-- Schema Registry（含 DEC/OCL）、翻译、附件、元数据、指标表结构与 `schema-registry.json`。
+- Schema Registry（含 DEC/OCL/Time Constraint）、翻译、附件、元数据、指标表结构与 `docs/reference/schema-registry.json`。
 
 ---
 
 ## 4. 验收标准
 
-1. `make db-migrate-all` / `make db-rollback-last` 在 Docker Compose 环境中通过，并将输出写入 `logs/plan402/migration/*.log`.
+1. `make db-migrate-all` / `make db-rollback-last` 在 Docker Compose 环境中通过，并将输出写入 `logs/plan402/migration/*.log`。
 2. `make sqlc-generate` 在本地与 CI 均成功，`git status` 清洁；Plan 201 差异项脚本通过。
-3. migrator/validator 在沙盒数据集上跑通，产出差异报告；出现差异时提供可执行对账结论。
-4. Schema Registry 生成物通过 DEC/OCL 缺失检查，`logs/plan402/schema/*.log` 无告警。
-5. 快照刷新工具完整运行一次，`logs/plan402/snapshots/*.log` 记录耗时/数据量；失败案例具备回滚记录。
-6. `scripts/quality/architecture-validator.js` 或辅助脚本验证仓库内不存在 `effective_from/effective_to` 字段引用，结果写入 `logs/plan402/mapping/naming-check.log`。
+3. migrator/validator 在沙盒数据集上跑通，产出差异报告；`logs/plan402/migration/time-constraint-report.log`、`transaction-gap.log`、`validator/*.json` 中所有校验均为 PASS，出现差异时提供可执行对账结论。
+4. Schema Registry 生成物通过 DEC/OCL/Time Constraint/Transaction Policy 缺失检查，`logs/plan402/schema/*.log` 无告警。
+5. 快照刷新工具完整运行一次，`logs/plan402/snapshots/*.log` 记录耗时/数据量/`asOfValid`/`asOfTransaction` 参数，并根据 `timeConstraint` 输出刷新策略；失败案例具备回滚记录。
+6. `scripts/quality/architecture-validator.js` 或辅助脚本验证仓库内不存在 `effective_from/effective_to` 字段引用，并确认 sqlc Query/DTO 含有 `validity_range/transaction_range`；结果写入 `logs/plan402/mapping/naming-check.log`。
+7. `cmd/tools/standardobject-validator` 输出的 `time-constraint-report.log` 与 `transaction-gap.log` 中 TC1/TC2/TC3、事务区间校验全部 PASS，若存在空窗/重叠/事务区间缺失则提供处置方案且阻断上线。
 
 ---
 

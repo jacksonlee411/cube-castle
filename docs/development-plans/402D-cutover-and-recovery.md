@@ -21,20 +21,20 @@
 ## 2. 工作项
 
 ### D1 · 切换执行
-- 运行 `cmd/tools/standardobject-migrator` 对生产级数据进行最终导入，日志写入 `logs/plan402/migration/*.log`。
-- 执行 `standardobject-validator` 确认 0 差异，附 `logs/plan402/validator/*.json`。
+- 运行 `cmd/tools/standardobject-migrator` 对生产级数据进行最终导入，日志写入 `logs/plan402/migration/*.log`；同时记录 `transaction_range` 推导方式。
+- 执行 `standardobject-validator` 确认 0 差异，并输出 `time-constraint-report.log`（TC1/TC2/TC3 覆盖率、空窗/重叠统计）及 `transaction-gap.log`（事务区间断裂/倒退统计）；如有残留需在切换前消除。
 - 关闭旧仓储写路径（Feature Flag 默认开启 SOM），旧表仅保留只读视图或直接冻结。
-- 输出切换 Runbook（步骤、负责人、回滚条件）与 DEC/OCL 体检报告，确保 `schema-registry.json` 与能力契约无缺口。
+- 输出切换 Runbook（步骤、负责人、回滚条件）与 DEC/OCL/Time Constraint + 双时态体检报告，确保 `docs/reference/schema-registry.json` 与能力契约无缺口。
 
 ### D2 · 前端与查询适配
 - 前端（组织/职位页面）完全接入 `standardObjectAdapter`；清理组织特有冗余字段。
 - 重新运行 `npm run quality:preflight`、`npm run test`、`npm run test:e2e`，并把日志写入 `logs/plan402/ui/*.log`。
-- GraphQL/REST 查询切换至 SOM 数据源，更新缓存/selector/OBS 事件；Manifest/Slot 记录 DEC 列表与视点。
+- GraphQL/REST 查询切换至 SOM 数据源，更新缓存/selector/OBS 事件；Manifest/Slot 记录 DEC 列表与视点，并支持 `asOfValid`/`asOfTransaction` 参数。
 
 ### D3 · 门禁与回滚
 - 跑通 `make test`、`make test-db`、`scripts/quality/*`（含 capabilityContracts 规则），输出 `logs/plan402/verification/*.log`。
 - 编写 Goose Down + 数据回滚脚本，并在 staging 演练；日志存入 `logs/plan402/rollback/*.log`。
-- 在 `scripts/quality/architecture-validator.js` 中运行 capability contract 完整性检查，确认 4.3 表格条目覆盖全部 Federate。
+- 在 `scripts/quality/architecture-validator.js` 中运行 capability contract 完整性检查，确认 4.3 表格条目覆盖全部 Federate，并在演练中验证双时态回放（恢复某事务时间点的视图）可行。
 
 ---
 
@@ -49,10 +49,10 @@
 
 ## 4. 验收标准
 
-1. 切换后所有写操作仅落在 `standard_objects*`，旧表只读或归档，监控显示 0 双写差异。
+1. 切换后所有写操作仅落在 `standard_objects*`，旧表只读或归档，监控显示 0 双写差异，`time-constraint-report.log` 与 `transaction-gap.log` 均为 PASS。
 2. 前端 UI 与 GraphQL/REST 功能在 SOM 模式下通过全量测试（含 Playwright 核心场景），日志齐全。
-3. DEC/OCL 体检报告 0 漏项、0 违规，能力契约矩阵覆盖所有视点；相关证据已存档。
-4. 回滚演练可在 30 分钟内恢复旧实现并保证数据一致。
+3. DEC/OCL/Time Constraint/Transaction Policy 体检报告 0 漏项、0 违规，能力契约矩阵覆盖所有视点；相关证据已存档。
+4. 回滚演练可在 30 分钟内恢复旧实现并保证数据一致，并能恢复到指定 `transaction_timestamp` 的系统视图。
 
 ---
 
