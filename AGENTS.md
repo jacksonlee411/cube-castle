@@ -90,6 +90,7 @@
 - 提交信息遵循 Conventional Commits（示例：`feat: add temporal validation`），单次提交聚焦单一主题并附带回归验证。
 - PR 必须关联 Issue，说明行为变化、测试证据、回滚路径；若契约或行为变更，请同步更新 `docs/reference/` 与相关计划文档，并以本指南为原则依据。
 - 评论区需明确剩余风险、待办与迁移步骤，审阅者以 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 为核对清单。
+- PR 描述必须完整填写 `.github/pull_request_template.md` 的各字段（含“Closes #...”“验证方式”“风险/回滚”“证据”），确保 `PR Body Policy – required` 守卫一次通过；禁止提交空模板后再补填。
 
 ## 安全与配置提示
 - **Docker 环境隔离**：所有数据库、缓存、消息队列必须运行在 Docker 容器内，数据卷统一由 Docker Compose 管理（`postgres_data`、`redis_data` 等）。如遇宿主机服务占用容器端口（如 PostgreSQL 占用 5432），必须卸载宿主服务以释放端口，**禁止修改 docker-compose.dev.yml 端口映射**来迁就宿主服务。示例：Ubuntu/Debian 执行 `sudo apt remove postgresql*`；macOS 执行 `brew services stop postgresql && brew uninstall postgresql`；Windows 在“应用和功能”中卸载或以 PowerShell 停用相关服务后卸载。
