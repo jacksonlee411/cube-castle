@@ -474,7 +474,7 @@ sqlc-generate:
 	@command -v sqlc >/dev/null 2>&1 || { echo "❌ 未找到 sqlc，请运行: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0"; exit 1; }
 	@mkdir -p logs/plan402/schema
 	@ts=$$(date -u +%Y%m%d-%H%M%S); \
-	sqlc generate 2>&1 | tee "logs/plan402/schema/$$ts-sqlc-generate.log"
+	sqlc generate --file configs/sqlc/sqlc.yaml 2>&1 | tee "logs/plan402/schema/$$ts-sqlc-generate.log"
 
 
 # 开发JWT工具

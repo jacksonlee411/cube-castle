@@ -428,7 +428,7 @@ go build ./...
 
 #### 数据访问脚手架（sqlc）
 
-1. 在仓库根目录创建或更新 `sqlc.yaml`，指向 `internal/` 与 `database/queries/`。
+1. 在 `configs/sqlc/sqlc.yaml` 创建或更新 sqlc 配置，指向 `internal/` 与 `database/queries/`。
 2. 提供至少一个示例查询（如 `internal/organization/repository/queries.sql`），运行：
    ```bash
    make sqlc-generate

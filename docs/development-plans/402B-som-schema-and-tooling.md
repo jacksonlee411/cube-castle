@@ -12,7 +12,7 @@
 ## 1. 目标
 
 1. 使用 Atlas/Goose 创建 `standard_objects`、`standard_object_versions`、`standard_object_links` 等表，并提供 Up/Down 脚本与触发器。
-2. 更新 `sqlc.yaml` 和 `internal/standardobject/repository/sqlc`，提供标准化仓储接口。
+2. 更新 `configs/sqlc/sqlc.yaml` 和 `internal/standardobject/repository/sqlc`，提供标准化仓储接口。
 3. 交付 `cmd/tools/standardobject-migrator`、`cmd/tools/standardobject-validator`、`cmd/tools/standardobject-snapshot-refresh` 等工具，形成迁移与快照刷新流水线。
 4. 完成 Schema Registry、翻译、附件、元数据、指标等扩展表以及日志样例，确保 DEC/OCL 校验可执行。
 
@@ -27,7 +27,7 @@
 - 更新 `database/migrations/README.md`，记录执行顺序与回滚说明；`logs/plan402/migration/*.log` 保存 `atlas diff` / `goose up`。
 
 ### B2 · sqlc & 包结构
-- 调整 `sqlc.yaml`，生成 `internal/standardobject/repository/sqlc` 所需的 CRUD、列表、链接维护查询，并暴露 `AsOfValid`/`AsOfTransaction` 查询接口。
+- 调整 `configs/sqlc/sqlc.yaml`，生成 `internal/standardobject/repository/sqlc` 所需的 CRUD、列表、链接维护查询，并暴露 `AsOfValid`/`AsOfTransaction` 查询接口。
 - 在 `internal/standardobject/domain` 创建实体、DTO 与接口，提供 `ObjectRepository`、`LinkRepository` 等 Port，实体需包含 `ValidityRange` 与 `TransactionRange`。
 - 更新 `make sqlc-generate` pipeline 并记录日志，确保 CI/本地生成一致，并在 `logs/plan402/schema/*.log` 中输出 Range/EXCLUDE 约束校验结果。
 - 新增 `pkg/temporal/constraints`（或同名模块），封装 TC1/TC2/TC3 裁剪、补窗、撤销逻辑，与 `transaction_range` 更新策略，供命令服务/validator 复用。
@@ -53,7 +53,7 @@
 ## 3. 交付物
 
 - `database/migrations/20251201090000_create_standard_objects.sql`（Up/Down）与 `atlas diff` 日志。
-- 更新后的 `sqlc.yaml`、`internal/standardobject/repository/sqlc` 代码与 `make sqlc-generate` 日志。
+- 更新后的 `configs/sqlc/sqlc.yaml`、`internal/standardobject/repository/sqlc` 代码与 `make sqlc-generate` 日志。
 - `cmd/tools/standardobject-migrator`、`standardobject-validator`、`standardobject-snapshot-refresh` 源码/说明及运行日志。
 - `logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/snapshots/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 样例。
 - Schema Registry（含 DEC/OCL/Time Constraint）、翻译、附件、元数据、指标表结构与 `docs/reference/schema-registry.json`。
@@ -88,7 +88,7 @@
 
 ### 6.1 已交付内容
 - **SOM 三表与扩展表**：`database/migrations/20251201090000_create_standard_objects.sql` 已创建 `standard_objects`、`standard_object_versions`、`standard_object_links` 及快照、Schema Registry、翻译/附件/metadata/metrics 表，并为版本表补齐双时态 GiST 约束与 `is_current` 局部索引，`database/schema.sql` 同步更新。
-- **sqlc 仓储与 Port**：`sqlc.yaml`、`internal/standardobject/repository/sqlc` 与 `internal/standardobject/repository/repository.go` 提供 `Upsert/Get` 能力，命令服务通过 `internal/standardobject/adapter/sqlc` 注入（`cmd/hrms-server/command/main.go`），`Makefile` 的 `sqlc-generate` 目标会把生成日志落盘 `logs/plan402/schema/*.log`。
+- **sqlc 仓储与 Port**：`configs/sqlc/sqlc.yaml`、`internal/standardobject/repository/sqlc` 与 `internal/standardobject/repository/repository.go` 提供 `Upsert/Get` 能力，命令服务通过 `internal/standardobject/adapter/sqlc` 注入（`cmd/hrms-server/command/main.go`），`Makefile` 的 `sqlc-generate` 目标会把生成日志落盘 `logs/plan402/schema/*.log`。
 - **工具链**：`cmd/tools/standardobject-migrator`、`standardobject-validator`、`standardobject-snapshot-refresh` 已实现核心行为并新增 `--log-file`/`--metrics-file` 等参数，默认把运行日志写入 `logs/plan402/migration|validator|snapshots`，validator 额外输出 `time-constraint-report.log` 与 `transaction-gap.log`，快照工具把 `transaction_lag` 指标追加到 `logs/plan402/metrics/*.jsonl`。
 - **端口文档**：`internal/standardobject/README.md` 更新了 402B 的仓储/工具现状，提醒 Feature Flag 行为与日志规范，便于后续 402C/402D 接力。
 

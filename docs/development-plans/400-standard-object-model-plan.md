@@ -192,7 +192,7 @@
 
 ## 8. 输出与证据
 1. `docs/api/openapi.yaml` / `docs/api/schema.graphql` 中新增的 Standard Object 契约变更。
-2. `database/migrations/20251201090000_create_standard_objects.sql` + `sqlc.yaml` 更新 + 生成代码 diff。
+2. `database/migrations/20251201090000_create_standard_objects.sql` + `configs/sqlc/sqlc.yaml` 更新 + 生成代码 diff。
 3. `internal/standardobject/**` 模块与组织/职位调用示例（402A 阶段提供 `adapter/noop` + Feature Flag skeleton，后续阶段再替换实现）。
 4. `docs/reference/schema-registry.json` 中 objectType 映射的 DEC/OCL 绑定与 `logs/plan400/schema/*`、`logs/plan402/mapping/*` 的证据。
 5. `frontend` 的 adapter、表单配置、Playwright 日志。
