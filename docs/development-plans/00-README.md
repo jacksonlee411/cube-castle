@@ -28,7 +28,7 @@
 - `271-archive-integrity-guard.md`—— Plan 271，归档守卫、CI 自动化与 `lint:docs` 规则。
 - `272-runtime-artifact-cleanup.md`—— Plan 272，运行产物与 cloc 噪音压降（Stage1 logs/reports/test-results，Stage2 vendored 依赖治理）。
 - `400-standard-object-model-plan.md`—— 将组织/职位等对象抽象为统一 SOM，覆盖生命周期、契约、UI、迁移策略。
-- `402-standard-object-single-source-plan.md`—— 评估单表模式缺陷，制定 SOM 三表迁移蓝图；执行细节拆分为 402A~402E 子计划（映射/契约、schema/tooling、服务接入与双写、切换回收、收敛治理）。子计划文件：
+- `402-standard-object-single-source-plan.md`—— 评估单表模式缺陷，制定 SOM 三表迁移蓝图；执行细节拆分为 402A~402E 子计划（映射/契约、schema/tooling、服务接入与迁移、切换回收、收敛治理）。子计划文件：
   - `402A-standard-object-mapping-and-contracts.md`
   - `402A-standard-object-mapping-spec.md`
   - `402B-som-schema-and-tooling.md`
