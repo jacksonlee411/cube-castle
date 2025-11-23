@@ -24,7 +24,7 @@
 | 统一生命周期与状态机 | REST/OpenAPI 新增 `/standard-objects/{type}` 契约，GraphQL 暴露 `StandardObject` + `StandardObjectVersion` 类型，字段含 `status`、`effectiveInterval`、`parentLink` | 契约先于实现，更新 `docs/api/*` 并通过 Plan 258/259 守卫 |
 | 数据与事件一致 | PostgreSQL 引入 `standard_objects`、`standard_object_versions`、`standard_object_links` 三张表及 sqlc 生成物；命令服务写入 outbox 事件 `standard_object.*` | 满足 200 文档“迁移即真源 + sqlc 类型安全” |
 | UI/UX 复用 | 前端 `TemporalEntityLayout` 接入 `StandardObjectAdapter`，组织/职位页面通过配置项注入标签/权限，Playwright 选择器统一 `temporalEntity-*` | 与 `docs/reference/temporal-entity-experience-guide.md` 一致 |
-| 迁移现有模块 | 组织/职位模块调用 SOM Port，不再直接持有仓储；旧仓储逐步迁往 `internal/standardobject/repository` 并由 sqlc 生成 | 确保无重复逻辑；保留回滚策略 |
+| 迁移现有模块 | 组织/职位模块调用 SOM Port，不再直接持有仓储；旧仓储逐步迁往 `internal/standardobject/repository` 并由 sqlc 生成，并同步构建闭包表/快照表，确保读写一致 | 确保无重复逻辑；保留回滚策略 |
 
 验收需满足：① `make test`/`make test-db`/`npm run test`/`npm run test:e2e` 全部通过；② `scripts/quality/*`（Plan 252/255/259）零回归；③ 提供 `logs/plan400/*` 运行记录（迁移、集成测试、Playwright OBS）。
 
@@ -88,19 +88,27 @@
 3. 表单配置：采用 JSON Schema + 动态组件，放置 `frontend/src/shared/forms/standard-object`，便于 workforce/contract 共享。
 4. Playwright：新增 `frontend/tests/e2e/standard-object-lifecycle.spec.ts`，收敛 selectors（`temporalEntitySelectors.*`），`logs/plan400/ui/*.log` 落盘 `[OBS]` 事件。
 
-### 4.6 开发阶段（建议 3 Sprint）
+### 4.6 开发阶段（建议 4 Sprint）
 | 阶段 | 时间 | 交付 | 依赖 |
 |------|------|------|------|
 | Sprint 1 – 元模型 & 契约 | W1-W2 | 设计 SOM schema、补充 OpenAPI/GraphQL、完成 Goose/Atlas 迁移及 sqlc 生成，`ObjectService` 接口齐备 | `docs/api/*`、Atlas、sqlc |
 | Sprint 2 – 后端集成 | W3-W4 | 命令/查询服务接入 SOM，组织/职位命令迁移，outbox 事件、权限 scope(`scope:standard-object.write`) 落地 | `pkg/eventbus`、Plan 252/259 |
-| Sprint 3 – UI & 验收 | W5-W6 | 前端 Temporal 页面接入、Playwright 场景、`make test-db`、`npm run test:e2e` 证据、迁移报告 | `frontend/src/features/temporal/*`, Plan 222 证据 |
+| Sprint 3 – 读模型（快照/闭包） | W5 | 落地 `standard_object_hierarchy_snapshots`、`*_mv` 物化视图，建立 `cmd/tools/standardobject-snapshot-refresh` Job；Outbox dispatcher 触发刷新；提供 `logs/plan400/snapshots/*.log` | Plan 401 方案、Outbox dispatcher |
+| Sprint 4 – UI & 验收 | W6 | 前端 Temporal 页面接入、Playwright 场景、`make test-db`、`npm run test:e2e`、snapshot 刷新证据、迁移报告 | `frontend/src/features/temporal/*`, Plan 222 证据 |
+
+### 4.7 读模型与快照设计
+
+- **快照表**：新增 `standard_object_hierarchy_snapshots`（`snapshot_id`, `as_of_date`, `tenant_code`, `ancestor_code`, `descendant_code`, `path_text`, `depth`, `metadata jsonb`, `refreshed_at`）。按 `as_of_date` + `tenant_code` 分区或创建 BRIN 索引。
+- **物化视图**：为常用日期（如 `CURRENT_DATE`、每月 1 日）创建 `CREATE MATERIALIZED VIEW standard_object_snapshot_mv AS ...`，并在 `cmd/tools/standardobject-snapshot-refresh` 中调用 `REFRESH MATERIALIZED VIEW CONCURRENTLY`。
+- **刷新流程**：Outbox dispatcher 捕获 `standard_object.*` 事件后，将任务写入刷新队列，Go Job 或 SQL 调度器（例如 `pg_cron`）执行 `UPSERT`/`DELETE + INSERT` 更新快照；运行日志写入 `logs/plan400/snapshots/*.log`。
+- **查询策略**：REST/GraphQL 读路径优先命中快照/物化视图；若缺少特定日期快照，则即时计算并触发异步刷新，保证体验。
 
 ---
 
 ## 5. 迁移策略与回滚
 1. **双写期**（可选，最长 1 Sprint）：组织/职位接口写 SOM + 旧表，读取以 SOM 为主，出现不一致立即回滚至旧表并修复迁移脚本。
-2. **数据迁移脚本**：提供 `cmd/tools/standardobject-migrator`（Go），读取现有 `organization_units` / `positions` 表，写入新表并生成校验报告（计数、校验码），记录在 `logs/plan400/migration/*.log`。
-3. **回滚**：保留旧仓储 1 个版本（feature toggle `STANDARD_OBJECTS_ENABLED`）。若出现严重缺陷，切回旧仓储并执行 Goose Down，保留审计日志。
+2. **数据迁移脚本**：提供 `cmd/tools/standardobject-migrator`（Go），读取现有 `organization_units` / `positions` 表，写入新表并生成校验报告（计数、校验码），记录在 `logs/plan400/migration/*.log`；迁移完成后，立即重建闭包表与快照表，输出 `logs/plan400/snapshots/rebuild.log`。
+3. **回滚**：保留旧仓储 1 个版本（feature toggle `STANDARD_OBJECTS_ENABLED`）。若出现严重缺陷，切回旧仓储并执行 Goose Down，同时清空新建闭包表/快照表（或保留只读副本），确保读模型不会引用失效数据；所有回滚操作记录至 `logs/plan400/rollback/*.log`。
 
 ---
 
@@ -126,7 +134,7 @@
 2. `database/migrations/20251201090000_create_standard_objects.sql` + `sqlc.yaml` 更新 + 生成代码 diff。
 3. `internal/standardobject/**` 模块与组织/职位调用示例。
 4. `frontend` 的 adapter、表单配置、Playwright 日志。
-5. `logs/plan400/`：迁移脚本、`make test-db`, `npm run test:e2e`, `scripts/quality/*` 运行截图或日志。
+5. `logs/plan400/`：迁移脚本、`make test-db`, `npm run test:e2e`, `scripts/quality/*` 运行截图或日志；`logs/plan400/snapshots/*.log` 记录闭包/快照刷新与验证。
 
 ---
 
