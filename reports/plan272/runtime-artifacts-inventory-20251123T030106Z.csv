@@ -1,0 +1,5 @@
+path,size_kb,artifact_type,usage_or_fact_source,disposition
+logs,99496,run-logs+plan-evidence,"Plan 06/215/242 等运行日志; 当前 cloc 66 万行，证据散落",Stage1: 压缩保留最近5份纯文本; Stage2: 全量归档至 archive/runtime-artifacts
+reports,3400,ci-reports+lint,"Plan 255/250 守卫输出、actionlint、workflow 日志，部分引用 `docs/development-plans/*`",Stage1: 仅保留最近2次报告，其余压缩; Stage2: 聚合成周报并同步 README
+test-results,8,frontend-artifacts,"Playwright/Vitest 产物；Plan 06/219E Runbook 要求留证，但目前多为空目录",Stage1: 仅存最新 PASS 截图/trace; Stage2: 其余打包上传 archive/runtime-artifacts/tests
+archive/runtime-artifacts,0,target-archive,"尚未建立；Plan 272 W3 需创建并写入 manifest.json",Stage1: 建立目录+manifest 模版; Stage2: 作为唯一运行产物存储

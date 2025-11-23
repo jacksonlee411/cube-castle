@@ -1,0 +1,33 @@
+{
+  "planId": 272,
+  "period": "2025-11",
+  "generatedAt": "2025-11-23T03:10:06Z",
+  "archive": "archive/runtime-artifacts/2025-11/run-artifacts.tar.zst",
+  "sha256": "<calculated-after-archive>",
+  "artifacts": [
+    {
+      "relativePath": "logs/run-dev-20251115_173155.log",
+      "sizeBytes": 1843200,
+      "factSource": "Plan 06 / run-dev health check",
+      "compression": "tar.zst",
+      "retention": "keep plaintext latest 5, archive rest",
+      "notes": "Used in docs/development-plans/06-integrated-teams-progress-log.md"
+    },
+    {
+      "relativePath": "reports/workflows/actionlint-20251122T064452Z.txt",
+      "sizeBytes": 18240,
+      "factSource": "Plan 255 gate",
+      "compression": "tar.zst",
+      "retention": "keep latest 2",
+      "notes": "Linked from docs/development-plans/271-archive-integrity-guard.md"
+    },
+    {
+      "relativePath": "frontend/test-results/position-crud/pass-20251108-chromium/",
+      "sizeBytes": 5120000,
+      "factSource": "Plan 219E",
+      "compression": "tar.zst",
+      "retention": "latest PASS only",
+      "notes": "Playwright screenshot+trace"
+    }
+  ]
+}

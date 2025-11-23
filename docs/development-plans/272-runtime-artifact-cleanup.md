@@ -113,4 +113,6 @@
 ---
 
 **最近更新**  
-- 2025-11-23：建立 Plan 272 新版文档，记录 cloc 基线与治理范围（Codex 代理）。
+- 2025-11-23：建立 Plan 272 新版文档，记录 cloc 基线与治理范围（Codex 代理）。  
+- 2025-11-23：完成 W1 运行产物盘点，落盘 `logs/plan272/inventory/cloc-20251123T030106Z.txt`、`logs/plan272/inventory/du-20251123T030106Z.txt` 与 `reports/plan272/runtime-artifacts-inventory-20251123T030106Z.csv`。  
+- 2025-11-23：完成 W2 保留策略基线——新增 `logs/README.md`、`reports/README.md`、`test-results/README.md`、`templates/plan272-manifest.example.json`，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/development-plans/00-README.md` 记录入口。
