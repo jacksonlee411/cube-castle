@@ -1,8 +1,8 @@
 # Standard Object 证据与 Schema Registry 指南
 
 **状态**：长期有效参考  
-**唯一事实来源**：`docs/development-plans/400-standard-object-model-plan.md`、`docs/development-plans/402-standard-object-single-source-plan.md`、`docs/development-plans/403-SOM元模型组成优化建议.md`、`docs/api/openapi.yaml`、`docs/api/schema.graphql`、`database/migrations/20251201090000_create_standard_objects.sql`  
-**相关日志**：`logs/plan400/schema/*`、`logs/plan400/snapshots/*`、`logs/plan400/ui/*`、`logs/plan400/manifest/*`、`logs/plan402/capability/*`
+**唯一事实来源**：`docs/development-plans/400-standard-object-model-plan.md`、`docs/development-plans/402-standard-object-single-source-plan.md`、`docs/development-plans/403-SOM元模型组成优化建议.md`、`docs/api/openapi.yaml`、`docs/api/schema.graphql`、`database/migrations/20251201090000_create_standard_objects.sql`、`schema-registry.json`  
+**相关日志**：`logs/plan400/schema/*`、`logs/plan400/snapshots/*`、`logs/plan400/ui/*`、`logs/plan400/manifest/*`、`logs/plan400/audit/*`、`logs/plan402/migration/time-constraint-report.log`、`logs/plan402/migration/transaction-gap.log`、`logs/plan402/capability/*`
 
 > 本指南用于说明 Standard Object（SOM）在 Schema Registry、能力巡检与证据留存方面的约束与模板。所有条目均需引用上述计划/契约，不得引入第二事实来源。
 
@@ -17,6 +17,7 @@
 | `definition` | JSON Schema 正文（仅使用 camelCase 字段） | OpenAPI / GraphQL 契约 |
 | `dec_bindings` | 字段路径 → ISO 11179 DEC ID / 语义说明，缺失会触发 `logs/plan400/schema/*` 报警 | Plan 400 §4.1.1 |
 | `ocl_guards` | 组合约束（前置/不变量/后置），供 `pkg/ocl` 与 migrator/validator 执行 | Plan 400 §4.1.1、Plan 402 |
+| `time_constraint` / `transaction_policy` | 对应 SAP TC1/TC2/TC3 及事务策略（如 `APPEND_ONLY`、`CORRECTION_ALLOWED`），要求工具链与守卫执行差异校验 | Plan 400 §4.1.2 / §4.1.2（双时态） / Plan 402 |
 | `glossary_url` | 指向内部术语或 `docs/reference` 说明的链接，严禁引用外部百科 | AGENTS.md |
 
 ### 生成/校验流程
@@ -44,10 +45,13 @@
 
 | 目录 | 内容 | 生成方式 | 核对脚本 |
 |------|------|----------|----------|
-| `logs/plan400/schema/` | Schema Registry 巡检、DEC/OCL 缺口、`schema-registry.json` 哈希 | `node scripts/quality/architecture-validator.js --rule capabilityContracts` 或 `npm run quality:preflight` | architecture-validator（新增 capabilityContracts 规则） |
+| `logs/plan400/schema/` | Schema Registry 巡检、DEC/OCL/TimeConstraint/TransactionPolicy 缺口、`schema-registry.json` 哈希 | `node scripts/quality/architecture-validator.js --rule capabilityContracts` 或 `npm run quality:preflight` | architecture-validator（capabilityContracts 规则） |
 | `logs/plan400/snapshots/` | `cmd/tools/standardobject-snapshot-refresh` 运行结果、行数/耗时/快照版本 | Plan 400/401 交付的 `cmd/tools/standardobject-snapshot-refresh`（或等效 Job） | 手工审阅 + Plan 401 守卫 |
 | `logs/plan400/ui/` | Playwright `standard-object-*` 规格日志、`[OBS] standardObject.*` 事件截图说明 | `npm run test:e2e -- --grep standard-object` | `frontend/tests/e2e` + OBS 回放 |
 | `logs/plan400/manifest/` | OpenAPI/GraphQL 生成器输出（forms/columns manifest）、差异摘要 | `node scripts/generate-forms-from-openapi.ts`、`node scripts/generate-columns-from-graphql.ts` | Manifest diff 守卫 |
+| `logs/plan400/audit/` | 双时态审计：`transaction-range-report.log`、撤销/补录事件、`transaction_lag` 指标 | `cmd/tools/standardobject-validator --report transaction`、回滚/补录脚本 | Plan 400 §4.1.2 守卫、审计脚本 |
+| `logs/plan402/mapping/` | 402A 映射规格评审、DEC/OCL/Time Constraint 巡检、契约同步日志 | `node scripts/quality/contract-checker.js`、`node scripts/quality/architecture-validator.js`、`pkg/temporal/constraints` 检查脚本、手工评审记录 | 402A 守卫、`schema-registry.json` gap 校验 |
+| `logs/plan402/migration/` | migrator/validator 运行日志、`time-constraint-report.log`、`transaction-gap.log` | `cmd/tools/standardobject-migrator`、`cmd/tools/standardobject-validator` | 402B/402C 守卫 |
 | `logs/plan402/capability/` | Federate 能力巡检、`standardobject-migrator`/`validator`、Feature Flag 切换记录 | `node scripts/quality/architecture-validator.js --rule capabilityContracts`、`cmd/tools/standardobject-migrator` | architecture-validator（capabilityContracts）、Plan 402 |
 
 ### 日志格式建议

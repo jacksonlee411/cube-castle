@@ -79,10 +79,14 @@
 | `suspended_at`, `suspended_by`, `suspension_reason` | `standard_object_versions.audit` | 仍由版本记录某次挂起的上下文。 |
 | `operated_by_id`, `operated_by_name` | `standard_object_versions.audit` | 统一进入 `auditTrail`，与 `changed_by/approved_by` 一起追溯操作者。 |
 | `changed_by`, `approved_by` | `standard_object_versions.audit` | 审批链条属于版本审计。 |
+| `created_at` | `standard_object_versions.transaction_range` 下界 | 作为 `transaction_from`；若历史数据缺失则使用迁移执行时间并在 hazard list 记录。 |
+| `updated_at`（或软删除/撤销时间） | `standard_object_versions.transaction_range` 上界 | 作为 `transaction_to`；若无终止时间则设为 `infinity`。 |
 
 > 备注：`code_path/name_path` 等派生列迁移后由 `standard_object_links` + `standard_object_hierarchy_snapshots` 重建；`organization_units` 表本身不再持久化这些冗余字段，确保唯一事实来源集中在 SOM 三表。
 
 > 语义锚点要求：迁移规格需为上述每个字段提供 ISO 11179 Data Element Concept（DEC）映射、来源链接与语义版本，确保 Schema Registry/生成脚本/前端提示引用同一 ID；缺失的 DEC 必须在 402A 立项阶段补齐或记录风险并给出回收期限。
+
+> **双时态要求**：SOM 在数据库层以 `validity_range`（tstzrange）/`transaction_range`（tstzrange）保存两条时间轴，并在视图层生成 `effective_date/end_date`、`transaction_from/transaction_to` 便于契约消费。402 的迁移与工具链必须同时填充两个区间——`validity_range` 由旧表的生效/结束日期转换，`transaction_range` 由 `created_at/updated_at` 或迁移时间推导；缺失值需记录在 `logs/plan402/migration/transaction-gap.log`，并提供补录策略。
 
 #### 4.1.1 标准对象模型应具备的通用维度（与 Plan 400 对齐）
 为避免“映射只关注列迁移而忽视元模型完整性”，本计划沿用 Plan 400 的标准对象元模型，将以下维度视为强制要求：
@@ -136,6 +140,8 @@
 > 补充通用维度：SOM 需同时覆盖 schema registry、翻译、附件与可观测性元数据。计划在阶段 B 建立 `standard_object_schemas`（记录 JSON Schema/哈希/发布策略）、`standard_object_translations`（`locale`, `display_name`, `description` 等多语言字段）、`standard_object_attachments`（外部文档/批复，含存储 URI、类别、合规标签）以及 `standard_object_metrics`（累计观察指标，用于快照/刷新监控）等扩展表，并通过 Feature Flag 渐进启用。
 
 > OCL 守卫：按照 Plan 403 建议，`standard_object_schemas` 每条记录需携带 `oclGuards`（不变量/前置/后置条件）。402 计划要在 migrator、validator、命令/查询服务中复用统一 OCL 引擎，确保字段迁移与版本状态机符合组合约束，否则直接阻断写入。
+
+> **双时态使用方式**：REST/GraphQL 契约须支持 `asOfValid` 与 `asOfTransaction` 查询参数；命令/查询服务在返回列表或详情时，若调用者未指定，则默认为 `asOfValid=now()`、`asOfTransaction=now()`，但审计 API 必须允许指定任意事务日期以回放“系统当时的视图”。402 子计划需要在迁移/双写/快照/前端适配中逐步落地该约定。
 
 ### 4.3 模块化联邦与能力契约
 参考 403 文档的 Modular Federation Pattern，Plan 402 在迁移期必须维持“能力契约”目录，描述每个模块提供/消费的 Standard Object 特性，并在子计划验收时复核：
@@ -206,9 +212,9 @@
 1. 《Standard Object 映射规格》 + 单表退场评估（附映射表/风险）。  
 2. `database/migrations/20251201090000_create_standard_objects.sql`（或后续补丁）与 sqlc 生成物。  
 3. `internal/standardobject/**` Port/Repository、`internal/organization/**` / `internal/position/**` 适配 diff。  
-4. `cmd/tools/standardobject-migrator`、`cmd/tools/standardobject-validator`、`cmd/tools/standardobject-snapshot-refresh` 及快照/闭包 refresh 日志。  
+4. `cmd/tools/standardobject-migrator`、`cmd/tools/standardobject-validator`、`cmd/tools/standardobject-snapshot-refresh` 及快照/闭包 refresh 日志（含 `time-constraint-report.log`、`transaction-gap.log`）。  
 5. `frontend` adapter、Manifest/Slot 接入、契约生成的 forms/columns 与 Playwright/Preflight 证据。  
-6. `logs/plan402/*`：迁移/校验/快照/事件总线/测试/回滚完整链路（含 `logs/plan402/eventbus/*.log`）。  
+6. `logs/plan402/*`：迁移/校验/快照/事件总线/测试/回滚完整链路（含 `logs/plan402/eventbus/*.log`、`logs/plan402/audit/*.log`、`logs/plan402/metrics/*.log`）。  
 
 ---
 
