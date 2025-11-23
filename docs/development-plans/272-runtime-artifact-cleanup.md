@@ -119,4 +119,6 @@
 - 2025-11-23：完成 W3/W4 首次交付——新增 `scripts/plan272/archive-run-artifacts.sh`、`scripts/quality/plan272-artifact-guard.js`，执行 `make archive-run-artifacts` 生成 `archive/runtime-artifacts/2025-11/run-artifacts-20251123T031657Z.tar.gz`（sha256: `3ab65f…7613ed`）及 manifest，`npm run guard:plan272` 已产出首份报告 (`logs/plan272/guard/plan272-guard-20251123T031757Z.log`)。  
 - 2025-11-23：Stage 1 cloc/du 压降完成，最新数据见 `logs/plan272/inventory/cloc-20251123T031818Z-post.txt`、`logs/plan272/inventory/du-20251123T031818Z-post.txt` 与 `reports/plan272/cloc-delta-20251123T031818Z.md`（总行数降至 1,095,061，logs 目录空间 168KB）。  
 - 2025-11-23：完成 W8 初版 vendor audit，详见 `reports/plan272/vendor-audit-20251123.md`（涵盖 `.github/actions/**/dist` 与 `third_party/` 评估），为 Stage 2 行动提供输入。  
-- 2025-11-23：完成 W9 第一版治理成果包 `reports/plan272/governance-kit-20251123.tar.gz`（包含 README 模版、manifest 示例、cloc/guard 报告与 Plan 文档），可用于后续复用与审计。
+- 2025-11-23：完成 W9 第一版治理成果包 `reports/plan272/governance-kit-20251123.tar.gz`（包含 README 模版、manifest 示例、cloc/guard 报告与 Plan 文档），可用于后续复用与审计。  
+- 2025-11-23：Stage 2 第一步完成——`document-sync.yml` 切换至官方 `actions/*`/`dorny/paths-filter@v3`，仓库移除 `.github/actions/{checkout,setup-node,upload-artifact,github-script,paths-filter}` vendored dist，`.gitignore` 相应精简，`.github` cloc 降至约 20 万行。  
+- 2025-11-23：Stage 2 第二步完成——删除 `third_party/github.com/99designs/gqlgen` mirror，`go.mod` 去除 replace，改为直接引用上游 tag；第三方镜像目录腾空，相关结论已写入 `reports/plan272/vendor-audit-20251123.md`。
