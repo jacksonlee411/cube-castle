@@ -17,6 +17,7 @@ import (
 
 	"cube-castle/internal/standardobject"
 	"cube-castle/internal/standardobject/repository"
+	temporalclock "cube-castle/pkg/temporal/clock"
 	_ "github.com/lib/pq"
 )
 
@@ -75,7 +76,7 @@ func main() {
 
 	m := &migrator{
 		db:     db,
-		repo:   repository.NewRepository(db),
+		repo:   repository.NewRepository(db, temporalclock.NewSystemClock()),
 		logger: logger,
 		dryRun: *dryRun,
 	}

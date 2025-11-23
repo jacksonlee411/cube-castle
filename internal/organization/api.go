@@ -22,17 +22,19 @@ import (
 	standardobject "cube-castle/internal/standardobject"
 	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
 type CommandModuleDeps struct {
-	DB              *sql.DB
-	Logger          pkglogger.Logger
-	CascadeMaxDepth int
-	SchedulerConfig *configpkg.SchedulerConfig
-	OutboxRepo      database.OutboxRepository
-	StandardObjects standardobject.ObjectService
+	DB               *sql.DB
+	Logger           pkglogger.Logger
+	CascadeMaxDepth  int
+	SchedulerConfig  *configpkg.SchedulerConfig
+	OutboxRepo       database.OutboxRepository
+	StandardObjects  standardobject.ObjectService
+	TransactionClock clockpkg.Clock
 }
 
 type OrganizationHandler = handlerpkg.OrganizationHandler
@@ -54,13 +56,14 @@ type AssignmentFacade interface {
 }
 
 type CommandModule struct {
-	DB              *sql.DB
-	Logger          pkglogger.Logger
-	Repositories    CommandRepositories
-	Services        CommandServices
-	Validator       *validatorpkg.BusinessRuleValidator
-	AuditLogger     *auditpkg.AuditLogger
-	StandardObjects standardobject.ObjectService
+	DB               *sql.DB
+	Logger           pkglogger.Logger
+	Repositories     CommandRepositories
+	Services         CommandServices
+	Validator        *validatorpkg.BusinessRuleValidator
+	AuditLogger      *auditpkg.AuditLogger
+	StandardObjects  standardobject.ObjectService
+	TransactionClock clockpkg.Clock
 }
 
 type CommandRepositories struct {
@@ -113,8 +116,12 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 	}
 	stdObjects := deps.StandardObjects
 	if stdObjects == nil {
-		stdObjects = standardobject.NewNoopService(nil)
+		stdObjects = standardobject.NewNoopService()
 		logger.Warn("standardobject service not provided; falling back to noop adapter")
+	}
+	clock := deps.TransactionClock
+	if clock == nil {
+		clock = clockpkg.NewSystemClock()
 	}
 
 	orgRepo := repositorypkg.NewOrganizationRepository(deps.DB, logger)
@@ -163,11 +170,13 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 			Position:   positionService,
 			JobCatalog: jobCatalogService,
 		},
-		Validator:       validator,
-		AuditLogger:     auditLogger,
-		StandardObjects: stdObjects,
+		Validator:        validator,
+		AuditLogger:      auditLogger,
+		StandardObjects:  stdObjects,
+		TransactionClock: clock,
 	}
 
+	module.TransactionClock = clock
 	return module, nil
 }
 
@@ -185,6 +194,8 @@ func (m *CommandModule) NewHandlers(deps CommandHandlerDeps) CommandHandlers {
 		m.Repositories.TemporalTimeline,
 		m.Repositories.Hierarchy,
 		m.Validator,
+		m.StandardObjects,
+		m.TransactionClock,
 	)
 	positionHandler := handlerpkg.NewPositionHandler(m.Services.Position, m.AuditLogger, logger)
 	jobCatalogHandler := handlerpkg.NewJobCatalogHandler(m.Services.JobCatalog, logger)

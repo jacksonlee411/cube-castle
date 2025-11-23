@@ -21,10 +21,10 @@ import (
 	organization "cube-castle/internal/organization"
 	noadapter "cube-castle/internal/standardobject/adapter/noop"
 	sqlcadapter "cube-castle/internal/standardobject/adapter/sqlc"
-	standardflag "cube-castle/internal/standardobject/featureflag"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -77,12 +77,9 @@ func main() {
 	})
 	commandLogger.Info("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
-	stdToggle := standardflag.NewEnvToggle("STANDARD_OBJECTS_ENABLED", false)
-	stdObjects := noadapter.Provide(stdToggle)
-	commandLogger.WithFields(pkglogger.Fields{
-		"feature": "STANDARD_OBJECTS_ENABLED",
-		"enabled": stdToggle.Enabled(context.Background()),
-	}).Info("标准对象 Port 注入完成（402A 占位实现）")
+	stdObjects := noadapter.Provide()
+	transactionClock := clockpkg.NewSystemClock()
+	commandLogger.Info("标准对象 Port 注入完成（占位实现，等待 SOM 仓储接入）")
 
 	var (
 		dbClient    *database.Database
@@ -120,7 +117,7 @@ func main() {
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
 
-		stdObjects = sqlcadapter.Provide(sqlDB, stdToggle)
+		stdObjects = sqlcadapter.Provide(sqlDB, transactionClock)
 		commandLogger.Infof("✅ 标准对象服务已使用 sqlc adapter（impl=%T）", stdObjects)
 
 		redisClient = openRedis(commandLogger)
@@ -199,8 +196,9 @@ func main() {
 				}
 				return nil
 			}(),
-			OutboxRepo:      outboxRepo,
-			StandardObjects: stdObjects,
+			OutboxRepo:       outboxRepo,
+			StandardObjects:  stdObjects,
+			TransactionClock: transactionClock,
 		})
 		if err != nil {
 			commandLogger.Errorf("[FATAL] 初始化组织模块失败: %v", err)

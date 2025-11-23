@@ -11,6 +11,7 @@ import (
 
 	"cube-castle/internal/standardobject"
 	sqlc "cube-castle/internal/standardobject/repository/sqlc"
+	"cube-castle/pkg/temporal/clock"
 	"cube-castle/pkg/temporal/constraints"
 	"github.com/google/uuid"
 )
@@ -22,11 +23,18 @@ var objectConstraints = map[standardobject.ObjectType]constraints.ConstraintType
 // Repository wraps sqlc generated queries and exposes higher level helpers for the standard object port.
 type Repository struct {
 	queries *sqlc.Queries
+	clock   clock.Clock
 }
 
 // NewRepository builds a Repository backed by the provided DB/transaction handle.
-func NewRepository(db sqlc.DBTX) *Repository {
-	return &Repository{queries: sqlc.New(db)}
+func NewRepository(db sqlc.DBTX, clk clock.Clock) *Repository {
+	if clk == nil {
+		clk = clock.NewSystemClock()
+	}
+	return &Repository{
+		queries: sqlc.New(db),
+		clock:   clk,
+	}
 }
 
 // Upsert persists the kernel, versions and links of an aggregate.
@@ -64,7 +72,7 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 		if err != nil {
 			return err
 		}
-		if err := r.closeOpenWindow(ctx, existing, defaultTime(version.TransactionFrom), constraintType, validation, version.EffectiveDate); err != nil {
+		if err := r.closeOpenWindow(ctx, existing, r.defaultTime(version.TransactionFrom), constraintType, validation, version.EffectiveDate); err != nil {
 			return err
 		}
 		if _, err := r.queries.InsertStandardObjectVersion(ctx, sqlc.InsertStandardObjectVersionParams{
@@ -73,7 +81,7 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 			EffectiveDate:    version.EffectiveDate,
 			EndDate:          sql.NullTime{Time: derefTime(validTo), Valid: validTo != nil},
 			ValidityRange:    buildRangeLiteral(version.EffectiveDate, version.EndDate),
-			TransactionRange: buildRangeLiteral(defaultTime(version.TransactionFrom), txTo),
+			TransactionRange: buildRangeLiteral(r.defaultTime(version.TransactionFrom), txTo),
 			IsCurrent:        version.IsCurrent,
 			Payload:          mustJSON(version.Payload),
 			Audit:            mustJSON(version.AuditTrail),
@@ -101,8 +109,8 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 			SourceObjectID:   kernelRec.ID,
 			TargetObjectID:   targetID,
 			TenantCode:       kernel.TenantCode,
-			ValidityRange:    buildRangeLiteral(defaultTime(link.ValidFrom), link.ValidTo),
-			TransactionRange: buildRangeLiteral(defaultTime(link.TransactionFrom), link.TransactionTo),
+			ValidityRange:    buildRangeLiteral(r.defaultTime(link.ValidFrom), link.ValidTo),
+			TransactionRange: buildRangeLiteral(r.defaultTime(link.TransactionFrom), link.TransactionTo),
 			Attributes:       mustJSON(link.Attributes),
 			CreatedBy:        parseUUID(createdBy),
 		}); err != nil {
@@ -115,7 +123,7 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 
 // Get retrieves an aggregate using the provided key.
 func (r *Repository) Get(ctx context.Context, key standardobject.ObjectKey) (standardobject.ObjectAggregate, error) {
-	asOf := time.Now().UTC()
+	asOf := r.now()
 	obj, err := r.queries.GetStandardObjectKernel(ctx, sqlc.GetStandardObjectKernelParams{
 		TenantCode: key.TenantCode,
 		ObjectType: string(key.ObjectType),
@@ -368,11 +376,15 @@ func parseRangeEdge(value string) time.Time {
 	return ts
 }
 
-func defaultTime(t time.Time) time.Time {
+func (r *Repository) defaultTime(t time.Time) time.Time {
 	if t.IsZero() {
-		return time.Now().UTC()
+		return r.now()
 	}
 	return t
+}
+
+func (r *Repository) now() time.Time {
+	return r.clock.Now()
 }
 
 func truncateToDate(t time.Time) time.Time {

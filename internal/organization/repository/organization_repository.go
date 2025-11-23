@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -17,6 +18,10 @@ func NewOrganizationRepository(db *sql.DB, baseLogger pkglogger.Logger) *Organiz
 		db:     db,
 		logger: scopedLogger(baseLogger, "organization", "OrganizationRepository", nil),
 	}
+}
+
+func (r *OrganizationRepository) BeginTx(ctx context.Context) (*sql.Tx, error) {
+	return r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 }
 
 var (

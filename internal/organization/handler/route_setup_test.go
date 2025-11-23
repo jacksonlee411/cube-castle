@@ -3,7 +3,9 @@ package handler
 import (
 	"testing"
 
+	standardobject "cube-castle/internal/standardobject"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -22,6 +24,6 @@ func TestSetupRoutes_NoPanic(_ *testing.T) {
 	jh.SetupRoutes(r)
 
 	// Organization
-	ohOrg := NewOrganizationHandler(nil, nil, nil, pkglogger.NewNoopLogger(), nil, nil, nil)
+	ohOrg := NewOrganizationHandler(nil, nil, nil, pkglogger.NewNoopLogger(), nil, nil, nil, standardobject.NewNoopService(), clockpkg.NewSystemClock())
 	ohOrg.SetupRoutes(r)
 }

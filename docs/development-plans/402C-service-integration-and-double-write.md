@@ -101,3 +101,15 @@
 ---
 
 402C 通过后方可启动 402D；本阶段结束时旧表必须转为只读并停止全部遗留写路径。
+
+---
+
+## 6. 当前进展与待办
+
+**2025-11-24 更新（命令侧 SOM 接入）**
+- ✅ `cmd/hrms-server/command` 注入统一 `TransactionClock`，`internal/standardobject/repository`、sqlc adapter、`standardobject-migrator` 均使用同一时钟生成 `transaction_range`。
+- ✅ 组织创建/版本创建 handler 现已在单事务内写旧表 + 同步调用 `standardobject.ObjectService`，失败即回滚；新增 `internal/organization/handler/standard_object_adapter.go` 负责 SOM 聚合映射。
+- ⏳ 待办：
+  1. 将组织的更新、停用、删除、层级调整等 handler 接入 `upsertStandardObject`，并梳理职位命令的接入路径。
+  2. 在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记新依赖，补充 Runbook/日志路径。
+  3. 继续推进 C2~C5（一次性迁移、outbox/快照、前端 Manifest、权限守卫）——当前尚未接触的任务保留在“pending”状态。
