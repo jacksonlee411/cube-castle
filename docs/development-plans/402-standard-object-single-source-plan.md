@@ -82,6 +82,39 @@
 
 > 备注：`code_path/name_path` 等派生列迁移后由 `standard_object_links` + `standard_object_hierarchy_snapshots` 重建；`organization_units` 表本身不再持久化这些冗余字段，确保唯一事实来源集中在 SOM 三表。
 
+### 4.2 SOM 三表字段目标清单
+
+作为 Phase A 的合同基线，结合 Plan 400 §4.1-4.4 对 ObjectKernel/TemporalVersion/Link 的定义，与本节映射表相呼应，三张核心表应包含以下字段（如无特殊说明均为 `NOT NULL`）：
+
+| 表 | 字段 | 说明 |
+|----|------|------|
+| `standard_objects` | `id uuid PK` | SOM 主键，供版本/链接引用 |
+|  | `code text UNIQUE` | 业务主键，REST/GraphQL `{objectType}/{code}` 查询入口 |
+|  | `object_type text` | 对象类别（如 `ORGANIZATION_UNIT`、`POSITION`） |
+|  | `tenant_code text` | 多租隔离键 |
+|  | `display_name text` | 当前展示名称，镜像自最新版本 payload，便于列表查询 |
+|  | `status text` | 生命周期状态（Plan 400 §4.2：`DRAFT/READY/ACTIVE/SUSPENDED/RETIRED`） |
+|  | `labels jsonb` | 对象级标签/分类（如 `unitType`、`region`） |
+|  | `schema_version text` (可选) | payload schema 版本标记，辅助校验器 |
+|  | `created_by uuid` / `created_at timestamptz` / `updated_at timestamptz` | 对象级审计字段 |
+| `standard_object_versions` | `id uuid PK` | 单个版本记录 ID |
+|  | `object_id uuid FK` | 指向 `standard_objects.id` |
+|  | `version_code text` | 版本编号/外部 ID（可映射旧 `record_id+effective_date`） |
+|  | `effective_from timestamptz` / `effective_to timestamptz` | 版本生效区间；日期粒度可在视图层转化 |
+|  | `is_current boolean` | 标识活跃版本，配合生命周期校验 |
+|  | `payload jsonb` | 版本化字段载体（名称、描述、profile/metadata、扩展属性等） |
+|  | `audit jsonb` | 审计轨迹：`changeReason/operation/changedBy/approvedBy/operatedBy/deleted*/suspended*` 等 |
+|  | `checksum text` (可选) | payload 校验码，支持迁移脚本比对 |
+|  | `created_at timestamptz` / `updated_at timestamptz` | 版本行级审计（可并入 `audit`） |
+| `standard_object_links` | `id uuid PK` | 链接记录 ID |
+|  | `source_object_id uuid FK` / `target_object_id uuid FK` | 父子/起止对象 ID |
+|  | `link_type text` | 关系类型（`ORG_HIERARCHY`、`POSITION_BELONGS_TO_ORG` 等），发行方需维护枚举表 |
+|  | `attributes jsonb` | 链接附加信息（`sortOrder`、`level`、`hierarchyDepth`、`codePath/namePath` 缓存、`isPrimary`、可选 `effectiveFrom/To` 等） |
+|  | `tenant_code text` | 保持多租隔离（可从 source 继承） |
+|  | `created_by uuid` / `created_at timestamptz` / `updated_at timestamptz` / `updated_by uuid` | 链路级审计 |
+
+> 索引/约束：`standard_object_versions` 至少需要 `(object_id, version_code)` 与 `(object_id, effective_from)` 唯一索引；`is_current` 过滤索引用于快查；`standard_object_links` 需 `UNIQUE (source_object_id, target_object_id, link_type)` 并启用外键级联。若业务需要携带 schema hash/outbox 关联，可在 Phase B 追加列，但此表为 Plan 400/402 的最小字段集合。
+
 ---
 
 ## 5. 执行计划（建议 3 阶段）
