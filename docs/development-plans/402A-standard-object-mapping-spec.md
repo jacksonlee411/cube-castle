@@ -94,10 +94,12 @@ Hazard 的唯一事实来源：本节 + `docs/reference/schema-registry.json.sch
 
 ## 4. 兼容策略与 Feature Flag
 
+> 注：402C 计划已改为“接入即迁移”，运行时不再依赖特性开关；本节仍保留 402A 针对早期联调所需的 Toggle 设计，供沙盘或测试场景参考。
+
 1. **视图/Port**：命令服务通过 `internal/standardobject.ObjectService` 注入 `adapter/noop`；查询服务保留 `organization_units` 读路径，并新增兼容视图 `standard_object_org_units_v`（由 402B 创建）。402A 仅记录结构。
-2. **Feature Flag**：环境变量 `STANDARD_OBJECTS_ENABLED` 控制 `NoopService` 行为，Toggle 由 `internal/standardobject/featureflag.EnvToggle` 读取。Flag 默认关闭，打开后若仍未配置仓储将返回 `ErrAdapterNotConfigured`，确保可观测。
+2. **迁移切换控制**：运行时切换将由 402C 的一次性迁移 Runbook 触发，本阶段仅记录测试/沙盘所需的 `STANDARD_OBJECTS_ENABLED` Toggle（由 `internal/standardobject/featureflag.EnvToggle` 读取）。生产环境在切换前应确保仓储已配置完毕，默认保持开启状态。
 3. **日志**：Flag 调整、视图 explain、命名/契约守卫结果需落盘至 `logs/plan402/mapping`. README 中列出日志类型，CI 需上传 `api-contract.log` 与 `dec-gap.log`。
-4. **回滚原则**：Feature Flag 关闭即回到旧仓储；402A 不创建新迁移，因此无额外 SQL 回滚操作，但要求维护 hazard list 以支持 402B 的 Goose Down。
+4. **回滚原则**：若迁移演练失败，可通过 402C/402D 提供的回滚脚本恢复旧仓储；402A 需在 hazard list 中记录负责人、SQL 入口与日志路径（例如 `database/scripts/plan402/disable-legacy-writes.sql`），方便后续阶段落地 Goose Down。
 
 ---
 

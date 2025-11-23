@@ -31,8 +31,8 @@
 - 通过现有命令 (`npm --prefix frontend run contract:generate`) 同步前端类型，无需新增脚本；把 PBAC 改动同步到 Plan 252/259 与参考手册。
 
 ### A3 · 兼容策略说明（设计层）
-- 在映射规格中描述需要的兼容视图/Port/Feature Flag（用途、依赖、回滚原则），但将实际 SQL/代码实现放在 402B/402C 执行。
-- 记录 Feature Flag 的配置方式（环境变量名、默认值、回滚路径），由 402C 在命令/查询服务中具体落地。
+- 在映射规格中描述需要的兼容视图/Port/迁移/回滚策略（用途、依赖、执行顺序），但将实际 SQL/代码实现放在 402B/402C 执行。
+- 记录迁移窗口与回滚脚本（例如旧仓储权限回收、只读视图化），由 402C 在命令/查询服务中具体落地。
 - OCL 与双时态守卫在 Schema Registry 中维护；A 阶段只需列出需校验的场景（例如哪类对象允许更正/撤销、事务时间是否可回写），由 402B 的 Schema Registry 扩展与 402C 的校验工具执行。
 
 ---
@@ -40,9 +40,9 @@
 ## 3. 交付物
 
 - `docs/development-plans/402A-standard-object-mapping-spec.md`（含字段映射、迁移矩阵、回滚 checklist），并引用 Plan 400 Schema Registry 的 DEC/OCL 信息。
-- 兼容策略说明（视图/Port/Feature Flag 需求与回滚原则），供 402B/402C 实施；无需在 A 阶段提供 SQL/代码。
+- 兼容策略说明（视图/Port/迁移窗口与回滚原则），供 402B/402C 实施；无需在 A 阶段提供 SQL/代码。
 - OpenAPI / GraphQL diff 及 Scope 更新说明，附 `scripts/quality/architecture-validator.js`、`node scripts/quality/contract-checker.js` 的输出。
-- `internal/standardobject/adapter/*.go` skeleton + Feature Flag 文档，`go test ./internal/standardobject/...` 日志。
+- `internal/standardobject/adapter/*.go` skeleton + 迁移/回滚策略文档，`go test ./internal/standardobject/...` 日志。
 - `docs/reference/schema-registry.json` 中 `objectType=ORGANIZATION_UNIT` 的条目（含 `timeConstraint`、`transactionPolicy` 描述）、`logs/plan402/mapping/*.log`（DEC gap、命名检查、时间/事务约束巡检、评审会议记录）。
 
 ---
@@ -51,7 +51,7 @@
 
 1. `docs/development-plans/402A-standard-object-mapping-spec.md` 通过评审并在 `docs/development-plans/00-README.md` 登记；评审记录写入 `logs/plan402/mapping/spec-review.log`。
 2. 契约更新通过 `scripts/quality/architecture-validator.js`、`node scripts/quality/contract-checker.js`，日志落在 `logs/plan402/mapping/api-contract.log`。
-3. 兼容策略说明清楚视图/Port/Feature Flag 的需求、默认值与回滚流程，并将实现责任转交 402B/402C；无需在 A 阶段提交编译日志。
+3. 兼容策略说明清楚视图/Port/迁移-回滚流程，并将实现责任转交 402B/402C；无需在 A 阶段提交编译日志。
 4. Schema Registry（Plan 400）中针对组织/职位对象的 DEC/OCL/Time Constraint/Transaction Policy 绑定被引用到映射规格中，如发现缺口则记录 hazard list 并在 402B 执行前补齐。
 5. `logs/plan400/migration/time-constraint-report.log`（或 `logs/plan400/audit/transaction-range-report.log`）中列出了 TC1/TC2/TC3 + Transaction Policy 的巡检结果，并结合 `transaction_range` 审计确认旧表与目标 schema 无冲突项。
 
@@ -64,7 +64,7 @@
 | 契约变更影响现有客户端 | 前端或集成方出现编译/运行错误 | 提前同步 Plan 222 负责人，发布 schema diff 与迁移指南 |
 | 视图性能不足 | 迁移期查询退化 | 输出 explain plan 与基准测试，必要时增加索引或物化视图 |
 | DEC/OCL 信息缺失 | Schema Registry 无法成为 SSoT | 在 hazard list 中记录缺口，限定回收期限并跟进 Plan 400/403 |
-| Feature Flag/回滚策略不明确 | 切换/回退困难 | 在 A3 文档中列出步骤、负责人、日志路径，并提前演练 |
+| 迁移窗口/回滚策略不明确 | 切换/回退困难 | 在 A3 文档中列出步骤、负责人、日志路径，并提前演练 |
 
 ---
 
