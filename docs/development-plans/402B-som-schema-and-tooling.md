@@ -1,7 +1,7 @@
 # 402B · SOM Schema 与工具链
 
 **关联计划**：Plan 400、Plan 402、Plan 403  
-**状态**：进行中（schema/tooling 已落地，等待日志/守卫闭环）  
+**状态**：已完成（迁移/工具链/日志全部交付，可转入 402C）  
 **范围**：数据库迁移、sqlc 生成、迁移/校验工具、快照/Schema Registry、日志规范  
 **日志要求**：`logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/snapshots/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log`
 
