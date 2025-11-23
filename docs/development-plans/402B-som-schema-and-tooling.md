@@ -23,7 +23,7 @@
 ### B1 · 迁移脚本
 - 创建 `20251201090000_create_standard_objects.sql`（Up/Down），包含三表、索引、约束、触发器（`is_current`、链接级联、双时态 append-only 等）；`standard_object_versions`/`links` 必须引入 `validity_range/transaction_range`（tstzrange）、`EXCLUDE USING gist` 约束及 GiST 索引。
 - 在同批脚本中加入 `standard_object_hierarchy_snapshots` 等 Plan 401 依赖的骨架，并在注释中标明用途。
-- 在 `standard_object_schemas` 迁移中新增 `time_constraint text`、`transaction_policy text` 列，默认取自 402A 映射规格；为组织/职位预置 `TC1 + APPEND_ONLY`，Link 预置 `TC2 + APPEND_ONLY`，并提供检查约束。
+- 基于 Plan 400 已存在的 `standard_object_schemas` 表追加 `time_constraint text`、`transaction_policy text` 等列，迁移既有记录并在 Up/Down 脚本中写明默认值（组织/职位=TC1+APPEND_ONLY，Link=TC2+APPEND_ONLY）与检查约束，禁止重复建表或衍生第二事实来源。
 - 更新 `database/migrations/README.md`，记录执行顺序与回滚说明；`logs/plan402/migration/*.log` 保存 `atlas diff` / `goose up`。
 
 ### B2 · sqlc & 包结构
@@ -39,14 +39,14 @@
 
 ### B4 · 快照刷新骨架
 - 交付 `cmd/tools/standardobject-snapshot-refresh`（或同等 Job），实现快照/物化视图刷新、dry-run、限速、指标输出；内部需支持 `--as-of-valid` 与 `--as-of-transaction` 参数。
-- 在 `logs/plan402/snapshots/*.log` 保存运行记录（含快照版本、耗时、输入参数）；失败场景需附回滚/重试说明。
+- 在 `logs/plan402/snapshots/*.log` 保存运行记录（含快照版本、耗时、输入参数、`transaction_lag` 指标以及执行时采用的 `timeConstraint` 策略）；失败场景需附回滚/重试说明。
 - 在《Standard Object 映射规格》中补充快照/闭包校验项，并更新开发者速查命令。
-- 根据 `time_constraint` 选择刷新策略：TC1 的事件需触发即时刷新，TC2/TC3 可批量刷新，但指标中需记录延迟阈值；双时态快照需记录 `transaction_lag` 指标。
+- 根据 `time_constraint` 选择刷新策略：TC1 的事件需触发即时刷新，TC2/TC3 可批量刷新；日志需记录延迟阈值、策略说明以及触发条件，双时态快照必须持续输出 `transaction_lag` 指标。
 
 ### B5 · 通用维度扩展
-- 建立 `standard_object_schemas` 表，包含 `dec_bindings`、`ocl_guards`、`glossary_url` 等字段，生成 `docs/reference/schema-registry.json`。
-- 创建 `standard_object_translations`、`standard_object_attachments`、`standard_object_metadata`、`standard_object_metrics` 等扩展表与 sqlc 代码。
-- 在 `logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 输出首批样例。
+- 完成 `standard_object_schemas` 列集（`dec_bindings`、`ocl_guards`、`glossary_url`、`time_constraint`、`transaction_policy` 等）并生成 `docs/reference/schema-registry.json`，保持与 Plan 400/402 唯一事实来源一致。
+- 创建 `standard_object_translations`、`standard_object_attachments`、`standard_object_metadata`、`standard_object_metrics` 等扩展表与 sqlc 代码，至少输出最小建表/查询样例。
+- 在 `logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 输出覆盖各扩展表的首批样例，记录命令参数与字段校验结果。
 
 ---
 
@@ -65,10 +65,11 @@
 1. `make db-migrate-all` / `make db-rollback-last` 在 Docker Compose 环境中通过，并将输出写入 `logs/plan402/migration/*.log`。
 2. `make sqlc-generate` 在本地与 CI 均成功，`git status` 清洁；Plan 201 差异项脚本通过。
 3. migrator/validator 在沙盒数据集上跑通，产出差异报告；`logs/plan402/migration/time-constraint-report.log`、`transaction-gap.log`、`validator/*.json` 中所有校验均为 PASS，出现差异时提供可执行对账结论。
-4. Schema Registry 生成物通过 DEC/OCL/Time Constraint/Transaction Policy 缺失检查，`logs/plan402/schema/*.log` 无告警。
-5. 快照刷新工具完整运行一次，`logs/plan402/snapshots/*.log` 记录耗时/数据量/`asOfValid`/`asOfTransaction` 参数，并根据 `timeConstraint` 输出刷新策略；失败案例具备回滚记录。
-6. `scripts/quality/architecture-validator.js` 或辅助脚本验证仓库内不存在 `effective_from/effective_to` 字段引用，并确认 sqlc Query/DTO 含有 `validity_range/transaction_range`；结果写入 `logs/plan402/mapping/naming-check.log`。
-7. `cmd/tools/standardobject-validator` 输出的 `time-constraint-report.log` 与 `transaction-gap.log` 中 TC1/TC2/TC3、事务区间校验全部 PASS，若存在空窗/重叠/事务区间缺失则提供处置方案且阻断上线。
+4. Schema Registry 生成物通过 DEC/OCL/Time Constraint/Transaction Policy 缺失检查，`logs/plan402/schema/*.log` 无告警，并包含 `standard_object_schemas` 新增列及默认值迁移的执行记录。
+5. `standard_object_translations`、`standard_object_attachments`、`standard_object_metadata`、`standard_object_metrics` 等扩展表均已建成并通过 sqlc 查询示例验证，对应样例与校验结果写入 `logs/plan402/schema/*.log` / `logs/plan402/metrics/*.log`，缺失视为未完成。
+6. 快照刷新工具完整运行一次，`logs/plan402/snapshots/*.log` 记录耗时、数据量、`asOfValid`/`asOfTransaction` 参数、`transaction_lag` 指标以及按 TC 类型采取的刷新策略；失败案例具备回滚记录。
+7. `scripts/quality/architecture-validator.js` 或辅助脚本验证仓库内不存在 `effective_from/effective_to` 字段引用，并确认 sqlc Query/DTO 含有 `validity_range/transaction_range`；结果写入 `logs/plan402/mapping/naming-check.log`。
+8. `cmd/tools/standardobject-validator` 输出的 `time-constraint-report.log` 与 `transaction-gap.log` 中 TC1/TC2/TC3、事务区间校验全部 PASS，若存在空窗/重叠/事务区间缺失则提供处置方案且阻断上线。
 
 ---
 
