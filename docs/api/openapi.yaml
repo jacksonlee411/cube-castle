@@ -86,6 +86,8 @@ tags:
     description: Position management and lifecycle operations
   - name: job-catalog
     description: Job catalog maintenance and synchronization endpoints
+  - name: standard-objects
+    description: Standard Object aggregate contracts (Plan 402A – contract only, implementation via Feature Flag)
 
 paths:
   /api/v1/operational/health:
@@ -2506,6 +2508,136 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/standard-objects/{objectType}:
+    get:
+      operationId: listStandardObjects
+      tags: [standard-objects]
+      summary: List Standard Object aggregates (contract-first, Feature Flag gated)
+      description: |
+        返回给定 `objectType` 的 SOM 聚合（kernel + version + links）。
+
+        > ⚠️ 402A 阶段仅提供契约：当 `STANDARD_OBJECTS_ENABLED=false` 时，命令服务会返回 `standardobject: feature flag disabled`；
+        > 启用 Feature Flag 但尚未绑定仓储时返回 `standardobject: adapter not configured`，以便在未完成实现前阻断写入。
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/StandardObjectTypeParam'
+        - name: asOfDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: 可选，按有效时间查询版本。
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: 分页游标（future implementation）。
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+          description: 每页条数（默认为 50）。
+      security:
+        - OAuth2ClientCredentials: ['standard-object:read']
+      responses:
+        '200':
+          description: OK（Feature Flag 开启并绑定仓储后返回数据）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardObjectListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createStandardObject
+      tags: [standard-objects]
+      summary: Create a Standard Object kernel + initial version (contract stub)
+      description: |
+        创建 SOM 核心对象与首个版本。当前阶段（402A）仅定义契约，实作由 402C 启用。
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/StandardObjectTypeParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials: ['standard-object:write']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StandardObjectCreateRequest'
+      responses:
+        '200':
+          description: Accepted (Feature Flag 开启且实现已绑定时返回)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardObjectResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/standard-objects/{objectType}/{code}/versions:
+    post:
+      operationId: createStandardObjectVersion
+      tags: [standard-objects]
+      summary: Append a new Standard Object temporal version
+      description: |
+        追加 SOM 版本（append-only）。402A 阶段用于契约评审，实际写入由 Feature Flag 控制。
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/StandardObjectTypeParam'
+        - $ref: '#/components/parameters/CodePathParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      security:
+        - OAuth2ClientCredentials: ['standard-object:write']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StandardObjectVersionRequest'
+      responses:
+        '200':
+          description: Append accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardObjectResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/standard-objects/{objectType}/{code}/status:
+    patch:
+      operationId: updateStandardObjectStatus
+      tags: [standard-objects]
+      summary: Execute lifecycle transition for a Standard Object
+      description: |
+        根据 SOM LifecyclePolicy 切换状态。返回 SOM 聚合结构。实际行为受 `STANDARD_OBJECTS_ENABLED` 控制。
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - $ref: '#/components/parameters/StandardObjectTypeParam'
+        - $ref: '#/components/parameters/CodePathParam'
+      security:
+        - OAuth2ClientCredentials: ['standard-object:status']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StandardObjectStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardObjectResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
 components:
   securitySchemes:
     OAuth2ClientCredentials:
@@ -2578,6 +2710,10 @@ components:
             # Job catalog permissions
             'job-catalog:read': Read job catalog classifications
             'job-catalog:write': Manage job catalog classifications and versions
+            # Standard Object scopes (Plan 400/402)
+            'standard-object:read': Read Standard Object aggregates and versions
+            'standard-object:write': Create Standard Objects and temporal versions
+            'standard-object:status': Execute lifecycle transitions on Standard Objects
     CSRFToken:
       type: apiKey
       in: header
@@ -2638,8 +2774,379 @@ components:
       description: |
         Optional idempotency key to make POST operations idempotent within a 24h window.
         When provided, repeated requests with the same key return 200 with the original result.
+    StandardObjectTypeParam:
+      name: objectType
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/StandardObjectType'
+      description: |
+        Standard Object 类型标识符（Plan 400 定义）。402A 契约阶段仅开放 `ORGANIZATION_UNIT`，后续阶段将通过
+        Schema Registry 宣告更多类型。
 
   schemas:
+    StandardObjectType:
+      type: string
+      description: |
+        Standard Object 类型标识符。402A 契约阶段用于声明 SOM Port，可扩展到更多对象族。
+      enum:
+        - ORGANIZATION_UNIT
+        - POSITION_ROLE
+    StandardObjectKernel:
+      type: object
+      description: 核心元数据（ObjectKernel），跨所有版本保持稳定。
+      required:
+        - objectType
+        - code
+        - displayName
+        - tenantCode
+        - status
+      properties:
+        objectType:
+          $ref: '#/components/schemas/StandardObjectType'
+        code:
+          type: string
+          pattern: '^[A-Z0-9_-]{1,64}$'
+          description: SOM 业务唯一标识。组织对象沿用 7 位编码。
+          example: "1000001"
+        displayName:
+          type: string
+          maxLength: 255
+          description: 主显示名，用于列表与导航。
+        tenantCode:
+          type: string
+          format: uuid
+          description: 多租户隔离标识。
+        status:
+          $ref: '#/components/schemas/Status'
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Key/Value 标签集合。`unitType` 保存组织类型。
+          properties:
+            unitType:
+              $ref: '#/components/schemas/UnitType'
+        schemaVersion:
+          type: string
+          description: 绑定的 Schema Registry 版本。
+        dataClassification:
+          type: string
+          description: 数据分级标签（Plan 400）。
+        retentionPolicy:
+          type: string
+          description: 数据保留策略。
+        createdBy:
+          type: string
+          description: 创建人（审计用途）。
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间。
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最近更新时间。
+    StandardObjectKernelInput:
+      type: object
+      description: 创建/迁移时需要的 ObjectKernel 字段（objectType 由路径决定）。
+      required:
+        - code
+        - displayName
+        - tenantCode
+        - status
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9_-]{1,64}$'
+        displayName:
+          type: string
+          maxLength: 255
+        tenantCode:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/Status'
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          properties:
+            unitType:
+              $ref: '#/components/schemas/UnitType'
+        schemaVersion:
+          type: string
+        dataClassification:
+          type: string
+        retentionPolicy:
+          type: string
+    StandardObjectTemporalVersion:
+      type: object
+      description: TemporalVersion（版本层），包含 payload 与审计信息。
+      required:
+        - versionCode
+        - effectiveDate
+        - payload
+      properties:
+        versionCode:
+          type: string
+          description: 版本业务 ID（可映射有效期起点+序列号）。
+        effectiveDate:
+          type: string
+          format: date
+          description: 版本生效日期。
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: 版本失效日期。TC1 要求连续覆盖。
+        isCurrent:
+          type: boolean
+          description: 系统判定的当前版本标记。
+        payload:
+          type: object
+          description: 面向业务的 JSONB 载荷。
+          properties:
+            name:
+              type: string
+              description: 对外展示名称。
+            description:
+              type: string
+              nullable: true
+            profiles:
+              type: object
+              description: 自定义 profile JSON，Plan 403 负责 Schema Formalization。
+            metadata:
+              type: object
+              description: 租户自定义元数据，Plan 403 负责拆解。
+          required:
+            - name
+        auditTrail:
+          type: object
+          description: 统一审计结构，与 DEC_AUDIT_* 对齐。
+          properties:
+            createdBy:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedBy:
+              type: string
+            updatedAt:
+              type: string
+              format: date-time
+            deletedAt:
+              type: string
+              format: date-time
+              nullable: true
+            deletedBy:
+              type: string
+              nullable: true
+            deletionReason:
+              type: string
+              maxLength: 500
+              nullable: true
+            suspendedAt:
+              type: string
+              format: date-time
+              nullable: true
+            suspendedBy:
+              type: string
+              nullable: true
+            suspensionReason:
+              type: string
+              maxLength: 500
+              nullable: true
+            actors:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  role: { type: string }
+        checksum:
+          type: string
+          description: Payload 校验和（可选）。
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StandardObjectVersionInput:
+      type: object
+      description: 创建或补录版本所需字段。
+      required:
+        - effectiveDate
+        - payload
+      properties:
+        effectiveDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        payload:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+              nullable: true
+            profiles:
+              type: object
+            metadata:
+              type: object
+        auditTrail:
+          type: object
+          properties:
+            operatedBy:
+              type: string
+            reason:
+              type: string
+              maxLength: 500
+    StandardObjectLink:
+      type: object
+      description: ORG_HIERARCHY Link 聚合。
+      required:
+        - linkType
+        - sourceCode
+        - targetCode
+      properties:
+        linkType:
+          type: string
+          example: "ORG_HIERARCHY"
+        sourceCode:
+          type: string
+          description: 父节点编码。
+        targetCode:
+          type: string
+          description: 子节点编码。
+        tenantCode:
+          type: string
+          format: uuid
+        attributes:
+          type: object
+          properties:
+            level:
+              type: integer
+            hierarchyDepth:
+              type: integer
+            sortOrder:
+              type: integer
+          additionalProperties: true
+    StandardObjectLinkInput:
+      type: object
+      required:
+        - linkType
+        - sourceCode
+        - targetCode
+      properties:
+        linkType:
+          type: string
+        sourceCode:
+          type: string
+        targetCode:
+          type: string
+        attributes:
+          type: object
+          additionalProperties: true
+    StandardObjectAggregate:
+      type: object
+      description: SOM Port 聚合（kernel + version + 可选 links）。
+      required:
+        - kernel
+        - version
+      properties:
+        kernel:
+          $ref: '#/components/schemas/StandardObjectKernel'
+        version:
+          $ref: '#/components/schemas/StandardObjectTemporalVersion'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/StandardObjectLink'
+    StandardObjectCreateRequest:
+      type: object
+      required:
+        - kernel
+        - version
+      properties:
+        kernel:
+          $ref: '#/components/schemas/StandardObjectKernelInput'
+        version:
+          $ref: '#/components/schemas/StandardObjectVersionInput'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/StandardObjectLinkInput'
+          description: 可选，创建时同步绑定 ORG_HIERARCHY Link。
+    StandardObjectVersionRequest:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          $ref: '#/components/schemas/StandardObjectVersionInput'
+    StandardObjectStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+        requestedBy:
+          type: string
+          description: 触发者（审计用途）。
+    StandardObjectList:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StandardObjectAggregate'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            nextCursor:
+              type: string
+              nullable: true
+            previousCursor:
+              type: string
+              nullable: true
+            pageSize:
+              type: integer
+          required:
+            - total
+            - pageSize
+    StandardObjectResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StandardObjectAggregate'
+    StandardObjectListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StandardObjectList'
     OrganizationUnit:
       type: object
       description: Complete organization unit model with temporal and audit data

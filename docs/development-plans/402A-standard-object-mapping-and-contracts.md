@@ -1,7 +1,7 @@
 # 402A · Standard Object 映射与契约准备
 
 **关联计划**：Plan 400（架构）、Plan 402（总体迁移）、Plan 403（元模型组成）  
-**状态**：拟立项  
+**状态**：已验收（2025-11-27，可转入 402B）  
 **依赖**：`docs/api/openapi.yaml`、`docs/api/schema.graphql`、`internal/standardobject/**` skeleton、Plan 201 sqlc 规范  
 **日志要求**：`logs/plan402/mapping/*.log`、`logs/plan402/mapping/dec-gap.log`、`logs/plan402/mapping/naming-check.log`
 
@@ -53,7 +53,7 @@
 2. 契约更新通过 `scripts/quality/architecture-validator.js`、`node scripts/quality/contract-checker.js`，日志落在 `logs/plan402/mapping/api-contract.log`。
 3. 兼容策略说明清楚视图/Port/Feature Flag 的需求、默认值与回滚流程，并将实现责任转交 402B/402C；无需在 A 阶段提交编译日志。
 4. Schema Registry（Plan 400）中针对组织/职位对象的 DEC/OCL/Time Constraint/Transaction Policy 绑定被引用到映射规格中，如发现缺口则记录 hazard list 并在 402B 执行前补齐。
-5. `logs/plan402/mapping/time-constraint.log`（或合并到 `dec-gap.log`）中列出了 TC1/TC2/TC3 + Transaction Policy 的巡检结果，确认旧表与目标 schema 没有冲突项，且 `validity_range`/`transaction_range` 来源明确。
+5. `logs/plan400/migration/time-constraint-report.log`（或 `logs/plan400/audit/transaction-range-report.log`）中列出了 TC1/TC2/TC3 + Transaction Policy 的巡检结果，并结合 `transaction_range` 审计确认旧表与目标 schema 无冲突项。
 
 ---
 

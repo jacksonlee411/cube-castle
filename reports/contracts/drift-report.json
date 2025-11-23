@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-11-16T08:10:25.903Z",
+  "generatedAt": "2025-11-23T13:52:24.629Z",
   "source": "shared/contracts/organization.json",
   "results": {
     "unitType": {
@@ -14,5 +14,34 @@
       "missingInRest": [],
       "missingInGql": []
     }
+  },
+  "fieldMatrix": {
+    "entityPair": "OrganizationUnit|Organization",
+    "missingInRest": [
+      "code",
+      "parentCode",
+      "tenantId",
+      "name",
+      "unitType",
+      "status",
+      "level",
+      "sortOrder",
+      "codePath",
+      "namePath",
+      "description",
+      "profile",
+      "effectiveDate",
+      "createdAt",
+      "updatedAt",
+      "recordId",
+      "isCurrent",
+      "isFuture",
+      "hierarchyDepth",
+      "deletedAt"
+    ],
+    "missingInGql": [],
+    "typeMismatches": [],
+    "nullabilityMismatches": [],
+    "listMismatches": []
   }
 }

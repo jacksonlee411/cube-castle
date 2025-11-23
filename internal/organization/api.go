@@ -19,6 +19,7 @@ import (
 	servicepkg "cube-castle/internal/organization/service"
 	utilspkg "cube-castle/internal/organization/utils"
 	validatorpkg "cube-castle/internal/organization/validator"
+	standardobject "cube-castle/internal/standardobject"
 	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ type CommandModuleDeps struct {
 	CascadeMaxDepth int
 	SchedulerConfig *configpkg.SchedulerConfig
 	OutboxRepo      database.OutboxRepository
+	StandardObjects standardobject.ObjectService
 }
 
 type OrganizationHandler = handlerpkg.OrganizationHandler
@@ -52,12 +54,13 @@ type AssignmentFacade interface {
 }
 
 type CommandModule struct {
-	DB           *sql.DB
-	Logger       pkglogger.Logger
-	Repositories CommandRepositories
-	Services     CommandServices
-	Validator    *validatorpkg.BusinessRuleValidator
-	AuditLogger  *auditpkg.AuditLogger
+	DB              *sql.DB
+	Logger          pkglogger.Logger
+	Repositories    CommandRepositories
+	Services        CommandServices
+	Validator       *validatorpkg.BusinessRuleValidator
+	AuditLogger     *auditpkg.AuditLogger
+	StandardObjects standardobject.ObjectService
 }
 
 type CommandRepositories struct {
@@ -108,6 +111,11 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 	if cascadeDepth <= 0 {
 		cascadeDepth = 4
 	}
+	stdObjects := deps.StandardObjects
+	if stdObjects == nil {
+		stdObjects = standardobject.NewNoopService(nil)
+		logger.Warn("standardobject service not provided; falling back to noop adapter")
+	}
 
 	orgRepo := repositorypkg.NewOrganizationRepository(deps.DB, logger)
 	jobCatalogRepo := repositorypkg.NewJobCatalogRepository(deps.DB, logger)
@@ -155,8 +163,9 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 			Position:   positionService,
 			JobCatalog: jobCatalogService,
 		},
-		Validator:   validator,
-		AuditLogger: auditLogger,
+		Validator:       validator,
+		AuditLogger:     auditLogger,
+		StandardObjects: stdObjects,
 	}
 
 	return module, nil

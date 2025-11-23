@@ -36,6 +36,8 @@
   - `402D-cutover-and-recovery.md`
   - `402E-convergence-and-governance.md`
 
+> 2025-11-27：402A《映射与契约准备》已通过评审并进入交付归档，依据其日志与规格可启动 402B。
+
 > 新增计划需遵循 `docs/development-plans/<id>-<slug>.md` 命名，并立即在此处补充一句描述与事实来源。
 
 ## 归档信息摘要

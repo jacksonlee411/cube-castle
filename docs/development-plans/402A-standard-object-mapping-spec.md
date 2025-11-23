@@ -1,6 +1,6 @@
 # 402A · Standard Object 映射规格（v0.1）
 
-**状态**：草案（402A 启动前置）  
+**状态**：已验收（2025-11-27 评审完成）  
 **责任人**：Plan 402 Owner / 架构组  
 **唯一事实来源**：`docs/reference/schema-registry.json`、`docs/api/openapi.yaml`、`docs/api/schema.graphql`、`docs/development-plans/400-standard-object-model-plan.md`、`docs/development-plans/402-standard-object-single-source-plan.md`
 
@@ -37,7 +37,7 @@
 | `level` / `hierarchy_depth` | DEC_ORG_LEVEL | `standard_object_links.attributes.{level,hierarchyDepth}` | JSONB 属性；快照刷新时引用 | Backend |
 | `sort_order` | DEC_SORT_ORDER | `standard_object_links.attributes.sortOrder` | 数值保持，为父子顺序提供稳定排序 | Backend |
 | `code_path` / `name_path` | DEC_ORG_PATH | `standard_object_links` 衍生视图 | 迁移后不再存储；改为快照/闭包计算 | DBA |
-| `profile` | DEC_ORG_PROFILE | `standard_object_versions.payload.profile` | JSONB 直接复制；缺少 DEC，见 §3 Hazard | Domain |
+| `profiles` | DEC 待定（Plan 403） | `standard_object_versions.payload.profiles` | JSONB 直接复制；缺少 DEC，见 §3 Hazard | Domain |
 | `metadata` | DEC_ORG_METADATA | `standard_object_versions.payload.metadata` | JSONB；需在 402B 前完成字段拆解 | Domain |
 | `created_at` / `created_by` | DEC_AUDIT_CREATED | `standard_objects.created_at/created_by` | 对象层记录；版本层 `auditTrail.createdAt` | Backend |
 | `updated_at` | DEC_AUDIT_UPDATED | `standard_objects.updated_at` | 与版本 `updatedAt` 同步 | Backend |
@@ -49,16 +49,32 @@
 
 ---
 
-## 2.1 时间约束声明
+## 2.1 时间/事务约束声明
 
-| 对象/字段 | Time Constraint | 说明 | 计划 |
-|-----------|-----------------|------|------|
-| `standard_objects` (组织对象 kernel) | TC1 | 任意时刻必须存在且唯一，禁止空窗；迁移时依赖 time slicing | 402B 在 `standard_object_schemas.time_constraint` 列中登记，并在 migrator 中实现裁剪 |
-| `standard_object_versions` (组织版本) | TC1 | 版本区间需连续覆盖（无重叠/空窗），合并相邻区间 | 402B 交付触发器/validator；402C 命令侧启用 `pkg/temporal/constraints` |
-| `standard_object_links` `ORG_HIERARCHY` 关系 | TC2 | 最多一条 link，可存在空窗，用于临时解绑 | 402B 在 schema registry 中声明；validator 仅检查重叠 |
-| `payload.profile` 等扩展 JSON 字段 | TC3 | 允许同一时间多条记录（例如多标签/备注） | 402B 在 schema 生成时标记；查询层通过排序处理 |
+| 对象/字段 | Time Constraint | Transaction Policy | 说明 | 计划 |
+|-----------|-----------------|--------------------|------|------|
+| `standard_objects` (组织对象 kernel) | TC1 | APPEND_ONLY | 任意时刻必须存在且唯一，禁止空窗；迁移时依赖 time slicing。写路径只能追加新 kernel，纠偏需通过 Goose Down。 | 402B 在 `standard_object_schemas.time_constraint/transaction_policy` 列中登记，并在 migrator 中实现裁剪 |
+| `standard_object_versions` (组织版本) | TC1 | APPEND_ONLY | 版本区间需连续覆盖（无重叠/空窗），所有变更通过追加新版本实现；合并/回滚依赖事务日志而非覆盖写。 | 402B 交付触发器/validator；402C 命令侧启用 `pkg/temporal/constraints` |
+| `standard_object_links` `ORG_HIERARCHY` 关系 | TC2 | APPEND_ONLY | 最多一条 link，可存在空窗，用于临时解绑；事务层禁止覆盖历史记录。 | 402B 在 schema registry 中声明；validator 仅检查重叠 |
+| `payload.profiles` 等扩展 JSON 字段 | TC3 | CORRECTION_ALLOWED | 允许同一时间多条记录（例如多标签/备注），并允许针对 JSON 键值纠偏；由版本快照记录差异。 | 402B 在 schema 生成时标记；查询层通过排序处理 |
 
-所有 `timeConstraint` 值与 `docs/reference/schema-registry.json` 中 `schemas[].timeConstraint` 字段保持一致；若对象未来扩展（如 person / workforce），需在新条目中声明默认值并附 OCL。巡检结果写入 `logs/plan402/mapping/time-constraint.log`，并在 `hazard-list` 中登记尚未收敛的字段。
+所有 `timeConstraint` 与 `transactionPolicy` 值需与 `docs/reference/schema-registry.json.schemas[]` 顶层字段保持一致；生成流程沿用 Plan 400/`docs/reference/standard-object-evidence-guide.md` 中的 Schema Registry 生成器（同一套脚本负责写入 JSON），禁止在其他文档重复记录。若对象未来扩展（如 person / workforce），需在新条目中声明默认值并附 OCL。巡检结果沿用 Plan 400 的 `logs/plan400/migration/time-constraint-report.log`，禁止额外创建平行日志，分析结果在本节与 `hazard-list` 中登记。
+
+## 2.2 有效期 / 事务期来源
+
+- **validity_range**：由 `organization_units.effective_date`（起）与 `end_date`（止）推导；缺失 `end_date` 视为开放区间（`∞`），迁移脚本需补写为 `NULL`，并依赖 `standard_object_versions` 开启的 `TC1` 检查防止倒挂。
+- **transaction_range**：以 `created_at`/`updated_at` 作为上下界；若历史记录在迁移窗口内被补录，则为该批次写入统一的 `migrated_at` 时间戳，并在 `logs/plan400/audit/transaction-range-report.log` 记录批次 ID、来源脚本与责任人，供 402B/402C 的裁剪工具识别“回溯写”。
+- **异常/纠偏**：当检测到 `updated_at < created_at` 或人工回溯写入时，需在 §3 Hazard 中登记并列出 402B 的回收任务（脚本、触发器或额外 schema 字段），确保 transaction range 成为可验证事实。
+
+该信息在 402B 的 Goose 迁移与 `pkg/temporal/constraints` 校验中作为输入；402A 阶段只维护说明与日志，确保“先契约后实现”。
+
+## 2.3 迁移批次标记（`migrated_at` 等）
+
+- **存储位置（沿用 Plan 400 双时态）**：直接复用 `standard_object_versions.transaction_range` 与 Plan 400 定义的审计视图。补录批次信息写入 `transaction_range` 上界与 `standard_object_audit` 视图，并在 `logs/plan400/audit/transaction-range-report.log` 记录批次 ID/责任人；禁止新增 JSON 副本，避免第二事实来源。
+- **写入策略**：迁移脚本在追加版本时保持 append-only（`transaction_range = tstzrange(now(), 'infinity')`），批次纠偏通过闭区间更新上一行上界；若需额外批次 metadata，以 `correctionReason` 形式记录在 hazard list，并由 Plan 400 的审计脚本输出。
+- **最佳实践**：当批次含人工纠偏数据时，在 `logs/plan400/audit/transaction-range-report.log` 中附带 `correctionReason`，并同步 `hazard-list`（无需在 schema 中增列），确保 402B/402C 的回滚脚本可按批次删除/重放。
+
+该批次标记完全依赖 Plan 400 的 transaction range/Audit 机制，避免重复实现，同时保证 402D/402E 能快速执行审计或回滚。
 
 ---
 
@@ -66,7 +82,7 @@
 
 | 项目 | 描述 | 影响 | 回收计划 |
 |------|------|------|----------|
-| `payload.profile` | 缺少 ISO 11179 DEC ID（Plan 403 未发布） | Schema Registry 不完整 | 402B 在 `standard_object_schemas` 中补齐，参照 `docs/reference/schema-registry.json` → `knownGaps[0]` |
+| `payload.profiles` | 缺少 ISO 11179 DEC ID（Plan 403 未发布） | Schema Registry 不完整 | 402B 在 `standard_object_schemas` 中补齐，参照 `docs/reference/schema-registry.json` → `knownGaps[0]` |
 | `payload.metadata` | 元数据结构因租户自定义而多态 | 无法生成 JSON Schema | 402B 需要抽象公共字段 + `metadata.*` 通配符 DEC，最迟在 402C 双写前完成 |
 | Link attributes `hierarchyDepth`, `codePath` | 当前为派生列 | 缺少 DEC/OCL 绑定 | 402B 在 Link schema 中登记 DEC，新增快照校验 |
 | `auditTrail` 结构 | 多字段复用 TEXT | 无法映射 `DEC_AUDIT_*` | 402B 设计 `auditTrail` JSON schema，并更新 `docs/reference/schema-registry.json` |
@@ -112,7 +128,7 @@ Hazard 的唯一事实来源：本节 + `docs/reference/schema-registry.json.sch
 
 ## 7. 证据要求
 
-- `logs/plan402/mapping/spec-review.log`：记录评审会议时间、参会人、是否准许启动 402B。
+- `logs/plan402/mapping/spec-review.log`：记录评审会议时间、参会人、是否准许启动 402B（2025-11-27T09:00Z 条目已写明“通过，准许执行 402B”与责任人/回收任务）。
 - `docs/reference/schema-registry.json`：本文件的 DEC/OCL 绑定需与 registry 中 `objectType=ORGANIZATION_UNIT` 条目一致。
 - PR/Issue：402A 相关 PR 必须附上本规格、registry diff 以及日志路径，禁止在其他文档重复这些事实以维护唯一性。
 

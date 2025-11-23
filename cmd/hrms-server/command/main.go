@@ -19,6 +19,8 @@ import (
 	config "cube-castle/internal/config"
 	health "cube-castle/internal/monitoring/health"
 	organization "cube-castle/internal/organization"
+	noadapter "cube-castle/internal/standardobject/adapter/noop"
+	standardflag "cube-castle/internal/standardobject/featureflag"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
@@ -74,6 +76,12 @@ func main() {
 	})
 	commandLogger.Info("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
+	stdToggle := standardflag.NewEnvToggle("STANDARD_OBJECTS_ENABLED", false)
+	stdObjects := noadapter.Provide(stdToggle)
+	commandLogger.WithFields(pkglogger.Fields{
+		"feature": "STANDARD_OBJECTS_ENABLED",
+		"enabled": stdToggle.Enabled(context.Background()),
+	}).Info("标准对象 Port 注入完成（402A 占位实现）")
 
 	var (
 		dbClient    *database.Database
@@ -187,7 +195,8 @@ func main() {
 				}
 				return nil
 			}(),
-			OutboxRepo: outboxRepo,
+			OutboxRepo:      outboxRepo,
+			StandardObjects: stdObjects,
 		})
 		if err != nil {
 			commandLogger.Errorf("[FATAL] 初始化组织模块失败: %v", err)

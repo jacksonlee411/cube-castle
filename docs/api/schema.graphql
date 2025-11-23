@@ -98,7 +98,7 @@ type Query {
   """
   organizationSubtree(
     code: String!
-    tenantId: String!
+    tenantId: String
     maxDepth: Int = 10
     includeInactive: Boolean = false
   ): [OrganizationHierarchy!]!
@@ -113,6 +113,30 @@ type Query {
     tenantId: String!
     includeIntegrityCheck: Boolean = false
   ): HierarchyStatistics!
+
+  # Standard Object (Plan 400/402 – contract-first)
+
+  """
+  Retrieve Standard Objects via SOM Port. Feature Flag controlled (402A output only).
+  
+  Permissions Required: standard-object:read
+  """
+  standardObjects(
+    objectType: StandardObjectType!
+    filter: StandardObjectFilterInput
+    pagination: PaginationInput
+  ): StandardObjectConnection!
+
+  """
+  Fetch single Standard Object aggregate by business code.
+  
+  Permissions Required: standard-object:read
+  """
+  standardObject(
+    objectType: StandardObjectType!
+    code: String!
+    asOfDate: Date
+  ): StandardObject
 
   # Position Queries
   
@@ -414,6 +438,9 @@ Hierarchy-specific organization information with relationship context.
 type OrganizationHierarchy {
   code: String!
   name: String!
+  unitType: UnitType
+  status: Status
+  parentCode: String
   level: Int!
   hierarchyDepth: Int!
   codePath: String!
@@ -1258,6 +1285,90 @@ Status for job catalog entries.
 enum JobCatalogStatus {
   ACTIVE
   INACTIVE
+}
+
+# Standard Object Types (Plan 400/402)
+
+"""
+Standard Object 类型枚举。402A 契约阶段开放 ORGANIZATION_UNIT，POSITION_ROLE 保留供后续扩展。
+"""
+enum StandardObjectType {
+  ORGANIZATION_UNIT
+  POSITION_ROLE
+}
+
+"""
+Link 类型（Plan 400 定义）。当前仅支持 ORG_HIERARCHY。
+"""
+enum StandardObjectLinkType {
+  ORG_HIERARCHY
+}
+
+"""
+过滤条件（契约阶段仅暴露 code/status/asOfDate）。
+"""
+input StandardObjectFilterInput {
+  code: String
+  status: Status
+  asOfDate: Date
+}
+
+type StandardObjectKernel {
+  objectType: StandardObjectType!
+  code: String!
+  displayName: String!
+  tenantCode: String!
+  status: Status!
+  labels: JSON
+  schemaVersion: String
+  dataClassification: String
+  retentionPolicy: String
+  createdBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type StandardObjectVersion {
+  versionCode: String!
+  effectiveDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  payload: JSON!
+  auditTrail: StandardObjectAudit
+  checksum: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type StandardObjectAudit {
+  createdBy: String
+  createdAt: DateTime
+  updatedBy: String
+  updatedAt: DateTime
+  deletedAt: DateTime
+  deletedBy: String
+  deletionReason: String
+  suspendedAt: DateTime
+  suspendedBy: String
+  suspensionReason: String
+}
+
+type StandardObjectLink {
+  linkType: StandardObjectLinkType!
+  sourceCode: String!
+  targetCode: String!
+  attributes: JSON
+}
+
+type StandardObject {
+  kernel: StandardObjectKernel!
+  version: StandardObjectVersion!
+  links: [StandardObjectLink!]
+}
+
+type StandardObjectConnection {
+  data: [StandardObject!]!
+  pagination: PaginationInfo!
 }
 
 # Scalar Types

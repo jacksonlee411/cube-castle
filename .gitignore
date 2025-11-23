@@ -43,6 +43,9 @@ startup.log
 !logs/plan272/**/*.log
 !logs/plan272/**/*.txt
 !logs/plan272/**/*.csv
+# Allow Plan 402 映射/契约日志
+!logs/plan402/
+!logs/plan402/**/*.log
 # Ignore local Plan 255 evidence logs (local-only, CI will archive separately)
 logs/plan255/
 # Ignore local Plan 254 evidence logs（CI 工件已保存）

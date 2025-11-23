@@ -1,0 +1,11 @@
+ℹ️  🏗️ Cube Castle - 架构验证器启动
+ℹ️  验证范围: frontend
+ℹ️  验证规则: capabilityContracts
+ℹ️  扫描目录: frontend/src
+ℹ️  找到 228 个文件待验证
+ℹ️  📊 架构验证统计报告:
+ℹ️     📁 验证文件: 229 个
+ℹ️     ✅ 通过文件: 229 个
+ℹ️     🔍 问题总数: 0 个
+✅ 🎉 质量门禁通过: 架构符合企业级标准
+ℹ️  📂 详细报告: /home/shangmeilin/cube-castle/reports/architecture/architecture-validation.json
