@@ -3,7 +3,7 @@
 **文档编号**: 272  
 **创建日期**: 2025-11-23  
 **关联计划**: Plan 06（集成验证日志治理）、Plan 215（Phase2 Execution Log）、`docs/archive/development-plans/272-post-plan270-followups.md`（上一阶段 272 追踪）  
-**状态**: 🚧 进行中  
+**状态**: ✅ 已完成（2025-11-23）  
 
 > 说明：上一版 Plan 272 已在 `docs/archive/development-plans/272-post-plan270-followups.md` 归档。自本文件起，Plan 272 的唯一事实来源切换至本计划，用于治理运行产物体量与 cloc 噪音。
 
