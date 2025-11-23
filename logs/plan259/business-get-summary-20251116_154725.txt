@@ -1,4 +1,0 @@
-Plan 259 Business GET Scan @ 20251116_154725
-Total business GET endpoints (REST): 1
-Whitelist: /.well-known/jwks.json, /api/v1/operational/**, /auth/**
-Output: reports/plan259/business-get-list.{txt,json}

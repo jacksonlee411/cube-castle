@@ -1,4 +1,0 @@
-✔ OpenAPI 引用→注册一致性检查（未注册引用=0）
-ℹ️ OpenAPI 已注册但未引用 scopes: job-catalog:read, org:cancel:planned, org:create:child, org:move, org:read, org:read:audit, org:read:future, org:read:hierarchy, org:read:history, org:read:stats, org:read:timeline, position:activate, position:assignments:audit, position:create:planned, position:delete, position:read, position:read:future, position:read:headcount, position:read:history, position:read:stats, position:suspend
-✔ GraphQL 权限映射生成（entries=25）
-✔ Resolver 授权调用覆盖（未匹配映射=2；在 Schema 中但缺权限注释=0)

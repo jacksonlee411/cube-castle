@@ -497,6 +497,12 @@ $(go env GOPATH)/bin/golangci-lint run
 ```
 > 说明：golangci-lint 固定版本与路径是 PR 等效门禁的组成部分；若 PATH 中存在其他版本，请勿直接使用 `golangci-lint run`。
 
+### 运行产物治理（Plan 272）
+- `logs/`、`reports/`、`test-results/` 均已添加 README，说明保留份数、归档方式与允许文件类型；完成归档守卫（W4）前，可暂以本 README + manifest 手动校验，后续将由 `npm run guard:plan272` 自动执行（阈值：未压缩日志 <2 MB）。
+- 超出保留份数后需执行 `make archive-run-artifacts`（Plan 272 W3 将提供脚本）将产物压缩到 `archive/runtime-artifacts/<yyyy-mm>/`，并按 `templates/plan272-manifest.example.json` 模版生成 `manifest.json`（含 `sha256`、Plan ID、引用路径）。
+- Runbook/计划只能引用 README/manifest 或 `archive/runtime-artifacts` 中的压缩包；调取历史截图/日志前须根据 manifest 校验 `sha256`。
+- Stage 2 需输出 vendored GitHub Actions/第三方依赖的治理结论，并在 `reports/plan272/vendor-audit-*.md` + `docs/development-plans/272-runtime-artifact-cleanup.md` 中追踪。
+
 ### 权威链接与治理
 - 项目原则与黑名单（唯一事实来源）：`../../AGENTS.md`
 - API 契约（唯一事实来源）：`../api/openapi.yaml`、`../api/schema.graphql`

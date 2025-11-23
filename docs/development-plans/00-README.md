@@ -26,6 +26,8 @@
 - `204-HRMS-Implementation-Roadmap.md`—— HRMS 实施路线图，对齐 203 的阶段目标。
 - `206-Alignment-With-200-201.md`—— 200/201/203/204 的一致性校验与差异登记。
 - `271-archive-integrity-guard.md`—— Plan 271，归档守卫、CI 自动化与 `lint:docs` 规则。
+- `272-runtime-artifact-cleanup.md`—— Plan 272，运行产物与 cloc 噪音压降（Stage1 logs/reports/test-results，Stage2 vendored 依赖治理）。
+- `400-standard-object-model-plan.md`—— 将组织/职位等对象抽象为统一 SOM，覆盖生命周期、契约、UI、迁移策略。
 
 > 新增计划需遵循 `docs/development-plans/<id>-<slug>.md` 命名，并立即在此处补充一句描述与事实来源。
 
