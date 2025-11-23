@@ -89,6 +89,8 @@ frontend/test-results/
 frontend/playwright-report/
 *.test-results/
 test-results/
+!test-results/
+!test-results/README.md
 coverage/
 .nyc_output/
 token*.json
