@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-11-23T06:24:58.511Z",
+  "timestamp": "2025-11-23T10:17:22.036Z",
   "summary": {
-    "totalFiles": 228,
-    "passedFiles": 228,
+    "totalFiles": 420,
+    "passedFiles": 420,
     "failedFiles": 0,
     "totalViolations": 0,
     "violationsByType": {
@@ -10,7 +10,8 @@
       "ports": 0,
       "contracts": 0,
       "forbidden": 0,
-      "eslintExceptions": 0
+      "eslintExceptions": 0,
+      "capabilityContracts": 0
     }
   },
   "violations": []

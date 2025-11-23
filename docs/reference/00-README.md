@@ -93,6 +93,17 @@
 - CI 门禁与 E2E 工作流（plan-255-gates、frontend-e2e-devserver）与 VS Code 任务建议
 - SUMMARY 打印与远程抓取脚本：print-e2e-summary.js、fetch-gh-summary.sh
 
+### 🧾 [Standard Object 证据与 Schema Registry 指南](./standard-object-evidence-guide.md)
+**用途**: 统一 SOM 的 Schema Registry 字段要求、能力能力巡检与日志模板  
+**包含内容**:
+- `standard_object_schemas` 必备列（DEC/OCL/Glossary）与生成流程  
+- `logs/plan400/schema|snapshots|ui|manifest`、`logs/plan402/capability` 等证据目录说明  
+- 视点矩阵与 `architecture-validator --rule capabilityContracts` 巡检命令  
+**使用场景**:
+- ✅ Schema/能力变更前确认日志模板  
+- ✅ PR/验收时附加 DEC/OCL/能力巡检证据  
+- ✅ 规划新 Federate 或视点指标
+
 ---
 
 ## 🚀 快速开始
