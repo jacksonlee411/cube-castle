@@ -44,7 +44,7 @@
 - 根据 `time_constraint` 选择刷新策略：TC1 的事件需触发即时刷新，TC2/TC3 可批量刷新，但指标中需记录延迟阈值；双时态快照需记录 `transaction_lag` 指标。
 
 ### B5 · 通用维度扩展
-- 建立 `standard_object_schemas` 表，包含 `dec_bindings`、`ocl_guards`、`glossary_url` 等字段，生成 `schema-registry.json`。
+- 建立 `standard_object_schemas` 表，包含 `dec_bindings`、`ocl_guards`、`glossary_url` 等字段，生成 `docs/reference/schema-registry.json`。
 - 创建 `standard_object_translations`、`standard_object_attachments`、`standard_object_metadata`、`standard_object_metrics` 等扩展表与 sqlc 代码。
 - 在 `logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 输出首批样例。
 
@@ -56,7 +56,7 @@
 - 更新后的 `sqlc.yaml`、`internal/standardobject/repository/sqlc` 代码与 `make sqlc-generate` 日志。
 - `cmd/tools/standardobject-migrator`、`standardobject-validator`、`standardobject-snapshot-refresh` 源码/说明及运行日志。
 - `logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/snapshots/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 样例。
-- Schema Registry（含 DEC/OCL/Time Constraint）、翻译、附件、元数据、指标表结构与 `schema-registry.json`。
+- Schema Registry（含 DEC/OCL/Time Constraint）、翻译、附件、元数据、指标表结构与 `docs/reference/schema-registry.json`。
 
 ---
 

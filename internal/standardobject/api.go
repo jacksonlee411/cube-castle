@@ -89,7 +89,7 @@ type SchemaFieldBinding struct {
 	GlossaryURL string
 }
 
-// SchemaDefinition references schema-registry.json entries required by Plan 402A.
+// SchemaDefinition references docs/reference/schema-registry.json entries required by Plan 402A.
 type SchemaDefinition struct {
 	ObjectType    ObjectType
 	SchemaVersion string

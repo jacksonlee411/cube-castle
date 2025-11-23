@@ -51,7 +51,7 @@ SOM 将所有“可被时间管理的业务对象”抽象为同一个编排单�
 1. **Atlas schema** 描述数据库目标状态（含 `standard_object_schemas`、`standard_object_translations`、`standard_object_attachments`、`standard_object_metrics` 等扩展表）；  
 2. `atlas migrate diff` 生成 Goose 迁移（含 Up/Down），被纳入 `database/migrations/*`，确保扩展表与三表同步管理；  
 3. `sqlc generate` 解析上述 SQL/查询语句，输出类型安全的 Go 仓储代码，并同步生成 Schema Registry/Translation/Attachment/Metric DAO；  
-4. Schema Registry 通过 `schema-registry.json` 与 `scripts/generate-forms-from-openapi.ts` 等 Plan 300 工具共享；命令/查询服务通过接口层组合 sqlc 生成物，与事务性发件箱、PBAC 守卫共享相同的依赖注入模式。
+4. Schema Registry 通过 `docs/reference/schema-registry.json` 与 `scripts/generate-forms-from-openapi.ts` 等 Plan 300 工具共享；命令/查询服务通过接口层组合 sqlc 生成物，与事务性发件箱、PBAC 守卫共享相同的依赖注入模式。
 
 这种方式既保留了 DBA 友好的 SQL，可直接调优 `tstzrange`/GiST 索引，又能在编译期发现字段漂移，符合 200/201 号文档强调的“少依赖黑盒框架、保持透明”的长期原则。
 

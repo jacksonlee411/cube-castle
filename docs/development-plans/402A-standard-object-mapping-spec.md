@@ -2,9 +2,9 @@
 
 **状态**：草案（402A 启动前置）  
 **责任人**：Plan 402 Owner / 架构组  
-**唯一事实来源**：`schema-registry.json`、`docs/api/openapi.yaml`、`docs/api/schema.graphql`、`docs/development-plans/400-standard-object-model-plan.md`、`docs/development-plans/402-standard-object-single-source-plan.md`
+**唯一事实来源**：`docs/reference/schema-registry.json`、`docs/api/openapi.yaml`、`docs/api/schema.graphql`、`docs/development-plans/400-standard-object-model-plan.md`、`docs/development-plans/402-standard-object-single-source-plan.md`
 
-> 本规格把 `organization_units` 单表字段映射为 Standard Object 三表（`standard_objects`、`standard_object_versions`、`standard_object_links`）的执行矩阵。所有 DEC/OCL 信息同步登记在 `schema-registry.json`，日志与评审证据存放 `logs/plan402/mapping/`。
+> 本规格把 `organization_units` 单表字段映射为 Standard Object 三表（`standard_objects`、`standard_object_versions`、`standard_object_links`）的执行矩阵。所有 DEC/OCL 信息同步登记在 `docs/reference/schema-registry.json`，日志与评审证据存放 `logs/plan402/mapping/`。
 
 ---
 
@@ -12,7 +12,7 @@
 
 - **范围**：组织模块（命令/查询服务、GraphQL/REST 契约、`organization_units` 表），覆盖对象层、版本层与层级 Link。
 - **依赖**：
-  - `schema-registry.json`：记录 DEC/OCL 与 schema hash，供 402B/402C 使用。
+  - `docs/reference/schema-registry.json`：记录 DEC/OCL 与 schema hash，供 402B/402C 使用。
   - `internal/standardobject/**`：402A 输出的 Port/Feature Flag 骨架（见 `internal/standardobject/README.md`）。
   - `docs/api/openapi.yaml`、`docs/api/schema.graphql`：新增 `StandardObject` 实体、scope 与字段。
   - `logs/plan402/mapping/*.log`：记录 spec 评审、契约守卫、DEC gap 与命名检查。
@@ -58,7 +58,7 @@
 | `standard_object_links` `ORG_HIERARCHY` 关系 | TC2 | 最多一条 link，可存在空窗，用于临时解绑 | 402B 在 schema registry 中声明；validator 仅检查重叠 |
 | `payload.profile` 等扩展 JSON 字段 | TC3 | 允许同一时间多条记录（例如多标签/备注） | 402B 在 schema 生成时标记；查询层通过排序处理 |
 
-所有 `timeConstraint` 值与 `schema-registry.json` 中 `schemas[].timeConstraint` 字段保持一致；若对象未来扩展（如 person / workforce），需在新条目中声明默认值并附 OCL。巡检结果写入 `logs/plan402/mapping/time-constraint.log`，并在 `hazard-list` 中登记尚未收敛的字段。
+所有 `timeConstraint` 值与 `docs/reference/schema-registry.json` 中 `schemas[].timeConstraint` 字段保持一致；若对象未来扩展（如 person / workforce），需在新条目中声明默认值并附 OCL。巡检结果写入 `logs/plan402/mapping/time-constraint.log`，并在 `hazard-list` 中登记尚未收敛的字段。
 
 ---
 
@@ -66,13 +66,13 @@
 
 | 项目 | 描述 | 影响 | 回收计划 |
 |------|------|------|----------|
-| `payload.profile` | 缺少 ISO 11179 DEC ID（Plan 403 未发布） | Schema Registry 不完整 | 402B 在 `standard_object_schemas` 中补齐，参照 `schema-registry.json` → `knownGaps[0]` |
+| `payload.profile` | 缺少 ISO 11179 DEC ID（Plan 403 未发布） | Schema Registry 不完整 | 402B 在 `standard_object_schemas` 中补齐，参照 `docs/reference/schema-registry.json` → `knownGaps[0]` |
 | `payload.metadata` | 元数据结构因租户自定义而多态 | 无法生成 JSON Schema | 402B 需要抽象公共字段 + `metadata.*` 通配符 DEC，最迟在 402C 双写前完成 |
 | Link attributes `hierarchyDepth`, `codePath` | 当前为派生列 | 缺少 DEC/OCL 绑定 | 402B 在 Link schema 中登记 DEC，新增快照校验 |
-| `auditTrail` 结构 | 多字段复用 TEXT | 无法映射 `DEC_AUDIT_*` | 402B 设计 `auditTrail` JSON schema，并更新 `schema-registry.json` |
+| `auditTrail` 结构 | 多字段复用 TEXT | 无法映射 `DEC_AUDIT_*` | 402B 设计 `auditTrail` JSON schema，并更新 `docs/reference/schema-registry.json` |
 | `timeConstraint` 声明 | 旧表缺少 TC 字段，需在 Schema Registry 中新增 | 时间裁剪无法执行 | 402B 创建 `standard_object_schemas.time_constraint` 列并实现 migrator/validator 裁剪逻辑 |
 
-Hazard 的唯一事实来源：本节 + `schema-registry.json.schemas[].knownGaps`。任何新增缺口必须同时修改两处并在 `logs/plan402/mapping/dec-gap.log` 记录。
+Hazard 的唯一事实来源：本节 + `docs/reference/schema-registry.json.schemas[].knownGaps`。任何新增缺口必须同时修改两处并在 `logs/plan402/mapping/dec-gap.log` 记录。
 
 ---
 
@@ -113,7 +113,7 @@ Hazard 的唯一事实来源：本节 + `schema-registry.json.schemas[].knownGap
 ## 7. 证据要求
 
 - `logs/plan402/mapping/spec-review.log`：记录评审会议时间、参会人、是否准许启动 402B。
-- `schema-registry.json`：本文件的 DEC/OCL 绑定需与 registry 中 `objectType=ORGANIZATION_UNIT` 条目一致。
+- `docs/reference/schema-registry.json`：本文件的 DEC/OCL 绑定需与 registry 中 `objectType=ORGANIZATION_UNIT` 条目一致。
 - PR/Issue：402A 相关 PR 必须附上本规格、registry diff 以及日志路径，禁止在其他文档重复这些事实以维护唯一性。
 
 > **回顾**：本规格建立 402A 的唯一事实来源，使得后续阶段可以直接引用字段映射、Feature Flag 行为和日志格式，在满足 AGENTS.md“资源唯一性”原则的前提下推进 402 系列计划。

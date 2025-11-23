@@ -10,4 +10,4 @@
 | `naming-check.log` | `scripts/quality/architecture-validator.js` 命名守卫摘要 | 守卫运行 |
 | `time-constraint.log` | `pkg/temporal/constraints` 或辅助脚本输出的 TC1/TC2/TC3 声明与巡检结果 | 时间约束巡检 |
 
-> 命名、契约及 DEC/OCL 缺口一经确认需同步更新 `docs/development-plans/402A-standard-object-mapping-spec.md` 与 `schema-registry.json`。日志保留 UTC 时间戳并遵循 `AGENTS.md` 的“唯一事实来源”约束。
+> 命名、契约及 DEC/OCL 缺口一经确认需同步更新 `docs/development-plans/402A-standard-object-mapping-spec.md` 与 `docs/reference/schema-registry.json`。日志保留 UTC 时间戳并遵循 `AGENTS.md` 的“唯一事实来源”约束。

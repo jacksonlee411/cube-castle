@@ -60,7 +60,7 @@
 | `Observability & Metrics` | 记录快照刷新、校验差异、事件消费等指标/OBS 事件 | `standard_object_metrics`、日志规范 |
 
 #### 4.1.1 语义锚点与 OCL 验证
-- Schema Registry 需与 Plan 403 提出的 ISO 11179 语义锚点保持一致：每个 payload 字段都绑定 Data Element Concept（DEC）ID、语义版本、可选同义词列表。`schema-registry.json` 在生成时必须输出 `{ fieldPath, decId, glossaryUrl }` 结构，QA 在 `logs/plan400/schema/*.log` 验证缺失项。
+- Schema Registry 需与 Plan 403 提出的 ISO 11179 语义锚点保持一致：每个 payload 字段都绑定 Data Element Concept（DEC）ID、语义版本、可选同义词列表。`docs/reference/schema-registry.json` 在生成时必须输出 `{ fieldPath, decId, glossaryUrl }` 结构，QA 在 `logs/plan400/schema/*.log` 验证缺失项。
 - 同一 Schema 条目携带 `oclGuard` 数组，落地 403 文档的“组合层 OCL”要求。命令服务在写入前、migration/validator/Playwright 在验收前均调用共享 `pkg/ocl` 引擎执行 `preState`/`postState` 校验，违反则返回 `422 STANDARD_OBJECT_OCL_VIOLATION`。
 - Manifest/前端生成脚本使用 DEC ID 决定显示名称、默认提示与多语言描述，确保 UI/文档的唯一语义来源；任何新增字段若未在 Schema Registry 注册 DEC，将被 `scripts/quality/architecture-validator.js` 阻断。
 
@@ -88,7 +88,7 @@
 | `TC3` | 允许同一时间存在多条记录。 | 备注、附件、观察指标 | 不做区间冲突校验；查询/快照层通过排序或 Link 属性决策 |
 
 实施要求：
-- `standard_object_schemas` 增加 `time_constraint` 列，`schema-registry.json` 输出 `{ objectType, timeConstraint }`，并在 `docs/reference/standard-object-evidence-guide.md` 记录每种类型的验证脚本。
+- `standard_object_schemas` 增加 `time_constraint` 列，`docs/reference/schema-registry.json` 输出 `{ objectType, timeConstraint }`，并在 `docs/reference/standard-object-evidence-guide.md` 记录每种类型的验证脚本。
 - 命令服务写入前调用 `pkg/temporal/constraints`：TC1 自动裁剪并合并相邻版本，TC2 仅检查重叠，TC3 直接放行；若违反规则则返回 `409 STANDARD_OBJECT_TEMPORAL_CONSTRAINT_VIOLATION`。
 - Migrator/Validator 需在 `logs/plan400/migration/time-constraint-report.log` 中记录每个对象类型的空窗、重叠、被裁剪区间数量；TC1 出现任何空窗或重叠即视为 blocker。
 - 快照/读模型刷新逻辑须根据 `timeConstraint` 决定策略：TC1 事件需触发即时刷新（保证 asOf 精准），TC2/TC3 可批量刷新但必须在指标中标记延迟。
@@ -129,7 +129,7 @@
 2. `OrganizationTemporalPage` 与 `PositionTemporalPage` 只注入对象类型、字段映射、表单 schema；页面骨架、tab、版本操作复用 `TemporalEntityLayout`。
 3. 表单配置：采用 JSON Schema + 动态组件，放置 `frontend/src/shared/forms/standard-object`，便于 workforce/contract 共享。
 4. Playwright：新增 `frontend/tests/e2e/standard-object-lifecycle.spec.ts`，收敛 selectors（`temporalEntitySelectors.*`），`logs/plan400/ui/*.log` 落盘 `[OBS]` 事件。
-5. Manifest/Schema 生成：结合 Plan 300，在 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts`、`schema-registry.json` 输出中引入 SOM 实体，记录证据到 `logs/plan400/manifest/*.log`。
+5. Manifest/Schema 生成：结合 Plan 300，在 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts`、`docs/reference/schema-registry.json` 输出中引入 SOM 实体，记录证据到 `logs/plan400/manifest/*.log`。
 
 ### 4.6 开发阶段（建议 4 Sprint）
 | 阶段 | 时间 | 交付 | 依赖 |
@@ -151,7 +151,7 @@
 
 | 视点 | 关注点 | 产物/证据 |
 |------|--------|-----------|
-| **结构视点** | ObjectKernel/Link、Schema Registry、DEC 列表 | `docs/api/*`, `schema-registry.json`, `logs/plan400/schema/*.log` |
+| **结构视点** | ObjectKernel/Link、Schema Registry、DEC 列表 | `docs/api/*`, `docs/reference/schema-registry.json`, `logs/plan400/schema/*.log` |
 | **运行视点** | 状态机、版本事件、快照/闭包刷新、Outbox 指标 | `pkg/eventbus` 事件、`standard_object_hierarchy_snapshots`, `logs/plan400/snapshots/*.log` |
 | **观察视点** | OBS 事件、Playwright 选择器守卫、性能指标 | `logs/plan400/ui/*.log`, `[OBS] standardObject.*` 事件、`standard_object_metrics` |
 | **协作视点** | Manifest/Slot 注册、PBAC scope、生成器输出 | `frontend/src/features/temporal/*`, `scripts/generate-*` 证据、`scripts/quality/auth-permission-contract-validator.js` |
@@ -194,7 +194,7 @@
 1. `docs/api/openapi.yaml` / `docs/api/schema.graphql` 中新增的 Standard Object 契约变更。
 2. `database/migrations/20251201090000_create_standard_objects.sql` + `sqlc.yaml` 更新 + 生成代码 diff。
 3. `internal/standardobject/**` 模块与组织/职位调用示例（402A 阶段提供 `adapter/noop` + Feature Flag skeleton，后续阶段再替换实现）。
-4. `schema-registry.json` 中 objectType 映射的 DEC/OCL 绑定与 `logs/plan400/schema/*`、`logs/plan402/mapping/*` 的证据。
+4. `docs/reference/schema-registry.json` 中 objectType 映射的 DEC/OCL 绑定与 `logs/plan400/schema/*`、`logs/plan402/mapping/*` 的证据。
 5. `frontend` 的 adapter、表单配置、Playwright 日志。
 6. `logs/plan400/`：迁移脚本、`make test-db`, `npm run test:e2e`, `scripts/quality/*` 运行截图或日志；`logs/plan400/snapshots/*.log` 记录闭包/快照刷新与验证。
 

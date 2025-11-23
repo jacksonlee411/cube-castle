@@ -23,7 +23,7 @@
 - 在现有 Plan 400/402 的基础上，补充并维护 `docs/development-plans/402A-standard-object-mapping-spec.md`（当前 v0.1），只记录字段映射与迁移矩阵（字段→目标表/列、数据转换/验证 SQL、触发器替代、异常/回滚流程及负责人）。
 - 在映射规格中新增 “时间约束 + 双时态声明” 小节：每个对象需标注 `timeConstraint ∈ {TC1,TC2,TC3}` 与 `transactionPolicy`（例如 `APPEND_ONLY`, `CORRECTION_ALLOWED`），并与 Schema Registry 条目保持一致；若旧表缺失有效时间或事务时间来源，则登记 hazard 并给出 402B 填平计划。
 - 明确 `validity_range`/`transaction_range` 的来源：`validity_range` 由 `effective_date/end_date` 推导，`transaction_range` 由 `created_at/updated_at` 或本次迁移时间推导；若历史上出现回溯补录，需在 hazard list 中记录并在 402B 提供生成脚本。
-- DEC/OCL 绑定继续以 Plan 400 的 Schema Registry (`standard_object_schemas` + `schema-registry.json`) 为唯一事实来源，不再新增脚本；若发现缺口，在映射规格与 `schema-registry.json.schemas[].knownGaps` 中同步登记，并创建 hazard list，由 402B 的 Schema Registry 扩展解决。
+- DEC/OCL 绑定继续以 Plan 400 的 Schema Registry (`standard_object_schemas` + `docs/reference/schema-registry.json`) 为唯一事实来源，不再新增脚本；若发现缺口，在映射规格与 `docs/reference/schema-registry.json.schemas[].knownGaps` 中同步登记，并创建 hazard list，由 402B 的 Schema Registry 扩展解决。
 - 命名一致性依赖现有质量守卫（`scripts/quality/architecture-validator.js` 等），A 阶段仅需记录检查结果，不再自建脚本。
 
 ### A2 · 契约补全
@@ -43,7 +43,7 @@
 - 兼容策略说明（视图/Port/Feature Flag 需求与回滚原则），供 402B/402C 实施；无需在 A 阶段提供 SQL/代码。
 - OpenAPI / GraphQL diff 及 Scope 更新说明，附 `scripts/quality/architecture-validator.js`、`node scripts/quality/contract-checker.js` 的输出。
 - `internal/standardobject/adapter/*.go` skeleton + Feature Flag 文档，`go test ./internal/standardobject/...` 日志。
-- `schema-registry.json` 中 `objectType=ORGANIZATION_UNIT` 的条目（含 `timeConstraint`、`transactionPolicy` 描述）、`logs/plan402/mapping/*.log`（DEC gap、命名检查、时间/事务约束巡检、评审会议记录）。
+- `docs/reference/schema-registry.json` 中 `objectType=ORGANIZATION_UNIT` 的条目（含 `timeConstraint`、`transactionPolicy` 描述）、`logs/plan402/mapping/*.log`（DEC gap、命名检查、时间/事务约束巡检、评审会议记录）。
 
 ---
 
