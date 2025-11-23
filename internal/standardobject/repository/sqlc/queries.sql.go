@@ -14,6 +14,33 @@ import (
 	"github.com/google/uuid"
 )
 
+const closeVersionRanges = `-- name: CloseVersionRanges :exec
+UPDATE standard_object_versions
+SET transaction_range = tstzrange(lower(transaction_range), $2, '[)'),
+    validity_range    = COALESCE(tstzrange(lower(validity_range), $3, '[)'), validity_range),
+    end_date          = COALESCE($4, end_date),
+    is_current        = false,
+    updated_at        = now()
+WHERE id = $1
+`
+
+type CloseVersionRangesParams struct {
+	ID          uuid.UUID    `json:"id"`
+	Tstzrange   interface{}  `json:"tstzrange"`
+	Tstzrange_2 interface{}  `json:"tstzrange_2"`
+	EndDate     sql.NullTime `json:"end_date"`
+}
+
+func (q *Queries) CloseVersionRanges(ctx context.Context, arg CloseVersionRangesParams) error {
+	_, err := q.db.ExecContext(ctx, closeVersionRanges,
+		arg.ID,
+		arg.Tstzrange,
+		arg.Tstzrange_2,
+		arg.EndDate,
+	)
+	return err
+}
+
 const getStandardObjectKernel = `-- name: GetStandardObjectKernel :one
 SELECT id, object_type, code, tenant_code, display_name, status, labels, schema_version, data_classification, retention_policy, created_by, created_at, updated_at
 FROM standard_objects

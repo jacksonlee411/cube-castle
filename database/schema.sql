@@ -862,7 +862,7 @@ CREATE INDEX standard_object_links_transaction_idx ON public.standard_object_lin
 --
 
 ALTER TABLE ONLY public.standard_object_links
-    ADD CONSTRAINT standard_object_links_validity_excl EXCLUDE USING gist (source_object_id WITH =, validity_range WITH &&);
+    ADD CONSTRAINT standard_object_links_validity_excl EXCLUDE USING gist (link_type WITH =, source_object_id WITH =, target_object_id WITH =, validity_range WITH &&);
 
 
 --
@@ -870,7 +870,7 @@ ALTER TABLE ONLY public.standard_object_links
 --
 
 ALTER TABLE ONLY public.standard_object_links
-    ADD CONSTRAINT standard_object_links_transaction_excl EXCLUDE USING gist (source_object_id WITH =, transaction_range WITH &&);
+    ADD CONSTRAINT standard_object_links_transaction_excl EXCLUDE USING gist (link_type WITH =, source_object_id WITH =, target_object_id WITH =, transaction_range WITH &&);
 
 
 --

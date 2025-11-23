@@ -90,12 +90,16 @@ CREATE INDEX idx_standard_object_links_transaction
     ON public.standard_object_links USING GIST(source_object_id, transaction_range);
 ALTER TABLE public.standard_object_links
     ADD CONSTRAINT standard_object_links_validity_excl EXCLUDE USING gist (
+        link_type WITH =,
         source_object_id WITH =,
+        target_object_id WITH =,
         validity_range WITH &&
     );
 ALTER TABLE public.standard_object_links
     ADD CONSTRAINT standard_object_links_transaction_excl EXCLUDE USING gist (
+        link_type WITH =,
         source_object_id WITH =,
+        target_object_id WITH =,
         transaction_range WITH &&
     );
 

@@ -47,6 +47,15 @@ FROM standard_object_versions
 WHERE object_id = $1
 ORDER BY effective_date;
 
+-- name: CloseVersionRanges :exec
+UPDATE standard_object_versions
+SET transaction_range = tstzrange(lower(transaction_range), $2, '[)'),
+    validity_range    = COALESCE(tstzrange(lower(validity_range), $3, '[)'), validity_range),
+    end_date          = COALESCE($4, end_date),
+    is_current        = false,
+    updated_at        = now()
+WHERE id = $1;
+
 -- name: GetStandardObjectKernel :one
 SELECT *
 FROM standard_objects

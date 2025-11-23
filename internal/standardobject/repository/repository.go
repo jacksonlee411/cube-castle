@@ -15,6 +15,10 @@ import (
 	"github.com/google/uuid"
 )
 
+var objectConstraints = map[standardobject.ObjectType]constraints.ConstraintType{
+	standardobject.ObjectTypeOrganizationUnit: constraints.ConstraintTypeTC1,
+}
+
 // Repository wraps sqlc generated queries and exposes higher level helpers for the standard object port.
 type Repository struct {
 	queries *sqlc.Queries
@@ -52,10 +56,15 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 		if err != nil {
 			return fmt.Errorf("load existing versions: %w", err)
 		}
-		if err := constraints.ValidateAppendOnly(toRanges(existing), constraints.RangeWindow{
+		constraintType := constraintForObjectType(kernel.ObjectType)
+		validation, err := constraints.Validate(constraintType, toRanges(existing), constraints.RangeWindow{
 			From: version.EffectiveDate,
 			To:   version.EndDate,
-		}); err != nil {
+		})
+		if err != nil {
+			return err
+		}
+		if err := r.closeOpenWindow(ctx, existing, defaultTime(version.TransactionFrom), constraintType, validation, version.EffectiveDate); err != nil {
 			return err
 		}
 		if _, err := r.queries.InsertStandardObjectVersion(ctx, sqlc.InsertStandardObjectVersionParams{
@@ -187,6 +196,13 @@ func toRanges(rows []sqlc.StandardObjectVersion) []constraints.RangeWindow {
 	return out
 }
 
+func constraintForObjectType(t standardobject.ObjectType) constraints.ConstraintType {
+	if value, ok := objectConstraints[t]; ok {
+		return value
+	}
+	return constraints.ConstraintTypeTC2
+}
+
 func convertLinks(rows []sqlc.ListLinksForSourceRow) []standardobject.Link {
 	result := make([]standardobject.Link, 0, len(rows))
 	for _, row := range rows {
@@ -207,6 +223,33 @@ func convertLinks(rows []sqlc.ListLinksForSourceRow) []standardobject.Link {
 		})
 	}
 	return result
+}
+
+func (r *Repository) closeOpenWindow(ctx context.Context, versions []sqlc.StandardObjectVersion, transactionClose time.Time, constraintType constraints.ConstraintType, validation constraints.ValidationResult, newEffectiveDate time.Time) error {
+	if constraintType == constraints.ConstraintTypeTC3 {
+		return nil
+	}
+	var openRow *sqlc.StandardObjectVersion
+	for i := range versions {
+		_, txEnd := parseRangeLiteral(versions[i].TransactionRange)
+		if txEnd == nil {
+			openRow = &versions[i]
+			break
+		}
+	}
+	if openRow == nil {
+		return nil
+	}
+	args := sqlc.CloseVersionRangesParams{
+		ID:        openRow.ID,
+		Tstzrange: transactionClose,
+		EndDate:   sql.NullTime{},
+	}
+	if validation.RequireContiguousValidity {
+		args.Tstzrange_2 = newEffectiveDate
+		args.EndDate = sql.NullTime{Time: truncateToDate(newEffectiveDate), Valid: true}
+	}
+	return r.queries.CloseVersionRanges(ctx, args)
 }
 
 func (r *Repository) lookupObjectID(ctx context.Context, tenant string, objectType standardobject.ObjectType, code string) (uuid.UUID, error) {
@@ -330,4 +373,12 @@ func defaultTime(t time.Time) time.Time {
 		return time.Now().UTC()
 	}
 	return t
+}
+
+func truncateToDate(t time.Time) time.Time {
+	if t.IsZero() {
+		return t
+	}
+	y, m, d := t.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
