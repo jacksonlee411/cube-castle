@@ -85,7 +85,7 @@ func (r *queryResolver) OrganizationHierarchy(ctx context.Context, code string, 
 }
 
 // OrganizationSubtree is the resolver for the organizationSubtree field.
-func (r *queryResolver) OrganizationSubtree(ctx context.Context, code string, tenantID string, maxDepth *int, includeInactive *bool) ([]model.OrganizationHierarchy, error) {
+func (r *queryResolver) OrganizationSubtree(ctx context.Context, code string, tenantID *string, maxDepth *int, includeInactive *bool) ([]model.OrganizationHierarchy, error) {
 	md := 0
 	if maxDepth != nil {
 		md = *maxDepth
@@ -94,6 +94,10 @@ func (r *queryResolver) OrganizationSubtree(ctx context.Context, code string, te
 	if includeInactive != nil {
 		inactive = *includeInactive
 	}
+	targetTenant := ""
+	if tenantID != nil {
+		targetTenant = *tenantID
+	}
 	res, err := r.QueryResolver.OrganizationSubtree(ctx, struct {
 		Code            string
 		TenantId        string
@@ -101,7 +105,7 @@ func (r *queryResolver) OrganizationSubtree(ctx context.Context, code string, te
 		IncludeInactive bool
 	}{
 		Code:            code,
-		TenantId:        tenantID,
+		TenantId:        targetTenant,
 		MaxDepth:        int32(md),
 		IncludeInactive: inactive,
 	})
