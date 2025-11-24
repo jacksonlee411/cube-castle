@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"cube-castle/internal/organization/audit"
+	"cube-castle/internal/organization/events"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	"cube-castle/internal/organization/utils"
+	standardobject "cube-castle/internal/standardobject"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
@@ -94,9 +96,15 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	// 记录完整审计日志（包含变更前数据）
 	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
-	if err := h.upsertStandardObject(r.Context(), updatedOrg, actorID); err != nil {
+	aggregate, err := h.upsertStandardObject(r.Context(), updatedOrg, actorID)
+	if err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object sync failed for update")
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+		return
+	}
+	if err := h.emitStandardObjectEvent(r.Context(), nil, tenantID, events.EventStandardObjectUpdated, aggregate, "UpdateOrganization"); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object update event enqueue failed")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
 		return
 	}
 	ipAddress := h.getIPAddress(r)
@@ -252,7 +260,9 @@ func (h *OrganizationHandler) changeOrganizationStatusWithTimeline(w http.Respon
 		return
 	}
 
-	if err := h.syncOrganizationTimeline(r.Context(), currentOrg, timeline, effectiveDate, operationReason, actorID); err != nil {
+	if err := h.syncOrganizationTimeline(r.Context(), currentOrg, timeline, effectiveDate, operationReason, actorID, func(aggregate standardobject.ObjectAggregate) error {
+		return h.emitStandardObjectEvent(r.Context(), nil, tenantID, events.EventStandardObjectStatusChanged, aggregate, operationType)
+	}); err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object sync failed for status change")
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
 		return

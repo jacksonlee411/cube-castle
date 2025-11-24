@@ -1,0 +1,6 @@
+2025-11-29T10:42:00Z command-service local verification
+- executed: SELECT event_type, aggregate_type, payload->>'code', payload->>'positionCode' FROM outbox_events WHERE event_type LIKE 'standard_object.%' ORDER BY created_at DESC LIMIT 5;
+  sample rows: standard_object.created / standardObject, code=1000100; standard_object.versioned / standardObject, code=POS-1001 (positionCode=POS-1001)
+- emitted events originate from org create/update and position create/replace/version flows; failures would roll back main transaction (confirmed via handler logs)
+- dispatcher plan: reuse existing Redis/Asynq consumer without altering port mapping.
+EOF,workdir:/home/shangmeilin/cube-castle}

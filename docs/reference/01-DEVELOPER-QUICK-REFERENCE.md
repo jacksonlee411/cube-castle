@@ -347,6 +347,7 @@ POST   /auth/dev-token         # 生成令牌 (仅DEV模式)
 
 ### Standard Object 双写守则
 - 组织命令（创建/更新/版本/停用/激活/作废/删除）与职位命令（创建/替换/版本）已在单事务内同步调用 `standardobject.ObjectService`。若 SOM `Upsert` 失败会回滚整笔事务。
+- 同步写入的 Standard Object 聚合会通过 outbox 输出 `standard_object.created/updated/versioned/status_changed/retired` 事件（组织/职位），事件失败同样会阻断主事务。
 - `standardobject.MakeVersionCode(code, effectiveDate, updatedAt, recordId)` 生成唯一版本号（`YYYYMMDD-HHMMSS-RecordEntropy`），避免在同一生效日的更正出现冲突。
 - 组织层级 Link (`ORG_HIERARCHY`) 与职位归属 Link (`POSITION_BELONGS_TO_ORG`) 由 handler/service 自动维护；若目标对象尚未迁移到 SOM，API 会返回 500，需先补齐迁移。
 - 运行日志：`logs/plan402/migration/*.log`（migrator/validator）、`logs/plan402/capability/*.log`（federate 证据）、`logs/plan400/manifest/*.log`（前端生成器）。切换/排障前务必落盘。

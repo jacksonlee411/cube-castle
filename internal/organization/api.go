@@ -64,6 +64,7 @@ type CommandModule struct {
 	AuditLogger      *auditpkg.AuditLogger
 	StandardObjects  standardobject.ObjectService
 	TransactionClock clockpkg.Clock
+	OutboxRepo       database.OutboxRepository
 }
 
 type CommandRepositories struct {
@@ -174,6 +175,7 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 		AuditLogger:      auditLogger,
 		StandardObjects:  stdObjects,
 		TransactionClock: clock,
+		OutboxRepo:       deps.OutboxRepo,
 	}
 
 	module.TransactionClock = clock
@@ -196,6 +198,7 @@ func (m *CommandModule) NewHandlers(deps CommandHandlerDeps) CommandHandlers {
 		m.Validator,
 		m.StandardObjects,
 		m.TransactionClock,
+		m.OutboxRepo,
 	)
 	positionHandler := handlerpkg.NewPositionHandler(m.Services.Position, m.AuditLogger, logger)
 	jobCatalogHandler := handlerpkg.NewJobCatalogHandler(m.Services.JobCatalog, logger)

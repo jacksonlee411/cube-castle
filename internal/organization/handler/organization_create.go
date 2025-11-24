@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cube-castle/internal/organization/audit"
+	"cube-castle/internal/organization/events"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/utils"
 	"cube-castle/internal/types"
@@ -130,12 +131,18 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	actorID := h.getActorID(r)
-	if err := h.upsertStandardObject(ctx, createdOrg, actorID); err != nil {
+	aggregate, err := h.upsertStandardObject(ctx, createdOrg, actorID)
+	if err != nil {
 		logger.WithFields(pkglogger.Fields{
 			"error": err,
 			"code":  createdOrg.Code,
 		}).Error("同步标准对象失败")
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+		return
+	}
+	if err := h.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectCreated, aggregate, "CreateOrganization"); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("enqueue标准对象事件失败")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
 		return
 	}
 
@@ -331,9 +338,15 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	actorID := h.getActorID(r)
 
 	orgForSOM := h.organizationFromTimeline(existingOrg, createdVersion, req.OperationReason)
-	if err := h.upsertStandardObject(ctx, orgForSOM, actorID); err != nil {
+	aggregate, err := h.upsertStandardObject(ctx, orgForSOM, actorID)
+	if err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object upsert failed during version creation")
 		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+		return
+	}
+	if err := h.emitStandardObjectEvent(ctx, nil, tenantID, events.EventStandardObjectVersioned, aggregate, "CreateOrganizationVersion"); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object versioned event enqueue failed")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
 		return
 	}
 

@@ -275,7 +275,11 @@ func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID
 		return nil, err
 	}
 
-	if err := s.syncPositionStandardObject(ctx, entity, operator); err != nil {
+	aggregate, err := s.syncPositionStandardObject(ctx, entity, operator)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectCreated, aggregate, "CreatePosition"); err != nil {
 		return nil, err
 	}
 
@@ -351,7 +355,11 @@ func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUI
 		return nil, err
 	}
 
-	if err := s.syncPositionStandardObject(ctx, updateEntity, operator); err != nil {
+	aggregate, err := s.syncPositionStandardObject(ctx, updateEntity, operator)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectUpdated, aggregate, "ReplacePosition"); err != nil {
 		return nil, err
 	}
 
@@ -481,7 +489,11 @@ func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uu
 		return nil, err
 	}
 
-	if err := s.syncPositionStandardObject(ctx, entity, operator); err != nil {
+	aggregate, err := s.syncPositionStandardObject(ctx, entity, operator)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectVersioned, aggregate, "CreatePositionVersion"); err != nil {
 		return nil, err
 	}
 
@@ -1812,6 +1824,21 @@ func (s *PositionService) saveOutboxEvent(ctx context.Context, tx *sql.Tx, outbo
 		return err
 	}
 	return nil
+}
+
+func (s *PositionService) emitStandardObjectEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, eventType string, aggregate standardobject.ObjectAggregate, operation string) error {
+	if s.outboxRepo == nil || aggregate.Kernel.Code == "" {
+		return nil
+	}
+	eventCtx := s.newEventContext(ctx, tenantID, operation)
+	attrs := map[string]interface{}{
+		"positionCode": aggregate.Kernel.Code,
+	}
+	outboxEvent, err := events.NewStandardObjectEvent(eventType, eventCtx, aggregate, attrs)
+	if err != nil {
+		return err
+	}
+	return s.saveOutboxEvent(ctx, tx, outboxEvent)
 }
 
 func (s *PositionService) newEventContext(ctx context.Context, tenantID uuid.UUID, operation string) events.Context {

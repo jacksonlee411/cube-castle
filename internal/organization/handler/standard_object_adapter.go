@@ -19,17 +19,24 @@ const (
 	defaultStandardObjectDisplayLabel = "organization"
 )
 
-func (h *OrganizationHandler) upsertStandardObject(ctx context.Context, org *types.Organization, actorID string) error {
+func (h *OrganizationHandler) upsertStandardObject(ctx context.Context, org *types.Organization, actorID string) (standardobject.ObjectAggregate, error) {
+	txTime := h.clock.Now()
+	aggregate := h.buildOrganizationAggregate(org, actorID, txTime)
 	if h.standardObjects == nil {
-		return nil
+		return aggregate, nil
 	}
-	return h.standardObjects.Upsert(ctx, h.buildOrganizationAggregate(org, actorID))
+	if err := h.standardObjects.Upsert(ctx, aggregate); err != nil {
+		return standardobject.ObjectAggregate{}, err
+	}
+	return aggregate, nil
 }
 
-func (h *OrganizationHandler) buildOrganizationAggregate(org *types.Organization, actorID string) standardobject.ObjectAggregate {
-	now := h.clock.Now()
-	effective := dateOrFallback(org.EffectiveDate, now)
-	versionCode := standardobject.MakeVersionCode(org.Code, effective, coalesceTime(org.UpdatedAt, now), org.RecordID)
+func (h *OrganizationHandler) buildOrganizationAggregate(org *types.Organization, actorID string, txTime time.Time) standardobject.ObjectAggregate {
+	if txTime.IsZero() {
+		txTime = h.clock.Now()
+	}
+	effective := dateOrFallback(org.EffectiveDate, txTime)
+	versionCode := standardobject.MakeVersionCode(org.Code, effective, coalesceTime(org.UpdatedAt, txTime), org.RecordID)
 	kernel := standardobject.ObjectKernel{
 		ID:                 org.RecordID,
 		ObjectType:         standardobject.ObjectTypeOrganizationUnit,
@@ -42,8 +49,8 @@ func (h *OrganizationHandler) buildOrganizationAggregate(org *types.Organization
 		DataClassification: standardObjectDataClassification,
 		RetentionPolicy:    standardObjectRetentionPolicy,
 		CreatedBy:          actorOrSystem(actorID),
-		CreatedAt:          coalesceTime(org.CreatedAt, now),
-		UpdatedAt:          coalesceTime(org.UpdatedAt, now),
+		CreatedAt:          coalesceTime(org.CreatedAt, txTime),
+		UpdatedAt:          coalesceTime(org.UpdatedAt, txTime),
 	}
 
 	version := standardobject.TemporalVersion{
@@ -56,11 +63,11 @@ func (h *OrganizationHandler) buildOrganizationAggregate(org *types.Organization
 		Checksum:        "",
 		CreatedAt:       kernel.CreatedAt,
 		UpdatedAt:       kernel.UpdatedAt,
-		TransactionFrom: now,
+		TransactionFrom: txTime,
 		TransactionTo:   nil,
 	}
 
-	links := buildOrganizationLinks(org, kernel.CreatedBy, effective, version.EndDate, now)
+	links := buildOrganizationLinks(org, kernel.CreatedBy, effective, version.EndDate, txTime)
 
 	return standardobject.ObjectAggregate{
 		Kernel:  kernel,
@@ -178,29 +185,51 @@ func copyOrganization(src *types.Organization) *types.Organization {
 
 var errTimelineVersionNotFound = errors.New("timeline version not found")
 
-func (h *OrganizationHandler) syncOrganizationTimeline(ctx context.Context, base *types.Organization, timeline *[]repositorypkg.TimelineVersion, target time.Time, reason string, actorID string) error {
+func (h *OrganizationHandler) syncOrganizationTimeline(
+	ctx context.Context,
+	base *types.Organization,
+	timeline *[]repositorypkg.TimelineVersion,
+	target time.Time,
+	reason string,
+	actorID string,
+	after func(standardobject.ObjectAggregate) error,
+) error {
 	if base == nil {
 		return errTimelineVersionNotFound
 	}
 	if timeline == nil || len(*timeline) == 0 {
-		return h.upsertStandardObject(ctx, base, actorID)
+		aggregate, err := h.upsertStandardObject(ctx, base, actorID)
+		if err != nil {
+			return err
+		}
+		if after != nil {
+			return after(aggregate)
+		}
+		return nil
 	}
 	if version := timelineVersionByDate(timeline, target); version != nil {
-		return h.upsertTimelineAggregate(ctx, base, version, reason, actorID)
+		return h.upsertTimelineAggregate(ctx, base, version, reason, actorID, after)
 	}
 	if version := currentTimelineVersion(timeline); version != nil {
-		return h.upsertTimelineAggregate(ctx, base, version, reason, actorID)
+		return h.upsertTimelineAggregate(ctx, base, version, reason, actorID, after)
 	}
 	last := &(*timeline)[len(*timeline)-1]
-	return h.upsertTimelineAggregate(ctx, base, last, reason, actorID)
+	return h.upsertTimelineAggregate(ctx, base, last, reason, actorID, after)
 }
 
-func (h *OrganizationHandler) upsertTimelineAggregate(ctx context.Context, base *types.Organization, version *repositorypkg.TimelineVersion, reason string, actorID string) error {
+func (h *OrganizationHandler) upsertTimelineAggregate(ctx context.Context, base *types.Organization, version *repositorypkg.TimelineVersion, reason string, actorID string, after func(standardobject.ObjectAggregate) error) error {
 	if version == nil {
 		return errTimelineVersionNotFound
 	}
 	org := h.organizationFromTimeline(base, version, reason)
-	return h.upsertStandardObject(ctx, org, actorID)
+	aggregate, err := h.upsertStandardObject(ctx, org, actorID)
+	if err != nil {
+		return err
+	}
+	if after != nil {
+		return after(aggregate)
+	}
+	return nil
 }
 
 func timelineVersionByDate(timeline *[]repositorypkg.TimelineVersion, target time.Time) *repositorypkg.TimelineVersion {

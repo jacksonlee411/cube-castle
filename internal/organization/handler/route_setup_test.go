@@ -24,6 +24,6 @@ func TestSetupRoutes_NoPanic(_ *testing.T) {
 	jh.SetupRoutes(r)
 
 	// Organization
-	ohOrg := NewOrganizationHandler(nil, nil, nil, pkglogger.NewNoopLogger(), nil, nil, nil, standardobject.NewNoopService(), clockpkg.NewSystemClock())
+	ohOrg := NewOrganizationHandler(nil, nil, nil, pkglogger.NewNoopLogger(), nil, nil, nil, standardobject.NewNoopService(), clockpkg.NewSystemClock(), nil)
 	ohOrg.SetupRoutes(r)
 }

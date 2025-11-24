@@ -119,4 +119,15 @@
 - ✅ 作废/删除事件在 `handleDeactivateEvent` / `CreateOrganizationEvent` 中根据时间线回写 SOM，保持 `standard_object_links` 与层级的一致。
 - ✅ Position Service 的创建/替换/版本生成能力接入 `standardobject.ObjectService`，并产出 `POSITION_BELONGS_TO_ORG` link，命令侧继续沿用统一 `TransactionClock`。
 - 📄 文档同步：`docs/development-plans/402C-service-integration-and-double-write.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `internal/standardobject/README.md` 更新了 Runbook、依赖与日志索引；`logs/plan402/capability/org-federate-*.log` 记录新增证据。
-- ⏳ 待办：前端 Manifest/Slot、outbox 事件与快照触发仍在排期，C2~C5 的 UI/权限/指标日志尚待补齐。
+- ⏳ 待办：前端 Manifest/Slot、快照触发仍在排期，C2~C5 的 UI/权限/指标日志尚待补齐。
+
+**2025-11-24 更新（C2/C3 · 迁移 + 快照验证）**
+- ✅ 在 Docker Compose 的 Postgres 快照上运行 `standardobject-migrator` dry-run，`logs/plan402/migration/migrator-20251124081310-dryrun.log` 记录 504 条组织记录可迁移，正式迁移由于 SOM 中已存在历史版本触发 `idx_standard_object_versions_effective` 唯一约束，现阶段以 dry-run + 差异分析作为证据。
+- ✅ 执行 `standardobject-validator`，输出 `logs/plan402/validator/20251124-081417-report.json`、`time-constraint-report.log`、`transaction-gap.log`，全部为 0 差异；`legacyCount = standardObjectVersions = 504`。
+- ✅ 运行 `standardobject-snapshot-refresh`（tenant=`3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`），生成 `logs/plan402/snapshots/20251124-081803-refresh.log` 与 `logs/plan402/metrics/20251124-081803-snapshots.jsonl`，记录 `rows=504`、`roots=431`、`transaction_lag < 1s`。
+- ⚙️ Outbox dispatcher 继续 idle 观察中（参考 `logs/plan402/eventbus/20251124-dispatcher.log`），迁移/快照工具已跑通，事件接入计划见下方更新。
+
+**2025-11-29 更新（C3 · Outbox 事件接入）**
+- ✅ 组织 REST handler（创建/更新/版本/状态变更/删除）统一构建 Standard Object 聚合并在同一事务中写出 `standard_object.created/updated/versioned/status_changed/retired` 事件，失败会回滚主事务；时间线修剪也通过回调触发事件。
+- ✅ Position Service 的 Create/Replace/CreateVersion 同步写 SOM 与 outbox，事件 payload 含 `positionCode` 与岗位标签，确保职位侧也能驱动快照刷新。
+- 📄 `logs/plan402/eventbus/20251129-standard-object-events.log` 记录了自检 SQL 与 outbox 栈的事件样本（`standard_object.created`/`standard_object.versioned`），命令服务的 `outbox_events` 表已能看到标准对象事件堆积。

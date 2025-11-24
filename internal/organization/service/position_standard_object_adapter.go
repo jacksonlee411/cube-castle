@@ -21,16 +21,19 @@ const (
 	defaultPositionDisplayName = "position"
 )
 
-func (s *PositionService) syncPositionStandardObject(ctx context.Context, position *types.Position, operator types.OperatedByInfo) error {
-	if s.standardObjects == nil || position == nil {
-		return nil
+func (s *PositionService) syncPositionStandardObject(ctx context.Context, position *types.Position, operator types.OperatedByInfo) (standardobject.ObjectAggregate, error) {
+	if position == nil {
+		return standardobject.ObjectAggregate{}, nil
 	}
 	now := s.clock.Now()
 	aggregate := buildPositionAggregate(position, operator, now)
-	if err := s.standardObjects.Upsert(ctx, aggregate); err != nil {
-		return fmt.Errorf("position som upsert: %w", err)
+	if s.standardObjects == nil {
+		return aggregate, nil
 	}
-	return nil
+	if err := s.standardObjects.Upsert(ctx, aggregate); err != nil {
+		return standardobject.ObjectAggregate{}, fmt.Errorf("position som upsert: %w", err)
+	}
+	return aggregate, nil
 }
 
 func buildPositionAggregate(position *types.Position, operator types.OperatedByInfo, txTime time.Time) standardobject.ObjectAggregate {

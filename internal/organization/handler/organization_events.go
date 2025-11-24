@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/organization/events"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	"cube-castle/internal/organization/utils"
+	standardobject "cube-castle/internal/standardobject"
 	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
@@ -201,9 +203,15 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 				deletedOrg.ChangeReason = &reason
 			}
 			deletedOrg.EndDate = types.NewDateFromTime(deletionMoment)
-			if err := h.upsertStandardObject(r.Context(), deletedOrg, actorID); err != nil {
+			aggregate, err := h.upsertStandardObject(r.Context(), deletedOrg, actorID)
+			if err != nil {
 				logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object sync failed for delete")
 				h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+				return
+			}
+			if err := h.emitStandardObjectEvent(r.Context(), nil, tenantID, events.EventStandardObjectRetired, aggregate, "DELETE_ORGANIZATION"); err != nil {
+				logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object delete event enqueue failed")
+				h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
 				return
 			}
 		}
@@ -293,14 +301,20 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 			if strings.TrimSpace(changeReason) != "" {
 				deleted.ChangeReason = &changeReason
 			}
-			if err := h.upsertStandardObject(ctx, deleted, actorID); err != nil {
+			aggregate, err := h.upsertStandardObject(ctx, deleted, actorID)
+			if err != nil {
 				return fmt.Errorf("同步标准对象失败: %w", err)
+			}
+			if err := h.emitStandardObjectEvent(ctx, nil, tenantID, events.EventStandardObjectRetired, aggregate, "DEACTIVATE"); err != nil {
+				return fmt.Errorf("写入标准对象事件失败: %w", err)
 			}
 		}
 		return nil
 	}
 
-	if err := h.syncOrganizationTimeline(ctx, oldOrg, timeline, effective, changeReason, actorID); err != nil {
+	if err := h.syncOrganizationTimeline(ctx, oldOrg, timeline, effective, changeReason, actorID, func(aggregate standardobject.ObjectAggregate) error {
+		return h.emitStandardObjectEvent(ctx, nil, tenantID, events.EventStandardObjectVersioned, aggregate, "DEACTIVATE")
+	}); err != nil {
 		return fmt.Errorf("同步标准对象失败: %w", err)
 	}
 
