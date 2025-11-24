@@ -1,0 +1,18 @@
+🕒 Plan 402D · 回放 transaction timestamp:  'now()'
+DROP TABLE
+SELECT 3
+📄 回放结果（每行代表一个 SOM 版本）：
+    object_type    |  code   |       display_name        |             tenant_code              | status |           labels           |             version_code              | effective_date | end_date | is_current |                                                                                                                           payload                                                                                                                            | audit |       transaction_from        | transaction_to 
+-------------------+---------+---------------------------+--------------------------------------+--------+----------------------------+---------------------------------------+----------------+----------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------+-------------------------------+----------------
+ ORGANIZATION_UNIT | 1000080 | SOM Test Org Final        | 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 | ACTIVE | {"unitType": "DEPARTMENT"} | 1000080-20250102-095310.946Z-3665FBCE | 2025-01-02     |          | f          | {"name": "SOM Test Org Final", "level": 1, "status": "ACTIVE", "codePath": "/1000080", "namePath": "/SOM Test Org", "unitType": "DEPARTMENT", "sortOrder": 1, "description": "Demo"}                                                                         | {}    | 2025-11-24 09:53:10.957745+00 | infinity
+ ORGANIZATION_UNIT | 1000082 | 测试组织CQRS1763977284986 | 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 | ACTIVE | {"unitType": "DEPARTMENT"} | 1000082-20251124-094125.086Z-19E8A572 | 2025-11-24     |          | t          | {"name": "测试组织CQRS1763977284986", "level": 2, "status": "ACTIVE", "codePath": "/1000000/1000082", "namePath": "/飞虫与鲜花/测试组织CQRS1763977284986", "unitType": "DEPARTMENT", "sortOrder": 0, "parentCode": "1000000", "description": "CQRS测试创建"} | {}    | 2025-11-24 09:41:25.090165+00 | infinity
+ ORGANIZATION_UNIT | 1000083 | Agent Debug Org           | 3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 | ACTIVE | {"unitType": "DEPARTMENT"} | 1000083-20251124-100546.753Z-48744771 | 2025-11-24     |          | t          | {"name": "Agent Debug Org", "level": 2, "status": "ACTIVE", "codePath": "/1000000/1000083", "namePath": "/飞虫与鲜花/Agent Debug Org", "unitType": "DEPARTMENT", "sortOrder": 1, "parentCode": "1000000", "description": "Debug"}                            | {}    | 2025-11-24 10:05:46.760775+00 | infinity
+(3 rows)
+
+📊 统计摘要：
+    object_type    | version_count | current_versions | earliest_effective_date | latest_effective_date 
+-------------------+---------------+------------------+-------------------------+-----------------------
+ ORGANIZATION_UNIT |             3 |                2 | 2025-01-02              | 2025-11-24
+(1 row)
+
+DROP TABLE
