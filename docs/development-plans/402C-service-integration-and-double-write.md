@@ -136,6 +136,7 @@
 - ✅ 运行 `node scripts/generate-forms-from-openapi.js` 与 `node scripts/generate-columns-from-graphql.js` 输出 UI 表单/列元数据，证据位于 `logs/plan400/manifest/20251124025231-forms.log` 与 `logs/plan402/ui/20251124025247-columns.log`。
 - ✅ `go run -tags legacy ./cmd/tools/standardobject-snapshot-refresh`（tenant=`3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`）重新刷新快照，日志与指标见 `logs/plan402/snapshots/20251124104422-refresh.log`、`logs/plan402/metrics/20251124104422-snapshots.jsonl`。
 - ✅ Outbox dispatcher 每日巡检记录 `logs/plan402/eventbus/20251124105608-dispatcher-scan.log`（当前 pending=0、Redis keyspace 为空），后续作为 402C C3/C5 监控基线。
+- ✅ 前端 PlannedOrganizationForm、PositionForm 已接入 `frontend/src/shared/manifest/**`，label/placeholder/必填与描述统一来源于 OpenAPI/GraphQL manifest，避免 UI 与契约漂移。
 - ⏭️ 下一步：
   - 将剩余的组织命令（更新/停用/删除/层级调整）与职位命令复查，确保 `upsertStandardObject` / 事件 helper 全量覆盖，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记依赖与日志入口。
   - 基于最新 manifest 输出更新前端 Slot/表单（Temporal 页面、Position 详情等），补充 `logs/plan402/ui/*.log` 的运行说明与 Playwright/OBS 证据，完成 C4 对 UI/权限/指标的收官。
