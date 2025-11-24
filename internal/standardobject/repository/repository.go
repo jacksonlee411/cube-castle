@@ -248,14 +248,18 @@ func (r *Repository) closeOpenWindow(ctx context.Context, versions []sqlc.Standa
 	if openRow == nil {
 		return nil
 	}
+	validFrom, _ := parseRangeLiteral(openRow.ValidityRange)
+	targetDate := truncateToDate(newEffectiveDate)
+	sourceDate := truncateToDate(validFrom)
+
 	args := sqlc.CloseVersionRangesParams{
 		ID:        openRow.ID,
 		Tstzrange: transactionClose,
 		EndDate:   sql.NullTime{},
 	}
-	if validation.RequireContiguousValidity {
+	if validation.RequireContiguousValidity && targetDate.After(sourceDate) {
 		args.Tstzrange_2 = newEffectiveDate
-		args.EndDate = sql.NullTime{Time: truncateToDate(newEffectiveDate), Valid: true}
+		args.EndDate = sql.NullTime{Time: targetDate, Valid: true}
 	}
 	return r.queries.CloseVersionRanges(ctx, args)
 }

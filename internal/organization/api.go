@@ -140,7 +140,7 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 		positionAssignmentRepo,
 		logger,
 	)
-	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger, deps.OutboxRepo)
+	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger, deps.OutboxRepo, stdObjects, clock)
 	jobCatalogValidator := validatorpkg.NewJobCatalogValidationService(jobCatalogRepo, logger)
 	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, jobCatalogValidator, auditLogger, logger, deps.OutboxRepo)
 	schedulerService := schedulerpkg.NewService(schedulerpkg.Dependencies{

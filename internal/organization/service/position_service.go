@@ -14,9 +14,11 @@ import (
 	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	validator "cube-castle/internal/organization/validator"
+	"cube-castle/internal/standardobject"
 	"cube-castle/internal/types"
 	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/google/uuid"
 )
 
@@ -44,14 +46,22 @@ type PositionService struct {
 	positionValidator   validator.PositionValidationService
 	assignmentValidator validator.AssignmentValidationService
 	outboxRepo          database.OutboxRepository
+	standardObjects     standardobject.ObjectService
+	clock               clockpkg.Clock
 }
 
-func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, outboxRepo database.OutboxRepository) *PositionService {
+func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, outboxRepo database.OutboxRepository, stdObjects standardobject.ObjectService, clk clockpkg.Clock) *PositionService {
 	if positionValidator == nil {
 		positionValidator = validator.NewStubValidationService()
 	}
 	if assignmentValidator == nil {
 		assignmentValidator = validator.NewStubValidationService()
+	}
+	if stdObjects == nil {
+		stdObjects = standardobject.NewNoopService()
+	}
+	if clk == nil {
+		clk = clockpkg.NewSystemClock()
 	}
 
 	return &PositionService{
@@ -64,6 +74,8 @@ func NewPositionService(positions *repository.PositionRepository, assignments *r
 		positionValidator:   positionValidator,
 		assignmentValidator: assignmentValidator,
 		outboxRepo:          outboxRepo,
+		standardObjects:     stdObjects,
+		clock:               clk,
 	}
 }
 
@@ -263,6 +275,10 @@ func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID
 		return nil, err
 	}
 
+	if err := s.syncPositionStandardObject(ctx, entity, operator); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -332,6 +348,10 @@ func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUI
 	}
 
 	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "ReplacePosition", updateEntity, nil); err != nil {
+		return nil, err
+	}
+
+	if err := s.syncPositionStandardObject(ctx, updateEntity, operator); err != nil {
 		return nil, err
 	}
 
@@ -458,6 +478,10 @@ func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uu
 	}
 
 	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "CreatePositionVersion", entity, nil); err != nil {
+		return nil, err
+	}
+
+	if err := s.syncPositionStandardObject(ctx, entity, operator); err != nil {
 		return nil, err
 	}
 

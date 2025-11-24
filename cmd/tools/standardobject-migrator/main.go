@@ -22,6 +22,7 @@ import (
 )
 
 type legacyRecord struct {
+	RecordID      string
 	TenantID      string
 	Code          string
 	ParentCode    sql.NullString
@@ -120,7 +121,8 @@ func (m *migrator) Run(ctx context.Context, limit int) error {
 
 func (m *migrator) selectLegacy(ctx context.Context, limit int) (*sql.Rows, error) {
 	query := `
-SELECT tenant_id::text,
+SELECT record_id::text,
+       tenant_id::text,
        code,
        parent_code,
        name,
@@ -147,6 +149,7 @@ ORDER BY tenant_id, code, effective_date`
 func (m *migrator) scanLegacy(rows *sql.Rows) (legacyRecord, error) {
 	var rec legacyRecord
 	err := rows.Scan(
+		&rec.RecordID,
 		&rec.TenantID,
 		&rec.Code,
 		&rec.ParentCode,
@@ -188,7 +191,7 @@ func (m *migrator) migrateRecord(ctx context.Context, rec legacyRecord) error {
 	}
 
 	version := standardobject.TemporalVersion{
-		VersionCode:     fmt.Sprintf("%s-%s", rec.Code, rec.EffectiveDate.Format("20060102")),
+		VersionCode:     standardobject.MakeVersionCode(rec.Code, rec.EffectiveDate, rec.UpdatedAt, rec.RecordID),
 		EffectiveDate:   rec.EffectiveDate,
 		EndDate:         nullableTime(rec.EndDate),
 		IsCurrent:       rec.IsCurrent,

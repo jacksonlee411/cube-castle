@@ -8,3 +8,9 @@
 - `repository/` 封装 sqlc 查询与 `pkg/temporal/constraints`，在 `Upsert/Get` 中填充 `validity_range/transaction_range`。
 
 命令服务通过 `cmd/hrms-server/command/main.go` 中的 `sqlcadapter.Provide` 注入真实 Port；工具链（`cmd/tools/standardobject-*`）同样依赖该仓储以满足 402B 的迁移/校验需求。运行 `go test ./internal/standardobject/...` 可快速验证 Feature Flag 与 skeleton 未被破坏。更多规范见 `docs/development-plans/402A-standard-object-mapping-spec.md` 与 `docs/development-plans/402B-som-schema-and-tooling.md`。
+
+## 402C 进展
+- 组织模块：`Create/Update/Version/Suspend/Activate/Delete` 等 handler 已在单事务内调用 `standardobject.ObjectService`，失败会回滚主事务；timeline 作废/删除会根据最新版本回写 SOM。
+- 职位模块：`PositionService.Create/Replace/CreateVersion` 注入 `ObjectService` 并生成 `POSITION_BELONGS_TO_ORG` Link，payload 含岗位/编制/目录元数据。
+- 版本号：统一通过 `standardobject.MakeVersionCode(code, effectiveDate, updatedAt, recordId)` 生成，确保同日多次纠偏仍满足 `(object_id, version_code)` 唯一约束。
+- 日志：双写/迁移证据统一落在 `logs/plan402/migration|validator|snapshots|schema|metrics` 与 `logs/plan402/capability/*.log`，PR 需引用对应文件。

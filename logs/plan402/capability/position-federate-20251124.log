@@ -1,0 +1,8 @@
+2025-11-24T18:42:00+08:00	position-service-double-write
+- scope: internal/organization/service/position_service.go + position_standard_object_adapter.go
+- verification: go test ./internal/organization/service ./internal/standardobject/...
+- assertions:
+  * CreatePosition / ReplacePosition / CreatePositionVersion dispatch SOM aggregates with POSITION_BELONGS_TO_ORG link.
+  * Payload covers job family/role/level元数据、headcount 指标与 operation audit。
+  * versionCode uses updatedAt + recordId entropy to avoid conflicts.
+- follow-up: Fill/Vacate/Assignment 事件将在 C2 期间继续接入。

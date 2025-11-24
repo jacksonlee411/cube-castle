@@ -113,3 +113,10 @@
   1. 将组织的更新、停用、删除、层级调整等 handler 接入 `upsertStandardObject`，并梳理职位命令的接入路径。
   2. 在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记新依赖，补充 Runbook/日志路径。
   3. 继续推进 C2~C5（一次性迁移、outbox/快照、前端 Manifest、权限守卫）——当前尚未接触的任务保留在“pending”状态。
+
+**2025-11-24 更新（标准对象双写扩展）**
+- ✅ `UpdateOrganization`、`UpdateHistoryRecord`、停用/激活/作废/删除等路径全部在提交前同步写入 SOM，`standardobject.MakeVersionCode` 现携带 `updatedAt + recordId` 保证幂等版本号。
+- ✅ 作废/删除事件在 `handleDeactivateEvent` / `CreateOrganizationEvent` 中根据时间线回写 SOM，保持 `standard_object_links` 与层级的一致。
+- ✅ Position Service 的创建/替换/版本生成能力接入 `standardobject.ObjectService`，并产出 `POSITION_BELONGS_TO_ORG` link，命令侧继续沿用统一 `TransactionClock`。
+- 📄 文档同步：`docs/development-plans/402C-service-integration-and-double-write.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `internal/standardobject/README.md` 更新了 Runbook、依赖与日志索引；`logs/plan402/capability/org-federate-*.log` 记录新增证据。
+- ⏳ 待办：前端 Manifest/Slot、outbox 事件与快照触发仍在排期，C2~C5 的 UI/权限/指标日志尚待补齐。

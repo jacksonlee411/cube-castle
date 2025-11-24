@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"time"
 
@@ -16,7 +16,6 @@ const (
 	standardObjectRetentionPolicy     = "default"
 	standardObjectDataClassification  = "INTERNAL"
 	standardObjectHierarchyLinkType   = "ORG_HIERARCHY"
-	standardObjectVersionCodeDateFmt  = "20060102"
 	defaultStandardObjectDisplayLabel = "organization"
 )
 
@@ -30,6 +29,7 @@ func (h *OrganizationHandler) upsertStandardObject(ctx context.Context, org *typ
 func (h *OrganizationHandler) buildOrganizationAggregate(org *types.Organization, actorID string) standardobject.ObjectAggregate {
 	now := h.clock.Now()
 	effective := dateOrFallback(org.EffectiveDate, now)
+	versionCode := standardobject.MakeVersionCode(org.Code, effective, coalesceTime(org.UpdatedAt, now), org.RecordID)
 	kernel := standardobject.ObjectKernel{
 		ID:                 org.RecordID,
 		ObjectType:         standardobject.ObjectTypeOrganizationUnit,
@@ -47,7 +47,7 @@ func (h *OrganizationHandler) buildOrganizationAggregate(org *types.Organization
 	}
 
 	version := standardobject.TemporalVersion{
-		VersionCode:     buildVersionCode(org.Code, effective),
+		VersionCode:     versionCode,
 		EffectiveDate:   effective,
 		EndDate:         dateToTime(org.EndDate),
 		IsCurrent:       org.IsCurrent,
@@ -119,19 +119,17 @@ func mapLifecycleStatus(status string) standardobject.LifecycleStatus {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
 	case "ACTIVE":
 		return standardobject.StatusActive
-	case "SUSPENDED":
+	case "SUSPENDED", "INACTIVE":
 		return standardobject.StatusSuspended
-	case "RETIRED":
+	case "RETIRED", "DELETED":
 		return standardobject.StatusRetired
-	case "READY":
+	case "READY", "PLANNED", "PENDING":
 		return standardobject.StatusReady
+	case "FILLED", "PARTIALLY_FILLED":
+		return standardobject.StatusActive
 	default:
 		return standardobject.StatusDraft
 	}
-}
-
-func buildVersionCode(code string, effective time.Time) string {
-	return fmt.Sprintf("%s-%s", strings.TrimSpace(code), effective.Format(standardObjectVersionCodeDateFmt))
 }
 
 func dateOrFallback(d *types.Date, fallback time.Time) time.Time {
@@ -168,6 +166,69 @@ func nonEmpty(value string, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func copyOrganization(src *types.Organization) *types.Organization {
+	if src == nil {
+		return nil
+	}
+	clone := *src
+	return &clone
+}
+
+var errTimelineVersionNotFound = errors.New("timeline version not found")
+
+func (h *OrganizationHandler) syncOrganizationTimeline(ctx context.Context, base *types.Organization, timeline *[]repositorypkg.TimelineVersion, target time.Time, reason string, actorID string) error {
+	if base == nil {
+		return errTimelineVersionNotFound
+	}
+	if timeline == nil || len(*timeline) == 0 {
+		return h.upsertStandardObject(ctx, base, actorID)
+	}
+	if version := timelineVersionByDate(timeline, target); version != nil {
+		return h.upsertTimelineAggregate(ctx, base, version, reason, actorID)
+	}
+	if version := currentTimelineVersion(timeline); version != nil {
+		return h.upsertTimelineAggregate(ctx, base, version, reason, actorID)
+	}
+	last := &(*timeline)[len(*timeline)-1]
+	return h.upsertTimelineAggregate(ctx, base, last, reason, actorID)
+}
+
+func (h *OrganizationHandler) upsertTimelineAggregate(ctx context.Context, base *types.Organization, version *repositorypkg.TimelineVersion, reason string, actorID string) error {
+	if version == nil {
+		return errTimelineVersionNotFound
+	}
+	org := h.organizationFromTimeline(base, version, reason)
+	return h.upsertStandardObject(ctx, org, actorID)
+}
+
+func timelineVersionByDate(timeline *[]repositorypkg.TimelineVersion, target time.Time) *repositorypkg.TimelineVersion {
+	if timeline == nil {
+		return nil
+	}
+	for i := range *timeline {
+		if sameDay((*timeline)[i].EffectiveDate, target) {
+			return &(*timeline)[i]
+		}
+	}
+	return nil
+}
+
+func currentTimelineVersion(timeline *[]repositorypkg.TimelineVersion) *repositorypkg.TimelineVersion {
+	if timeline == nil {
+		return nil
+	}
+	for i := range *timeline {
+		if (*timeline)[i].IsCurrent {
+			return &(*timeline)[i]
+		}
+	}
+	return nil
+}
+
+func sameDay(a time.Time, b time.Time) bool {
+	return a.UTC().Truncate(24 * time.Hour).Equal(b.UTC().Truncate(24 * time.Hour))
 }
 
 func (h *OrganizationHandler) organizationFromTimeline(base *types.Organization, version *repositorypkg.TimelineVersion, reason string) *types.Organization {
