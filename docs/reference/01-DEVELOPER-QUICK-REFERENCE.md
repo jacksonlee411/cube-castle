@@ -353,6 +353,12 @@ POST   /auth/dev-token         # 生成令牌 (仅DEV模式)
 - 运行日志：`logs/plan402/migration/*.log`（migrator/validator）、`logs/plan402/capability/*.log`（federate 证据）、`logs/plan400/manifest/*.log`（前端生成器）。切换/排障前务必落盘。
 - 开发自检：执行 `node scripts/quality/architecture-validator.js --rule capabilityContracts` 以及 `make test`，确保双写未破坏 CQRS 与命名守卫。
 
+### Manifest & 快照脚本（402C/C4）
+- 表单 manifest：`npm run manifest:forms`（读取 `docs/api/openapi.yaml`，输出 `logs/plan400/manifest/<ts>-forms.log`）
+- 列 manifest：`npm run manifest:columns`（读取 `docs/api/schema.graphql`，输出 `logs/plan402/ui/<ts>-columns.log`）
+- 快照刷新：`go run -tags legacy ./cmd/tools/standardobject-snapshot-refresh -dsn "$DATABASE_URL" -tenant <TENANT_ID>`，默认日志写入 `logs/plan402/snapshots|metrics`
+- Outbox/Redis 巡检：`PGPASSWORD=password psql ...` + `docker exec cubecastle-redis redis-cli info keyspace`，输出到 `logs/plan402/eventbus/<ts>-dispatcher-scan.log`
+
 ### GraphQL查询API (端口8090)
 ```graphql
 organizations(filter, pagination): OrganizationConnection!

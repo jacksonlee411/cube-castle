@@ -12,5 +12,6 @@
 ## 402C 进展
 - 组织模块：`Create/Update/Version/Suspend/Activate/Delete` 等 handler 已在单事务内调用 `standardobject.ObjectService`，失败会回滚主事务；timeline 作废/删除会根据最新版本回写 SOM。
 - 职位模块：`PositionService.Create/Replace/CreateVersion` 注入 `ObjectService` 并生成 `POSITION_BELONGS_TO_ORG` Link，payload 含岗位/编制/目录元数据。
+- 事件：所有命令入口在 upsert 成功后通过 `emitStandardObjectEvent`/`PositionService.emitStandardObjectEvent` 写入 `standard_object.created/updated/versioned/status_changed/retired` outbox 事件，事件失败同样阻断主事务；运行中的 dispatcher 巡检与样本日志存放在 `logs/plan402/eventbus/*.log`。
 - 版本号：统一通过 `standardobject.MakeVersionCode(code, effectiveDate, updatedAt, recordId)` 生成，确保同日多次纠偏仍满足 `(object_id, version_code)` 唯一约束。
 - 日志：双写/迁移证据统一落在 `logs/plan402/migration|validator|snapshots|schema|metrics` 与 `logs/plan402/capability/*.log`，PR 需引用对应文件。
