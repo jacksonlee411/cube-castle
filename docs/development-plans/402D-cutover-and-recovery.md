@@ -81,11 +81,10 @@
 - 在 `scripts/quality/architecture-validator.js` 中运行 capability contract 完整性检查，确认 4.3 表格条目覆盖全部 Federate，并在演练中验证双时态回放（恢复某事务时间点的视图）可行。
 - 双时态回放步骤：`psql -f database/scripts/plan402/checkpoints/replay_view.sql -v as_of_ts="'2025-11-30 10:00:00+00'"` → `curl http://localhost:9090/api/standard-objects/organization/:code?asOfTransaction=2025-11-30T10:00:00Z`，再与 `standardobject-validator` 结果对比并写入 `logs/plan402/verification/as-of-<ts>.log`，确保 30 分钟恢复 SLA 可实测。
 
-### D4 · 遗留路径回收与日志归档
-- 将 `organization_units`、`positions` 等旧表降级为只读视图或迁移至 `archive/plan402/legacy-*.sql`，并执行 `database/scripts/plan402/drop-legacy-indexes.sql` 删除旧索引/触发器；执行日志写入 `logs/plan402/cleanup/<ts>-legacy-drop.log`，确保与 402E 的全面清理范围衔接。
-- 清理由 SOM 切换后不再使用的 Go/TS 代码：例如 `internal/organization/repository/legacy_*`、`frontend/src/features/organizations/legacy-*`，提交前由 `rg 'organization_units'` + allowlist 校验结果写入 `logs/plan402/cleanup/<ts>-code-audit.log`，并在 PR 描述中声明剩余白名单及回收计划。
-- 运行 `make archive-run-artifacts`（Plan 272 W3 脚本）将 `logs/plan402/**`、`reports/plan402/**` 等运行产物打包至 `archive/runtime-artifacts/<yyyy-mm>/`，同时附上 manifest（含 `sha256`、Plan/Run ID）；`logs/plan272/archive/plan402-cutover-<ts>.log` 需记录本次归档。未压缩的 logs 目录保留不超过 5 份纯文本证据。
-- 完成交付后执行 `npm run guard:plan272`，并在 `logs/plan272/guard/plan402-cutover-<ts>.log` 与 `reports/plan272/plan402-cutover-guard-<ts>.txt` 保存结果，确保 Plan 272 守卫覆盖本阶段新增产物。
+### D4 · 切换后最小回收与产物归档
+- 将 `organization_units`、`positions` 等旧表在切换窗口内切换为只读视图，并移除写入触发器或写索引（执行 `database/scripts/plan402/drop-legacy-write-paths.sql`，日志写入 `logs/plan402/cleanup/<ts>-write-lock.log`），确保上线期间不会发生回写；完整的表/代码清理由 402E 统一安排。
+- 对仍需保留的 legacy 入口建立白名单并在 Runbook 中标记负责人/回收计划（`logs/plan402/cleanup/<ts>-legacy-allowlist.log`），避免与 402E 的全面清理重复执行。
+- 切换完成后依 Plan 272 Runbook 执行运行产物归档与守卫（`make archive-run-artifacts` + `npm run guard:plan272` 等指令以 Plan 272 文档为唯一事实来源），并在切换报告中记录归档 manifest/Run ID；未归档的日志数量符合 Plan 272 的“最新 5 份纯文本”约束。
 
 ---
 
@@ -127,7 +126,7 @@
 | R4 | 部署前端/查询改动，刷新 Manifest/Slot，运行 `npm run quality:preflight`、`npm run test`、`npm run test:e2e`、Playwright OBS，日志入库 | Frontend + Query | 45 分钟 | 门禁失败/OBS 缺证 |
 | R5 | 观察指标：`som_write_success_rate`、`standardobject_validator_diff`、`som_transaction_gap_seconds`，生成切换完成通知 | SRE | 30 分钟 | 指标异常或出现告警 |
 | R6 | Staging 回滚演练：执行 `database/scripts/plan402/rollback/*.sql` + `scripts/plan402/export-standardobject-snapshot.sh`，验证 30 分钟恢复 SLA | Data Eng + Ops | 30 分钟 | 演练超过 30 分钟或验证失败 |
-| R7 | 遗留清理与日志归档：执行 `database/scripts/plan402/drop-legacy-indexes.sql`、`make archive-run-artifacts`、`npm run guard:plan272`，并落盘 `logs/plan402/cleanup/*.log`、`logs/plan272/archive/*.log` | DBA + QA | 45 分钟 | Plan 272 守卫失败或归档 manifest 缺失 |
+| R7 | 切换后最小回收：执行 `database/scripts/plan402/drop-legacy-write-paths.sql` 锁定旧表只读、记录剩余白名单，并按 Plan 272 Runbook 完成运行产物归档与守卫 | DBA + QA | 45 分钟 | 旧表仍可写或 Plan 272 守卫失败 |
 
 Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行当日同步更新日志索引。
 
@@ -142,3 +141,29 @@ Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行�
 ---
 
 402D 完成后方可启动 402E；若出现重大问题，必须通过回滚脚本恢复旧数据路径并记录 `logs/plan402/rollback/*.log`。
+
+---
+
+## 8. 当前进展（2025-11-24）
+
+- **基础设施恢复**：由于企业代理阻断 `golang:1.24-alpine` 拉取，已按 Plan 272 约束在本地构建同名镜像（`/tmp/plan402/golang-base/Dockerfile`），`make run-dev` 现可直接命中本地缓存完成编译，最新日志：`logs/plan402/verification/run-dev-20251124-143510.log`。
+- **容器健康**：`docker compose -f docker-compose.dev.yml ps` 显示 postgres/redis/rest-service 均为 healthy，`curl http://localhost:9090/health` 返回健康结果，可用于 Playwright 与 preflight。
+- **前端 E2E 执行**：重新执行 `npm run test:e2e`（`PW_BASE_URL=http://localhost:3000`，`PW_JWT=.cache/dev.jwt`），日志保存在 `logs/plan402/ui/20251124-150536-playwright.log`。目前测试整体失败，原因见阻塞项。
+- **健康检查兼容**：命令服务新增 `/api/v1/health`/`/api/v1/health/` 映射（沿用原 `/health` handler），并在 `logs/plan402/verification/api-v1-health-20251124-155458.log` 留下可重复验证记录，Playwright Phase 1「服务合并验证」不再因 404 阻断。
+
+## 9. 阻塞点与建议
+
+1. **组织创建命令持续 500（`CREATE_ERROR`）**  
+   - `business-flow-e2e`、`cqrs-protocol-separation` 等脚本向 `/api/v1/organizations` 发送创建/更新请求时，多次收到 `{"code":"CREATE_ERROR","message":"创建操作失败"}`，详见 `logs/plan402/ui/20251124-150536-playwright.log`。这说明 SOM 写路径仍存在缺口（可能仍命中 legacy pipeline 或缺少标准对象转换）。  
+   - **建议**：结合 Playwright trace（`frontend/test-results/**/trace.zip`）抽取一条失败请求，对照 `cmd/hrms-server/command/internal/organization` 逻辑，确认 payload→SOM 的转换链路；修复后先以 `npx playwright test tests/e2e/business-flow-e2e.spec.ts --project=chromium` 验证。
+
+2. **冗余服务探测用例仍视为失败**  
+   - `architecture-e2e` 的“Phase 1: 冗余服务移除验证”仍期待对 `/api-gateway`、`/query-service` 等占位路径的 `fetch` 报错（`reachable=false`）。当前 Vite dev server 会立即返回 404 → `response.ok=false 但 fetch 成功`, 导致断言 `response.reachable`=false 失败，日志：`logs/plan402/ui/20251124-155508-architecture-e2e.log`。  
+   - **建议**：在前端 dev server 代理层显式把这些占位路径映射到 `http://127.0.0.1:9` 或返回 `net::ERR_CONNECTION_REFUSED`，或更新脚本判断逻辑（例如允许 `reachable=true 且 status in {404, 502}` 视为 PASS），再 rerun `architecture-e2e`.
+
+3. **全量门禁尚未闭环**  
+   - 由于上述阻塞，Plan 402D 要求的 “`npm run test:e2e` + OBS 证据 + `npm run quality:preflight`” 仍未达成；当前仅保留失败日志用于追溯。  
+   - **建议**：待接口问题解决后按顺序执行：  
+     1. `architecture-e2e`、`business-flow-e2e` 等关键脚本；  
+     2. `npm run test:e2e`（CI 模式、附 OBS）；  
+     3. `npm run quality:preflight` 与 `npm run test`，将日志分别落盘 `logs/plan402/ui/`、`logs/plan402/verification/`。

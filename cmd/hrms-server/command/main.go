@@ -329,7 +329,12 @@ func main() {
 		if redisClient != nil {
 			hm.AddChecker(&v9RedisChecker{Name: "redis", Client: redisClient})
 		}
-		r.Get("/health", hm.Handler())
+		apiHealthHandler := hm.Handler()
+		r.Get("/health", apiHealthHandler)
+		r.Get("/health/", apiHealthHandler)
+		// Playwright 与 CDN 健康探针会访问 /api/v1/health（兼容旧入口），此处统一复用同一处理器
+		r.Get("/api/v1/health", apiHealthHandler)
+		r.Get("/api/v1/health/", apiHealthHandler)
 	}
 
 	// Prometheus metrics 端点（无需认证，供监控系统采集）

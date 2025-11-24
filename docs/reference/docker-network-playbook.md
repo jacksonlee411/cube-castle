@@ -116,3 +116,48 @@
 - **日志目录**：`logs/ci-monitor/`（网络证明）、`logs/wsl-runner/`（WSL 相关）
 - **参考计划**：Plan 262（Runner 基建）、Plan 265（Required Checks）、Plan 266（运行追踪）、Plan 269（WSL Runner）
 - **工具链**：`curl`, `openssl`, `git`, `docker`, `powershell`（Windows）、`tmux`, `systemd`.
+
+## 9. 本地镜像回退：`golang:1.24-alpine`
+
+当企业代理拦截 `registry-1.docker.io`/`docker.m.daocloud.io` 时，`cmd/hrms-server/command/Dockerfile` 的 `FROM golang:1.24-alpine` 会导致 `make run-dev` 长时间阻塞。遵循 Plan 272「禁止修改端口映射」及 Docker 强制原则，我们在本地维护一个同名镜像，确保构建链路可控。
+
+1. 使用 WSL/WSL2 进入任意临时目录（示例 `/tmp/plan402/golang-base`）并创建 Dockerfile：
+
+   ```dockerfile
+   FROM alpine:3.20.3
+
+   RUN apk add --no-cache bash ca-certificates git tzdata && \
+       update-ca-certificates
+
+   ENV GOROOT=/usr/local/go
+   ENV GOPATH=/go
+   ENV PATH="$GOPATH/bin:$GOROOT/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+   ADD go1.24.9.linux-amd64.tar.gz /usr/local/
+
+   RUN mkdir -p "$GOPATH" && \
+       adduser -D -g "" golang && \
+       chown -R golang:golang "$GOPATH"
+
+   WORKDIR /go
+
+   CMD ["go", "version"]
+   ```
+
+2. 下载官方 Go toolchain（建议使用已放通的镜像源）：
+
+   ```bash
+   curl -fsSL https://mirrors.aliyun.com/golang/go1.24.9.linux-amd64.tar.gz \
+     -o go1.24.9.linux-amd64.tar.gz
+   ```
+
+3. 构建并标记镜像（禁用 BuildKit 可避免 WSL 代理再次触发）：
+
+   ```bash
+   DOCKER_BUILDKIT=0 docker build -t golang:1.24-alpine .
+   docker images golang:1.24-alpine   # 确认镜像已存在
+   ```
+
+4. 之后执行 `make run-dev`/`docker compose -f docker-compose.dev.yml up --build rest-service` 时会直接命中本地 `golang:1.24-alpine` 缓存，无需联网；只要镜像 tag 不变，即可与团队其它环境保持一致。
+
+> 该回退策略的完整执行日志记录在 `logs/plan402/verification/run-dev-20251124-143510.log`，如需重新生成，请沿用上述步骤并将新日志附加到 `logs/plan402/verification/`，供 Plan 402D 复查。
