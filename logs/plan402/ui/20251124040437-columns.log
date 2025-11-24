@@ -1,0 +1,495 @@
+{
+  "generatedAt": "2025-11-24T04:04:37.380Z",
+  "source": "docs/api/schema.graphql",
+  "typesAnalyzed": 7,
+  "columns": [
+    {
+      "typeName": "Organization",
+      "fieldCount": 30,
+      "fields": [
+        {
+          "name": "code",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "parentCode",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "tenantId",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "unitType",
+          "type": "UnitType!",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status!",
+          "description": ""
+        },
+        {
+          "name": "level",
+          "type": "Int!",
+          "description": ""
+        },
+        {
+          "name": "sortOrder",
+          "type": "Int!",
+          "description": ""
+        },
+        {
+          "name": "codePath",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "namePath",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "path",
+          "type": "String",
+          "description": "",
+          "deprecationReason": "使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除"
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "profile",
+          "type": "JSON",
+          "description": ""
+        },
+        {
+          "name": "changeReason",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "effectiveDate",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "endDate",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "createdAt",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "updatedAt",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "recordId",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "isCurrent",
+          "type": "Boolean!",
+          "description": ""
+        },
+        {
+          "name": "isTemporal",
+          "type": "Boolean!",
+          "description": ""
+        },
+        {
+          "name": "isFuture",
+          "type": "Boolean!",
+          "description": ""
+        },
+        {
+          "name": "hierarchyDepth",
+          "type": "Int!",
+          "description": ""
+        },
+        {
+          "name": "childrenCount",
+          "type": "Int!",
+          "description": ""
+        },
+        {
+          "name": "deletedAt",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "deletedBy",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "deletionReason",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "suspendedAt",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "suspendedBy",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "suspensionReason",
+          "type": "String",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "typeName": "OrganizationConnection",
+      "fieldCount": 3,
+      "fields": [
+        {
+          "name": "data",
+          "type": "[Organization!]!",
+          "description": ""
+        },
+        {
+          "name": "pagination",
+          "type": "PaginationInfo!",
+          "description": ""
+        },
+        {
+          "name": "temporal",
+          "type": "TemporalInfo!",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "typeName": "Position",
+      "fieldCount": 28,
+      "fields": [
+        {
+          "name": "code",
+          "type": "PositionCode!",
+          "description": ""
+        },
+        {
+          "name": "recordId",
+          "type": "UUID!",
+          "description": ""
+        },
+        {
+          "name": "tenantId",
+          "type": "UUID!",
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "jobProfileCode",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "jobProfileName",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "jobFamilyGroupCode",
+          "type": "JobFamilyGroupCode!",
+          "description": ""
+        },
+        {
+          "name": "jobFamilyCode",
+          "type": "JobFamilyCode!",
+          "description": ""
+        },
+        {
+          "name": "jobRoleCode",
+          "type": "JobRoleCode!",
+          "description": ""
+        },
+        {
+          "name": "jobLevelCode",
+          "type": "JobLevelCode!",
+          "description": ""
+        },
+        {
+          "name": "organizationCode",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "organizationName",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "positionType",
+          "type": "PositionType!",
+          "description": ""
+        },
+        {
+          "name": "employmentType",
+          "type": "EmploymentType!",
+          "description": ""
+        },
+        {
+          "name": "gradeLevel",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "headcountCapacity",
+          "type": "Float!",
+          "description": ""
+        },
+        {
+          "name": "headcountInUse",
+          "type": "Float!",
+          "description": ""
+        },
+        {
+          "name": "availableHeadcount",
+          "type": "Float!",
+          "description": ""
+        },
+        {
+          "name": "currentAssignment",
+          "type": "PositionAssignment",
+          "description": ""
+        },
+        {
+          "name": "assignmentHistory",
+          "type": "[PositionAssignment!]!",
+          "description": ""
+        },
+        {
+          "name": "reportsToPositionCode",
+          "type": "PositionCode",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "PositionStatus!",
+          "description": ""
+        },
+        {
+          "name": "effectiveDate",
+          "type": "Date!",
+          "description": ""
+        },
+        {
+          "name": "endDate",
+          "type": "Date",
+          "description": ""
+        },
+        {
+          "name": "isCurrent",
+          "type": "Boolean!",
+          "description": ""
+        },
+        {
+          "name": "isFuture",
+          "type": "Boolean!",
+          "description": ""
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "description": ""
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "typeName": "PositionConnection",
+      "fieldCount": 4,
+      "fields": [
+        {
+          "name": "edges",
+          "type": "[PositionEdge!]!",
+          "description": ""
+        },
+        {
+          "name": "pagination",
+          "type": "PaginationInfo!",
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "[Position!]!",
+          "description": ""
+        },
+        {
+          "name": "totalCount",
+          "type": "Int!",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "typeName": "StandardObject",
+      "fieldCount": 3,
+      "fields": [
+        {
+          "name": "kernel",
+          "type": "StandardObjectKernel!",
+          "description": ""
+        },
+        {
+          "name": "version",
+          "type": "StandardObjectVersion!",
+          "description": ""
+        },
+        {
+          "name": "links",
+          "type": "[StandardObjectLink!]",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "typeName": "StandardObjectKernel",
+      "fieldCount": 12,
+      "fields": [
+        {
+          "name": "objectType",
+          "type": "StandardObjectType!",
+          "description": ""
+        },
+        {
+          "name": "code",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "displayName",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "tenantCode",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status!",
+          "description": ""
+        },
+        {
+          "name": "labels",
+          "type": "JSON",
+          "description": ""
+        },
+        {
+          "name": "schemaVersion",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "dataClassification",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "retentionPolicy",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "createdBy",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "description": ""
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "typeName": "StandardObjectVersion",
+      "fieldCount": 9,
+      "fields": [
+        {
+          "name": "versionCode",
+          "type": "String!",
+          "description": ""
+        },
+        {
+          "name": "effectiveDate",
+          "type": "Date!",
+          "description": ""
+        },
+        {
+          "name": "endDate",
+          "type": "Date",
+          "description": ""
+        },
+        {
+          "name": "isCurrent",
+          "type": "Boolean!",
+          "description": ""
+        },
+        {
+          "name": "payload",
+          "type": "JSON!",
+          "description": ""
+        },
+        {
+          "name": "auditTrail",
+          "type": "StandardObjectAudit",
+          "description": ""
+        },
+        {
+          "name": "checksum",
+          "type": "String",
+          "description": ""
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "description": ""
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "description": ""
+        }
+      ]
+    }
+  ]
+}

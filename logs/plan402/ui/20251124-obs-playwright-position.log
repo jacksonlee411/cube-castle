@@ -1,0 +1,12 @@
+
+> frontend@0.0.0 test:e2e
+> playwright test --project=chromium --project=firefox tests/e2e/position-observability.spec.ts
+
+
+Running 2 tests using 2 workers
+✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+ℹ️ 使用现有职位 P1000000：version.select=true, export.*=false
+·ℹ️ 使用现有职位 P1000000：version.select=true, export.*=false
+·
+  2 passed (17.9s)

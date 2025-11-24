@@ -1,0 +1,1069 @@
+{
+  "config": {
+    "configFile": "/home/shangmeilin/cube-castle/frontend/playwright.config.ts",
+    "rootDir": "/home/shangmeilin/cube-castle/frontend/tests/e2e",
+    "forbidOnly": true,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/home/shangmeilin/cube-castle/logs/plan402/results-1763958848962.json"
+        }
+      ],
+      [
+        "html",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/shangmeilin/cube-castle/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/shangmeilin/cube-castle/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/home/shangmeilin/cube-castle/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/shangmeilin/cube-castle/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 2,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "position-observability.spec.ts",
+      "file": "position-observability.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Position Observability (Plan 240D)",
+          "file": "position-observability.spec.ts",
+          "line": 22,
+          "column": 6,
+          "specs": [
+            {
+              "title": "collects [OBS] logs and writes to plan240/D",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 14954,
+                      "error": {
+                        "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                          "column": 75,
+                          "line": 173
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 171 |\u001b[39m     \u001b[36mif\u001b[39m (strictVersionFlow) {\n \u001b[90m 172 |\u001b[39m       expect(hasVersionSelect\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 173 |\u001b[39m       expect(hasExport\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.export.* 事件（已尝试导出）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 174 |\u001b[39m     } \u001b[36melse\u001b[39m {\n \u001b[90m 175 |\u001b[39m       \u001b[90m// 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\u001b[39m\n \u001b[90m 176 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                            "column": 75,
+                            "line": 173
+                          },
+                          "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  171 |     if (strictVersionFlow) {\n  172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();\n> 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();\n      |                                                                           ^\n  174 |     } else {\n  175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\n  176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "✅ 认证设置已注入 localStorage\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:10.903Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                        "column": 75,
+                        "line": 173
+                      }
+                    },
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 13587,
+                      "error": {
+                        "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                          "column": 75,
+                          "line": 173
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 171 |\u001b[39m     \u001b[36mif\u001b[39m (strictVersionFlow) {\n \u001b[90m 172 |\u001b[39m       expect(hasVersionSelect\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 173 |\u001b[39m       expect(hasExport\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.export.* 事件（已尝试导出）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 174 |\u001b[39m     } \u001b[36melse\u001b[39m {\n \u001b[90m 175 |\u001b[39m       \u001b[90m// 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\u001b[39m\n \u001b[90m 176 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                            "column": 75,
+                            "line": 173
+                          },
+                          "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  171 |     if (strictVersionFlow) {\n  172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();\n> 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();\n      |                                                                           ^\n  174 |     } else {\n  175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\n  176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "✅ 认证设置已注入 localStorage\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-11-24T04:34:25.179Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                        "column": 75,
+                        "line": 173
+                      }
+                    },
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 13294,
+                      "error": {
+                        "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                          "column": 75,
+                          "line": 173
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 171 |\u001b[39m     \u001b[36mif\u001b[39m (strictVersionFlow) {\n \u001b[90m 172 |\u001b[39m       expect(hasVersionSelect\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 173 |\u001b[39m       expect(hasExport\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.export.* 事件（已尝试导出）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 174 |\u001b[39m     } \u001b[36melse\u001b[39m {\n \u001b[90m 175 |\u001b[39m       \u001b[90m// 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\u001b[39m\n \u001b[90m 176 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                            "column": 75,
+                            "line": 173
+                          },
+                          "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  171 |     if (strictVersionFlow) {\n  172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();\n> 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();\n      |                                                                           ^\n  174 |     } else {\n  175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\n  176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "✅ 认证设置已注入 localStorage\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 2,
+                      "startTime": "2025-11-24T04:34:39.901Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                        "column": 75,
+                        "line": 173
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "808cb99579383bcd78b5-72f31f2954cae93fd730",
+              "file": "position-observability.spec.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "collects [OBS] logs and writes to plan240/D",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 15855,
+                      "error": {
+                        "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                          "column": 75,
+                          "line": 173
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 171 |\u001b[39m     \u001b[36mif\u001b[39m (strictVersionFlow) {\n \u001b[90m 172 |\u001b[39m       expect(hasVersionSelect\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 173 |\u001b[39m       expect(hasExport\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.export.* 事件（已尝试导出）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 174 |\u001b[39m     } \u001b[36melse\u001b[39m {\n \u001b[90m 175 |\u001b[39m       \u001b[90m// 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\u001b[39m\n \u001b[90m 176 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                            "column": 75,
+                            "line": 173
+                          },
+                          "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  171 |     if (strictVersionFlow) {\n  172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();\n> 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();\n      |                                                                           ^\n  174 |     } else {\n  175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\n  176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "✅ 认证设置已注入 localStorage\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:13.159Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                        "column": 75,
+                        "line": 173
+                      }
+                    },
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 16042,
+                      "error": {
+                        "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                          "column": 75,
+                          "line": 173
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 171 |\u001b[39m     \u001b[36mif\u001b[39m (strictVersionFlow) {\n \u001b[90m 172 |\u001b[39m       expect(hasVersionSelect\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 173 |\u001b[39m       expect(hasExport\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.export.* 事件（已尝试导出）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 174 |\u001b[39m     } \u001b[36melse\u001b[39m {\n \u001b[90m 175 |\u001b[39m       \u001b[90m// 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\u001b[39m\n \u001b[90m 176 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                            "column": 75,
+                            "line": 173
+                          },
+                          "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  171 |     if (strictVersionFlow) {\n  172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();\n> 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();\n      |                                                                           ^\n  174 |     } else {\n  175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\n  176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "✅ 认证设置已注入 localStorage\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-11-24T04:34:29.755Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                        "column": 75,
+                        "line": 173
+                      }
+                    },
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 15749,
+                      "error": {
+                        "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                          "column": 75,
+                          "line": 173
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 171 |\u001b[39m     \u001b[36mif\u001b[39m (strictVersionFlow) {\n \u001b[90m 172 |\u001b[39m       expect(hasVersionSelect\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 173 |\u001b[39m       expect(hasExport\u001b[33m,\u001b[39m \u001b[32m'应捕获到 [OBS] position.version.export.* 事件（已尝试导出）'\u001b[39m)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 174 |\u001b[39m     } \u001b[36melse\u001b[39m {\n \u001b[90m 175 |\u001b[39m       \u001b[90m// 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\u001b[39m\n \u001b[90m 176 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                            "column": 75,
+                            "line": 173
+                          },
+                          "message": "Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  171 |     if (strictVersionFlow) {\n  172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();\n> 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();\n      |                                                                           ^\n  174 |     } else {\n  175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）\n  176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "✅ 认证设置已注入 localStorage\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 2,
+                      "startTime": "2025-11-24T04:34:46.373Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts",
+                        "column": 75,
+                        "line": 173
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "808cb99579383bcd78b5-b37df5feca81666687f9",
+              "file": "position-observability.spec.ts",
+              "line": 27,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "temporal-management-integration.spec.ts",
+      "file": "temporal-management-integration.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "时态管理系统集成测试",
+          "file": "temporal-management-integration.spec.ts",
+          "line": 242,
+          "column": 6,
+          "specs": [
+            {
+              "title": "GraphQL 版本列表契约校验",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 296,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:10.889Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-1b960a8d9b43a4efbc1d",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 311,
+              "column": 3
+            },
+            {
+              "title": "GraphQL asOf 查询支持指定时间点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 175,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:11.367Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-deb3670ed4dbe7ace52e",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 327,
+              "column": 3
+            },
+            {
+              "title": "命令服务拒绝未契约的 /temporal 路径",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 156,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:11.614Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-c149fc9c891af0ddefb8",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 342,
+              "column": 3
+            },
+            {
+              "title": "命令服务 /versions 缺少必填字段时返回验证错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 173,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:11.781Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-2a059f1e1978b7126b62",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 351,
+              "column": 3
+            },
+            {
+              "title": "GraphQL 版本列表契约校验",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1473,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:52.423Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-df484ba60bfbce8d1863",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 311,
+              "column": 3
+            },
+            {
+              "title": "GraphQL asOf 查询支持指定时间点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 403,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:54.355Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-85406c5a79236187d555",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 327,
+              "column": 3
+            },
+            {
+              "title": "命令服务拒绝未契约的 /temporal 路径",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 454,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:54.811Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-094dbd3dc734707c5f68",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 342,
+              "column": 3
+            },
+            {
+              "title": "命令服务 /versions 缺少必填字段时返回验证错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 375,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:34:55.285Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-870aef17dc54f74c4a71",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 351,
+              "column": 3
+            }
+          ],
+          "suites": [
+            {
+              "title": "UI 场景 (需认证)",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 280,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "组织列表可导航至组织详情页面",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:34:10.888Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Mock 模式下跳过 UI 场景",
+                              "location": {
+                                "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                                "line": 281,
+                                "column": 10
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-7b17999be8fe58c08617",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 283,
+                  "column": 5
+                },
+                {
+                  "title": "组织详情页面展示关键时态组件",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:34:10.889Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Mock 模式下跳过 UI 场景",
+                              "location": {
+                                "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                                "line": 281,
+                                "column": 10
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-853a03ac943a204b434e",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 301,
+                  "column": 5
+                },
+                {
+                  "title": "组织列表可导航至组织详情页面",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [
+                        {
+                          "workerIndex": 7,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:34:52.422Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Mock 模式下跳过 UI 场景",
+                              "location": {
+                                "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                                "line": 281,
+                                "column": 10
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-62b3f5b6c678b656cc10",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 283,
+                  "column": 5
+                },
+                {
+                  "title": "组织详情页面展示关键时态组件",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [
+                        {
+                          "workerIndex": 7,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:34:52.422Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Mock 模式下跳过 UI 场景",
+                              "location": {
+                                "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                                "line": 281,
+                                "column": 10
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-96e8ed31b25017d12d7d",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 301,
+                  "column": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-11-24T04:34:08.969Z",
+    "duration": 58968.733,
+    "expected": 8,
+    "skipped": 4,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

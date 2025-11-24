@@ -12,6 +12,13 @@ import type { TemporalEditFormData } from '../TemporalEditForm';
 import { mapLifecycleStatusToOrganizationStatus } from './utils';
 import UnitTypeSelector from './UnitTypeSelector';
 import temporalEntitySelectors from '@/shared/testids/temporalEntity';
+import type { OrganizationField } from '../../manifest/organizationManifest';
+import {
+  organizationFieldHelperText,
+  organizationFieldLabel,
+  organizationFieldPlaceholder,
+  organizationFieldRequired,
+} from '../../manifest/helpers';
 
 export interface BasicInfoSectionProps {
   formData: TemporalEditFormData;
@@ -48,23 +55,28 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   isSubmitting,
   onUnitTypeChange,
 }) => {
+  const manifestHint = (field: OrganizationField, error?: string) => {
+    const text = organizationFieldHelperText(field, error);
+    return text.length ? text : undefined;
+  };
+
   return (
     <Box marginBottom="l">
       <Heading size="small" marginBottom="s" color={colors.blueberry600}>
         基本信息
       </Heading>
       <Box marginLeft="m">
-        <FormField isRequired error={errors.name ? 'error' : undefined}>
-          <FormField.Label>组织名称 *</FormField.Label>
+        <FormField isRequired={organizationFieldRequired('name', true)} error={errors.name ? 'error' : undefined}>
+          <FormField.Label>{organizationFieldLabel('name', '组织名称')}</FormField.Label>
           <FormField.Field>
             <TextInput
               value={formData.name}
               onChange={onFieldChange('name')}
-              placeholder="请输入组织名称"
+              placeholder={organizationFieldPlaceholder('name', '请输入组织名称')}
               disabled={disabled}
               data-testid={temporalEntitySelectors.form?.field?.name}
             />
-            {errors.name ? <FormField.Hint>{errors.name}</FormField.Hint> : null}
+            {manifestHint('name', errors.name) ? <FormField.Hint>{manifestHint('name', errors.name)}</FormField.Hint> : null}
           </FormField.Field>
         </FormField>
 
@@ -109,8 +121,8 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           value={formData.unitType}
           onChange={onUnitTypeChange}
           disabled={disabled}
-          label="组织类型"
-          required
+          label={organizationFieldLabel('unitType', '组织类型')}
+          required={organizationFieldRequired('unitType', true)}
         />
 
         <FormField>
@@ -124,16 +136,19 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         </FormField>
 
         <FormField>
-          <FormField.Label>描述信息</FormField.Label>
+          <FormField.Label>{organizationFieldLabel('description', '描述信息')}</FormField.Label>
           <FormField.Field>
             <TextArea
               value={formData.description}
               onChange={onFieldChange('description')}
-              placeholder="请输入组织描述信息"
+              placeholder={organizationFieldPlaceholder('description', '请输入组织描述信息')}
               disabled={disabled}
               rows={3}
               data-testid={temporalEntitySelectors.form?.field?.description}
             />
+            {manifestHint('description') ? (
+              <FormField.Hint>{manifestHint('description')}</FormField.Hint>
+            ) : null}
           </FormField.Field>
         </FormField>
       </Box>

@@ -346,12 +346,12 @@ POST   /auth/dev-token         # 生成令牌 (仅DEV模式)
 ```
 
 ### Standard Object 双写守则
-- 组织命令（创建/更新/版本/停用/激活/作废/删除）与职位命令（创建/替换/版本）已在单事务内同步调用 `standardobject.ObjectService`。若 SOM `Upsert` 失败会回滚整笔事务。
-- 同步写入的 Standard Object 聚合会通过 outbox 输出 `standard_object.created/updated/versioned/status_changed/retired` 事件（组织/职位），事件失败同样会阻断主事务。
-- `standardobject.MakeVersionCode(code, effectiveDate, updatedAt, recordId)` 生成唯一版本号（`YYYYMMDD-HHMMSS-RecordEntropy`），避免在同一生效日的更正出现冲突。
-- 组织层级 Link (`ORG_HIERARCHY`) 与职位归属 Link (`POSITION_BELONGS_TO_ORG`) 由 handler/service 自动维护；若目标对象尚未迁移到 SOM，API 会返回 500，需先补齐迁移。
-- 运行日志：`logs/plan402/migration/*.log`（migrator/validator）、`logs/plan402/capability/*.log`（federate 证据）、`logs/plan400/manifest/*.log`（前端生成器）。切换/排障前务必落盘。
-- 开发自检：执行 `node scripts/quality/architecture-validator.js --rule capabilityContracts` 以及 `make test`，确保双写未破坏 CQRS 与命名守卫。
+- 组织命令（创建/更新/版本/停用/激活/作废/删除）复用 `internal/organization/handler/standard_object_adapter.go` 中的 `OrganizationHandler.upsertStandardObject`/`syncOrganizationTimeline`；职位 `Create/Replace/CreateVersion` 则使用 `internal/organization/service/position_standard_object_adapter.go` 的 `PositionService.syncPositionStandardObject`。两侧都在主事务内调用 `standardobject.ObjectService`，失败即回滚。
+- Outbox 事件由 `OrganizationHandler.emitStandardObjectEvent` 与 `PositionService.emitStandardObjectEvent` 统一写入 `standard_object.created/updated/versioned/status_changed/retired`，日志与巡检样本见 `logs/plan402/eventbus/*.log`、`logs/plan402/capability/*.log`。
+- `standardobject.MakeVersionCode(code, effectiveDate, updatedAt, recordId)` 提供幂等版本号，配合 `pkg/temporal/clock` 生成 `transaction_range`，确保同日纠偏不产生冲突。
+- 组织层级 Link (`ORG_HIERARCHY`) 与职位归属 Link (`POSITION_BELONGS_TO_ORG`) 由上述 handler/service 自动维护；若目标对象尚未迁移到 SOM，API 会返回 500，需要先执行 migrator/validator。
+- 运行日志：`logs/plan402/migration/*.log`（migrator/validator）、`logs/plan402/capability/*.log`（federate 证据）、`logs/plan400/manifest/*.log` & `logs/plan402/ui/*.log`（Manifest/Slot + OBS/Playwright 证据）。详见 `docs/reference/standard-object-evidence-guide.md`。
+- 开发自检：执行 `node scripts/quality/architecture-validator.js --rule capabilityContracts`、`make test`、`npm run quality:preflight`，确保 CQRS、Manifest/Slot、命名守卫均通过。
 
 ### Manifest & 快照脚本（402C/C4）
 - 表单 manifest：`npm run manifest:forms`（读取 `docs/api/openapi.yaml`，输出 `logs/plan400/manifest/<ts>-forms.log`）

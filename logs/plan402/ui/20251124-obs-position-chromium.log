@@ -1,0 +1,6 @@
+[INFO] 2025-11-24T04:35:49.153Z - [OBS] position.hydrate.start {entity: position, code: P1000000, ts: 2025-11-24T04:35:49.152Z, source: ui}
+[INFO] 2025-11-24T04:35:49.198Z - [OBS] position.graphql.error {entity: position, code: P1000000, queryName: TemporalEntityDetail, status: 0, ts: 2025-11-24T04:35:49.198Z}
+[INFO] 2025-11-24T04:35:49.266Z - [OBS] position.hydrate.done {entity: position, code: P1000000, durationMs: 114, ts: 2025-11-24T04:35:49.266Z, source: ui}
+[INFO] 2025-11-24T04:35:49.461Z - [OBS] position.tab.change {tabFrom: overview, tabTo: timeline, entity: position, code: P1000000, ts: 2025-11-24T04:35:49.461Z}
+[INFO] 2025-11-24T04:35:49.656Z - [OBS] position.tab.change {tabFrom: timeline, tabTo: versions, entity: position, code: P1000000, ts: 2025-11-24T04:35:49.656Z}
+[INFO] 2025-11-24T04:35:49.880Z - [OBS] position.version.select {entity: position, code: P1000000, versionKey: d9889a9c-b42f-4ced-bd5b-61ee0160ffe5, ts: 2025-11-24T04:35:49.880Z, source: ui}

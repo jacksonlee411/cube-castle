@@ -46,7 +46,10 @@ const UnitTypeSelector: React.FC<UnitTypeSelectorProps> = ({
 
   return (
     <FormField isRequired={required}>
-      <FormField.Label>{label} *</FormField.Label>
+      <FormField.Label>
+        {label}
+        {required ? ' *' : ''}
+      </FormField.Label>
       <FormField.Field>
         <select
           value={value}

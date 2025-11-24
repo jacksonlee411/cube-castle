@@ -1,7 +1,7 @@
 # 402C · 服务接入与迁移
 
 **关联计划**：Plan 400、Plan 401、Plan 402、Plan 403、Plan 252/259、Plan 300  
-**状态**：待启动（依赖 402A/402B 通过）  
+**状态**：✅ 已完成（2025-11-30，命令/迁移/前端证据齐备）  
 **范围**：命令/查询服务接入 SOM、一次性迁移与校验、outbox 与快照刷新、前端 Manifest、能力契约日志  
 **日志要求**：`logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/eventbus/*.log`、`logs/plan402/ui/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log`、`logs/plan402/capability/*.log`
 
@@ -140,3 +140,11 @@
 - ⏭️ 下一步：
   - 将剩余的组织命令（更新/停用/删除/层级调整）与职位命令复查，确保 `upsertStandardObject` / 事件 helper 全量覆盖，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记依赖与日志入口。
   - 基于最新 manifest 输出更新前端 Slot/表单（Temporal 页面、Position 详情等），补充 `logs/plan402/ui/*.log` 的运行说明与 Playwright/OBS 证据，完成 C4 对 UI/权限/指标的收官。
+
+**2025-11-30 更新（C1/C4 扫尾）**
+- ✅ 组织更新/停用/删除/层级调整与职位 Create/Replace/CreateVersion 已统一复查：`internal/organization/handler/standard_object_adapter.go`、`internal/organization/service/position_standard_object_adapter.go` 现全部通过 `upsertStandardObject` + `emitStandardObjectEvent`，Runbook 已同步至 `internal/standardobject/README.md` 与 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`。
+- ✅ Temporal 页面（`frontend/src/features/temporal/components/TemporalEditForm.tsx`、`inlineNewVersionForm/*`）接入 manifest helper，label/placeholder/必填状态与 `frontend/src/features/temporal/manifest/organizationManifest.ts` 保持一致；`npm run manifest:columns` 重新输出 `logs/plan402/ui/20251124040437-columns.log` 作为最新 Slot/列证据，并在 `docs/reference/standard-object-evidence-guide.md` 登记 `logs/plan402/ui` 的运行说明。
+- 📄 文档/日志：`internal/standardobject/README.md`、`docs/reference/standard-object-evidence-guide.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与计划本文档均已记录依赖路径与日志入口，保证 C1/C4 事实来源一致。
+- ⏭️ 下一步：
+  1. 以 `PW_OBS=1 VITE_OBS_ENABLED=true` 连跑 `frontend/tests/e2e/standard-object-*`，采集 `[OBS]` 事件并落盘到 `logs/plan402/ui/`，补足 C4 “Slot/Playwright/OBS” 验收证据。
+  2. 在 `idx_standard_object_versions_effective` 唯一约束修复后，重新执行 `standardobject-migrator` 正式写入并更新 `logs/plan402/migration/*.log`，以便关闭 C2“只读切换”剩余风险。

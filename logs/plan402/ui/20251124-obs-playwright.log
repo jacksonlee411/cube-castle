@@ -1,0 +1,237 @@
+
+> frontend@0.0.0 test:e2e
+> playwright test --project=chromium --project=firefox tests/e2e/temporal-management-integration.spec.ts tests/e2e/position-observability.spec.ts
+
+
+Running 14 tests using 2 workers
+°°✅ 发现活跃前端服务：http://localhost:3000
+⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）
+·✅ 发现活跃前端服务：http://localhost:3000
+⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）
+··✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+F°°✅ 发现活跃前端服务：http://localhost:3000
+⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）
+·✅ 发现活跃前端服务：http://localhost:3000
+⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）
+···F
+
+  1) [chromium] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D 
+
+    Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      171 |     if (strictVersionFlow) {
+      172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();
+    > 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();
+          |                                                                           ^
+      174 |     } else {
+      175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）
+      176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      171 |     if (strictVersionFlow) {
+      172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();
+    > 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();
+          |                                                                           ^
+      174 |     } else {
+      175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）
+      176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      171 |     if (strictVersionFlow) {
+      172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();
+    > 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();
+          |                                                                           ^
+      174 |     } else {
+      175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）
+      176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium-retry2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [firefox] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D 
+
+    Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      171 |     if (strictVersionFlow) {
+      172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();
+    > 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();
+          |                                                                           ^
+      174 |     } else {
+      175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）
+      176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      171 |     if (strictVersionFlow) {
+      172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();
+    > 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();
+          |                                                                           ^
+      174 |     } else {
+      175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）
+      176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 应捕获到 [OBS] position.version.export.* 事件（已尝试导出）
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      171 |     if (strictVersionFlow) {
+      172 |       expect(hasVersionSelect, '应捕获到 [OBS] position.version.select 事件（已创建新版本并尝试点击）').toBeTruthy();
+    > 173 |       expect(hasExport, '应捕获到 [OBS] position.version.export.* 事件（已尝试导出）').toBeTruthy();
+          |                                                                           ^
+      174 |     } else {
+      175 |       // 在 PW_POSITION_CODE 模式下，这两类事件为尽力尝试（不做强制断言）
+      176 |       console.log(`ℹ️ 使用现有职位 ${positionCode}：version.select=${hasVersionSelect}, export.*=${hasExport}`);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:173:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox-retry2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D 
+    [firefox] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D 
+  4 skipped
+  8 passed (59.0s)
