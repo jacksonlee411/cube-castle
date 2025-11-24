@@ -1,0 +1,1906 @@
+
+> frontend@0.0.0 test:e2e
+> playwright test
+
+
+Running 234 tests using 4 workers
+
+[1A[2K[1/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:70:5 › 组织启用/停用工作流E2E测试 › 启用流程测试 › 应该成功启用组织 - 200响应
+[1A[2K[2/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:97:5 › 组织启用/停用工作流E2E测试 › 启用流程测试 › 应该拒绝重复启用 - 409响应
+[1A[2K[3/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:114:5 › 组织启用/停用工作流E2E测试 › 启用流程测试 › 应该支持未来生效日期
+[1A[2K[4/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:131:5 › 组织启用/停用工作流E2E测试 › 启用流程测试 › 应该验证org:activate权限
+[1A[2K[5/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:145:5 › 组织启用/停用工作流E2E测试 › 停用流程测试 › 应该成功停用组织 - 200响应
+[1A[2K[6/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:166:5 › 组织启用/停用工作流E2E测试 › 停用流程测试 › 应该拒绝重复停用 - 409响应
+[1A[2K[7/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:183:5 › 组织启用/停用工作流E2E测试 › 停用流程测试 › 应该验证org:suspend权限
+[1A[2K[8/234] [chromium] › tests/e2e/activate-suspend-workflow.spec.ts:197:5 › 组织启用/停用工作流E2E测试 › 410弃用端点验证 › 应该对/reactivate返回410 Gone
+[1A[2K[9/234] [chromium] › tests/e2e/architecture-e2e.spec.ts:41:3 › 重构后架构完整性验证 › Phase 1: GraphQL统一查询接口验证
+[1A[2K[10/234] [chromium] › tests/e2e/architecture-e2e.spec.ts:13:3 › 重构后架构完整性验证 › Phase 1: 服务合并验证 - 双核心服务架构
+[1A[2K[11/234] [chromium] › tests/e2e/basic-functionality-test.spec.ts:30:3 › 时态管理系统基础功能验证 › 应用基础加载测试
+[1A[2K[12/234] [chromium] › tests/e2e/architecture-e2e.spec.ts:93:3 › 重构后架构完整性验证 › Phase 1: 冗余服务移除验证
+[1A[2K[chromium] › tests/e2e/basic-functionality-test.spec.ts:30:3 › 时态管理系统基础功能验证 › 应用基础加载测试
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[chromium] › tests/e2e/architecture-e2e.spec.ts:41:3 › 重构后架构完整性验证 › Phase 1: GraphQL统一查询接口验证
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/architecture-e2e.spec.ts:93:3 › 重构后架构完整性验证 › Phase 1: 冗余服务移除验证
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/architecture-e2e.spec.ts:13:3 › 重构后架构完整性验证 › Phase 1: 服务合并验证 - 双核心服务架构
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/basic-functionality-test.spec.ts:30:3 › 时态管理系统基础功能验证 › 应用基础加载测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[13/234] [chromium] › tests/e2e/basic-functionality-test.spec.ts:59:8 › 时态管理系统基础功能验证 › 测试页面功能验证
+[1A[2K[14/234] [chromium] › tests/e2e/basic-functionality-test.spec.ts:74:3 › 时态管理系统基础功能验证 › 系统响应性测试
+[1A[2K[chromium] › tests/e2e/basic-functionality-test.spec.ts:74:3 › 时态管理系统基础功能验证 › 系统响应性测试
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K✅ 认证设置已注入 localStorage
+
+[1A[2K[15/234] [chromium] › tests/e2e/basic-functionality-test.spec.ts:91:3 › 时态管理系统基础功能验证 › 错误处理基础验证
+[1A[2K[chromium] › tests/e2e/basic-functionality-test.spec.ts:91:3 › 时态管理系统基础功能验证 › 错误处理基础验证
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[16/234] [chromium] › tests/e2e/basic-functionality-test.spec.ts:42:3 › 时态管理系统基础功能验证 › 组织管理页面可访问
+[1A[2K  1) [chromium] › tests/e2e/architecture-e2e.spec.ts:93:3 › 重构后架构完整性验证 › Phase 1: 冗余服务移除验证 ─────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mtrue[39m
+
+      116 |
+      117 |       // 允许 4xx/5xx 作为“不可达”，否则要求直接网络失败
+    > 118 |       expect(response.reachable).toBe(false);
+          |                                  ^
+      119 |     }
+      120 |   });
+      121 | });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/architecture-e2e.spec.ts:118:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/basic-functionality-test.spec.ts:42:3 › 时态管理系统基础功能验证 › 组织管理页面可访问
+✅ 认证设置已注入 localStorage
+
+[1A[2K[17/234] [chromium] › tests/e2e/business-flow-e2e.spec.ts:123:3 › 业务流程端到端测试 › 完整CRUD业务流程测试
+[1A[2K[18/234] [chromium] › tests/e2e/business-flow-e2e.spec.ts:288:3 › 业务流程端到端测试 › 分页和筛选功能测试
+[1A[2K[19/234] [chromium] › tests/e2e/business-flow-e2e.spec.ts:374:3 › 业务流程端到端测试 › 性能和响应时间测试
+[1A[2K[chromium] › tests/e2e/business-flow-e2e.spec.ts:123:3 › 业务流程端到端测试 › 完整CRUD业务流程测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/business-flow-e2e.spec.ts:374:3 › 业务流程端到端测试 › 性能和响应时间测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/business-flow-e2e.spec.ts:288:3 › 业务流程端到端测试 › 分页和筛选功能测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[20/234] [chromium] › tests/e2e/business-flow-e2e.spec.ts:417:3 › 业务流程端到端测试 › 错误处理和恢复测试
+[1A[2K[chromium] › tests/e2e/business-flow-e2e.spec.ts:417:3 › 业务流程端到端测试 › 错误处理和恢复测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[21/234] [chromium] › tests/e2e/business-flow-e2e.spec.ts:453:3 › 业务流程端到端测试 › 数据一致性验证测试
+[1A[2K[chromium] › tests/e2e/business-flow-e2e.spec.ts:453:3 › 业务流程端到端测试 › 数据一致性验证测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[22/234] [chromium] › tests/e2e/canvas-e2e.spec.ts:14:3 › Canvas UI 基础体验 › 应用外壳渲染与导航
+[1A[2K[chromium] › tests/e2e/canvas-e2e.spec.ts:14:3 › Canvas UI 基础体验 › 应用外壳渲染与导航
+✅ 认证设置已注入 localStorage
+
+[1A[2K[23/234] [chromium] › tests/e2e/canvas-e2e.spec.ts:26:3 › Canvas UI 基础体验 › 导航跳转至组织列表
+[1A[2K[24/234] [chromium] › tests/e2e/canvas-e2e.spec.ts:37:3 › Canvas UI 基础体验 › 组织表格加载
+[1A[2K[chromium] › tests/e2e/canvas-e2e.spec.ts:26:3 › Canvas UI 基础体验 › 导航跳转至组织列表
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/canvas-e2e.spec.ts:37:3 › Canvas UI 基础体验 › 组织表格加载
+✅ 认证设置已注入 localStorage
+
+[1A[2K[25/234] [chromium] › tests/e2e/canvas-e2e.spec.ts:54:3 › Canvas UI 基础体验 › 响应式布局
+[1A[2K[chromium] › tests/e2e/canvas-e2e.spec.ts:54:3 › Canvas UI 基础体验 › 响应式布局
+✅ 认证设置已注入 localStorage
+
+[1A[2K[26/234] [chromium] › tests/e2e/canvas-e2e.spec.ts:67:3 › Canvas UI 基础体验 › 主要操作按钮具有 Canvas 样式
+[1A[2K[chromium] › tests/e2e/canvas-e2e.spec.ts:67:3 › Canvas UI 基础体验 › 主要操作按钮具有 Canvas 样式
+✅ 认证设置已注入 localStorage
+
+[1A[2K[27/234] [chromium] › tests/e2e/canvas-e2e.spec.ts:73:3 › Canvas UI 基础体验 › 统计数据与表格行展示
+[1A[2K[28/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:55:3 › CQRS协议分离验证 › 🚫 命令端应拒绝GET查询请求
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:55:3 › CQRS协议分离验证 › 🚫 命令端应拒绝GET查询请求
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: 命令端拒绝GET查询
+
+[1A[2K✅ 命令端正确拒绝GET查询请求 (HTTP 401)
+
+[1A[2K[29/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:68:3 › CQRS协议分离验证 › 🚫 命令端应拒绝单个组织查询
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:68:3 › CQRS协议分离验证 › 🚫 命令端应拒绝单个组织查询
+测试: 命令端拒绝单个组织查询
+
+[1A[2K✅ 命令端正确拒绝单个组织查询请求 (HTTP 401)
+
+[1A[2K[30/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:79:3 › CQRS协议分离验证 › ✅ 命令端应支持POST创建操作
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:79:3 › CQRS协议分离验证 › ✅ 命令端应支持POST创建操作
+测试: 命令端支持POST创建
+
+[1A[2K❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"STANDARD_OBJECT_ERROR","message":"Internal server error"},"timestamp":"2025-11-24T08:50:48Z","requestId":"e1b3be3b-bc2f-4a5c-aa06-8b1bf4739384"}
+
+
+[1A[2K[chromium] › tests/e2e/canvas-e2e.spec.ts:73:3 › Canvas UI 基础体验 › 统计数据与表格行展示
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:79:3 › CQRS协议分离验证 › ✅ 命令端应支持POST创建操作
+🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K  2) [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:79:3 › CQRS协议分离验证 › ✅ 命令端应支持POST创建操作 ──
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m500[39m
+
+       97 |       console.warn('❌ 创建组织失败，状态码:', response.status(), '响应:', await response.text());
+       98 |     }
+    >  99 |     expect(response.status()).toBe(201);
+          |                               ^
+      100 |     
+      101 |     const body = await response.json();
+      102 |     expect(body.success).toBeTruthy();
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/cqrs-protocol-separation.spec.ts:99:31
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/cqrs-protocol-separation-CQRS协议分离验证-✅-命令端应支持POST创建操作-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/cqrs-protocol-separation-CQRS协议分离验证-✅-命令端应支持POST创建操作-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[31/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:155:3 › CQRS协议分离验证 › ✅ 查询端应支持GraphQL查询
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:155:3 › CQRS协议分离验证 › ✅ 查询端应支持GraphQL查询
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: 查询端支持GraphQL查询
+
+[1A[2K✅ 查询端正确支持GraphQL查询
+
+[1A[2K📊 查询到 5 个组织
+
+[1A[2K[32/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:187:3 › CQRS协议分离验证 › ✅ 查询端应支持单个组织GraphQL查询
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:187:3 › CQRS协议分离验证 › ✅ 查询端应支持单个组织GraphQL查询
+测试: 查询端支持单个组织GraphQL查询
+
+[1A[2K📋 使用组织代码: 1000000
+
+[1A[2K✅ 查询端正确支持单个组织GraphQL查询
+
+[1A[2K[33/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:245:3 › CQRS协议分离验证 › ✅ 查询端应支持组织统计GraphQL查询
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:245:3 › CQRS协议分离验证 › ✅ 查询端应支持组织统计GraphQL查询
+测试: 查询端支持组织统计查询
+
+[1A[2K✅ 查询端正确支持组织统计GraphQL查询
+
+[1A[2K📊 统计信息: 总计505个组织
+
+[1A[2K🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K[34/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:284:3 › CQRS协议分离验证 › 🔄 CQRS端到端操作验证
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:284:3 › CQRS协议分离验证 › 🔄 CQRS端到端操作验证
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: CQRS端到端操作流程
+
+[1A[2K📝 步骤1: 通过命令端创建组织
+
+[1A[2K🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K  3) [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:284:3 › CQRS协议分离验证 › 🔄 CQRS端到端操作验证 ───
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m500[39m
+
+      303 |     });
+      304 |
+    > 305 |     expect(createResponse.status()).toBe(201);
+          |                                     ^
+      306 |     const createdEnvelope = await createResponse.json();
+      307 |     const createdOrgCode = createdEnvelope.data?.code;
+      308 |     if (!createdOrgCode) {
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/cqrs-protocol-separation.spec.ts:305:37
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/cqrs-protocol-separation-CQRS协议分离验证-🔄-CQRS端到端操作验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/cqrs-protocol-separation-CQRS协议分离验证-🔄-CQRS端到端操作验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[35/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:111:3 › CQRS协议分离验证 › 🚫 查询端应拒绝POST命令请求
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:111:3 › CQRS协议分离验证 › 🚫 查询端应拒绝POST命令请求
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: 查询端拒绝POST命令
+
+[1A[2K🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K  4) [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:111:3 › CQRS协议分离验证 › 🚫 查询端应拒绝POST命令请求 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m404[39m
+    Received: [31m401[39m
+
+      122 |
+      123 |     // 查询端应该不存在此端点
+    > 124 |     expect(response.status()).toBe(404);
+          |                               ^
+      125 |     
+      126 |     console.log('✅ 查询端正确拒绝POST命令请求');
+      127 |   });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/cqrs-protocol-separation.spec.ts:124:31
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/cqrs-protocol-separation-CQRS协议分离验证-🚫-查询端应拒绝POST命令请求-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/cqrs-protocol-separation-CQRS协议分离验证-🚫-查询端应拒绝POST命令请求-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[36/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:369:3 › CQRS协议分离验证 › 📋 CQRS架构健康检查
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:369:3 › CQRS协议分离验证 › 📋 CQRS架构健康检查
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: CQRS架构健康检查
+
+[1A[2K✅ 命令端健康状态正常
+
+[1A[2K🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K  5) [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:369:3 › CQRS协议分离验证 › 📋 CQRS架构健康检查 ────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: [32m"graphql"[39m
+    Received string:    [31m"command"[39m
+
+      387 |
+      388 |     const queryHealth = await queryHealthResponse.json();
+    > 389 |     expect(queryHealth.service).toContain('graphql');
+          |                                 ^
+      390 |     console.log('✅ 查询端健康状态正常');
+      391 |
+      392 |     console.log('🎉 CQRS架构健康检查完成');
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/cqrs-protocol-separation.spec.ts:389:33
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/cqrs-protocol-separation-CQRS协议分离验证-📋-CQRS架构健康检查-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/cqrs-protocol-separation-CQRS协议分离验证-📋-CQRS架构健康检查-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[37/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:129:3 › CQRS协议分离验证 › 🚫 查询端应拒绝PUT更新请求
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:129:3 › CQRS协议分离验证 › 🚫 查询端应拒绝PUT更新请求
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: 查询端拒绝PUT更新
+
+[1A[2K🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K  6) [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:129:3 › CQRS协议分离验证 › 🚫 查询端应拒绝PUT更新请求 ─
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m404[39m
+    Received: [31m401[39m
+
+      138 |     });
+      139 |
+    > 140 |     expect(response.status()).toBe(404);
+          |                               ^
+      141 |     
+      142 |     console.log('✅ 查询端正确拒绝PUT更新请求');
+      143 |   });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/cqrs-protocol-separation.spec.ts:140:31
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/cqrs-protocol-separation-CQRS协议分离验证-🚫-查询端应拒绝PUT更新请求-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/cqrs-protocol-separation-CQRS协议分离验证-🚫-查询端应拒绝PUT更新请求-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[38/234] [chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:43:3 › 五状态生命周期管理系统 › 支持选择时间轴节点并进入编辑模式
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:43:3 › 五状态生命周期管理系统 › 支持选择时间轴节点并进入编辑模式
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[39/234] [chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:25:3 › 五状态生命周期管理系统 › 加载后显示时间轴及当前版本信息
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:25:3 › 五状态生命周期管理系统 › 加载后显示时间轴及当前版本信息
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:43:3 › 五状态生命周期管理系统 › 支持选择时间轴节点并进入编辑模式
+✅ 认证设置已注入 localStorage
+
+[1A[2K[40/234] [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:145:3 › CQRS协议分离验证 › 🚫 查询端应拒绝DELETE删除请求
+[1A[2K[chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:145:3 › CQRS协议分离验证 › 🚫 查询端应拒绝DELETE删除请求
+🚀 开始CQRS架构协议分离测试
+
+[1A[2K✅ 已加载认证令牌用于CQRS验证
+
+[1A[2K测试: 查询端拒绝DELETE删除
+
+[1A[2K🏁 CQRS协议分离测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 命令端正确拒绝查询操作
+
+[1A[2K  ✅ 查询端正确拒绝命令操作
+
+[1A[2K  ✅ 协议分离严格执行
+
+[1A[2K  ✅ CQRS架构符合设计规范
+
+[1A[2K  7) [chromium] › tests/e2e/cqrs-protocol-separation.spec.ts:145:3 › CQRS协议分离验证 › 🚫 查询端应拒绝DELETE删除请求 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m404[39m
+    Received: [31m401[39m
+
+      148 |     const response = await request.delete(buildQueryRestUrl('/api/v1/organization-units/1000001'));
+      149 |
+    > 150 |     expect(response.status()).toBe(404);
+          |                               ^
+      151 |     
+      152 |     console.log('✅ 查询端正确拒绝DELETE删除请求');
+      153 |   });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/cqrs-protocol-separation.spec.ts:150:31
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/cqrs-protocol-separation-CQRS协议分离验证-🚫-查询端应拒绝DELETE删除请求-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/cqrs-protocol-separation-CQRS协议分离验证-🚫-查询端应拒绝DELETE删除请求-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:25:3 › 五状态生命周期管理系统 › 加载后显示时间轴及当前版本信息
+✅ 认证设置已注入 localStorage
+
+[1A[2K[41/234] [chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:59:3 › 五状态生命周期管理系统 › 可以启动插入新版本流程并触发校验
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:59:3 › 五状态生命周期管理系统 › 可以启动插入新版本流程并触发校验
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[42/234] [chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:77:3 › 五状态生命周期管理系统 › 可切换到审计历史并显示记录提示
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:77:3 › 五状态生命周期管理系统 › 可切换到审计历史并显示记录提示
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K  8) [chromium] › tests/e2e/business-flow-e2e.spec.ts:123:3 › 业务流程端到端测试 › 完整CRUD业务流程测试 › 创建新组织 ─────
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('create-organization-button')[22m
+
+
+      129 |
+      130 |     await test.step('创建新组织', async () => {
+    > 131 |       await page.getByTestId('create-organization-button').click();
+          |                                                            ^
+      132 |       await waitForNavigation(page, '**/organizations/new');
+      133 |       await expect(page.getByTestId(temporalEntitySelectors.organization.form)).toBeVisible();
+      134 |
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/business-flow-e2e.spec.ts:131:60
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/business-flow-e2e.spec.ts:130:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/business-flow-e2e-业务流程端到端测试-完整CRUD业务流程测试-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/business-flow-e2e-业务流程端到端测试-完整CRUD业务流程测试-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/business-flow-e2e-业务流程端到端测试-完整CRUD业务流程测试-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/business-flow-e2e-业务流程端到端测试-完整CRUD业务流程测试-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/business-flow-e2e-业务流程端到端测试-完整CRUD业务流程测试-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[43/234] [chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:72:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用REST API进行命令操作
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:72:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用REST API进行命令操作
+🚀 开始前端CQRS协议遵循测试
+
+[1A[2K✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K✅ 使用前端基址: http://localhost:3000
+
+[1A[2K测试: 前端使用REST API执行命令
+
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:59:3 › 五状态生命周期管理系统 › 可以启动插入新版本流程并触发校验
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/five-state-lifecycle-management.spec.ts:77:3 › 五状态生命周期管理系统 › 可切换到审计历史并显示记录提示
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:72:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用REST API进行命令操作
+✅ 认证设置已注入 localStorage
+
+[1A[2K[44/234] [chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:27:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用GraphQL进行查询
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:27:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用GraphQL进行查询
+🚀 开始前端CQRS协议遵循测试
+
+[1A[2K✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K✅ 使用前端基址: http://localhost:3000
+
+[1A[2K测试: 前端使用GraphQL查询
+
+[1A[2K✅ 认证设置已注入 localStorage
+
+[1A[2K[45/234] [chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:138:3 › 前端CQRS协议遵循验证 › 🔍 前端网络请求协议分析
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:138:3 › 前端CQRS协议遵循验证 › 🔍 前端网络请求协议分析
+🚀 开始前端CQRS协议遵循测试
+
+[1A[2K✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K✅ 使用前端基址: http://localhost:3000
+
+[1A[2K[46/234] [chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:195:3 › 前端CQRS协议遵循验证 › 🎯 前端错误处理验证
+[1A[2K测试: 分析前端网络请求协议使用情况
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:195:3 › 前端CQRS协议遵循验证 › 🎯 前端错误处理验证
+🚀 开始前端CQRS协议遵循测试
+
+[1A[2K✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K✅ 使用前端基址: http://localhost:3000
+
+[1A[2K测试: 前端处理CQRS服务错误
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:72:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用REST API进行命令操作
+ℹ️ 本次测试未触发命令操作，这是正常的
+
+[1A[2K🏁 前端CQRS协议遵循测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 前端正确使用GraphQL进行查询
+
+[1A[2K  ✅ 前端正确使用REST API进行命令
+
+[1A[2K  ✅ 没有违反CQRS协议的请求
+
+[1A[2K  ✅ 网络请求模式符合架构设计
+
+[1A[2K[47/234] [chromium] › tests/e2e/job-catalog-layout-baseline.spec.ts:134:3 › Job Catalog 布局基线截图 › 职位列表页面布局
+[1A[2K[48/234] [chromium] › tests/e2e/job-catalog-layout-baseline.spec.ts:141:3 › Job Catalog 布局基线截图 › 职类管理列表布局
+[1A[2K[49/234] [chromium] › tests/e2e/job-catalog-layout-baseline.spec.ts:148:3 › Job Catalog 布局基线截图 › 职类详情布局
+[1A[2K[50/234] [chromium] › tests/e2e/job-catalog-secondary-navigation.spec.ts:179:3 › 职位管理二级导航（真实后端权限验证） › 管理员通过 UI 编辑职类成功并触发 If-Match
+[1A[2K[chromium] › tests/e2e/job-catalog-secondary-navigation.spec.ts:179:3 › 职位管理二级导航（真实后端权限验证） › 管理员通过 UI 编辑职类成功并触发 If-Match
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:138:3 › 前端CQRS协议遵循验证 › 🔍 前端网络请求协议分析
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:195:3 › 前端CQRS协议遵循验证 › 🎯 前端错误处理验证
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:27:3 › 前端CQRS协议遵循验证 › ✅ 前端应使用GraphQL进行查询
+✅ 检测到 1 个GraphQL查询请求
+
+[1A[2K✅ 确认没有使用REST GET查询请求
+
+[1A[2K✅ GraphQL查询内容正确
+
+[1A[2K🏁 前端CQRS协议遵循测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 前端正确使用GraphQL进行查询
+
+[1A[2K  ✅ 前端正确使用REST API进行命令
+
+[1A[2K  ✅ 没有违反CQRS协议的请求
+
+[1A[2K  ✅ 网络请求模式符合架构设计
+
+[1A[2K[51/234] [chromium] › tests/e2e/monitoring-dashboard.spec.ts:45:3 › 系统监控总览 /dashboard › 未认证用户访问会被重定向到登录页
+[1A[2K[chromium] › tests/e2e/monitoring-dashboard.spec.ts:45:3 › 系统监控总览 /dashboard › 未认证用户访问会被重定向到登录页
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:195:3 › 前端CQRS协议遵循验证 › 🎯 前端错误处理验证
+✅ 前端错误处理测试完成
+
+[1A[2K✅ 无网络错误，CQRS服务正常运行
+
+[1A[2K🏁 前端CQRS协议遵循测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 前端正确使用GraphQL进行查询
+
+[1A[2K  ✅ 前端正确使用REST API进行命令
+
+[1A[2K  ✅ 没有违反CQRS协议的请求
+
+[1A[2K  ✅ 网络请求模式符合架构设计
+
+[1A[2K[52/234] [chromium] › tests/e2e/monitoring-dashboard.spec.ts:51:3 › 系统监控总览 /dashboard › 认证后展示监控数据并支持刷新
+[1A[2K[chromium] › tests/e2e/monitoring-dashboard.spec.ts:51:3 › 系统监控总览 /dashboard › 认证后展示监控数据并支持刷新
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[53/234] [chromium] › tests/e2e/name-validation-parentheses.spec.ts:20:3 › 组织名称允许括号验证 › 更新组织名称为包含括号的名称，应成功
+[1A[2K  9) [chromium] › tests/e2e/name-validation-parentheses.spec.ts:20:3 › 组织名称允许括号验证 › 更新组织名称为包含括号的名称，应成功 
+
+    Error: REST 更新应返回 200 并接受括号名称
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m200[39m
+    Received: [31m500[39m
+
+      55 |     });
+      56 |
+    > 57 |     expect(resp.status(), 'REST 更新应返回 200 并接受括号名称').toBe(200);
+         |                                                     ^
+      58 |     const body = await resp.json();
+      59 |     expect(body).toMatchObject({
+      60 |       success: true,
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/name-validation-parentheses.spec.ts:57:53
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/name-validation-parentheses-组织名称允许括号验证-更新组织名称为包含括号的名称，应成功-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/name-validation-parentheses-组织名称允许括号验证-更新组织名称为包含括号的名称，应成功-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[54/234] [chromium] › tests/e2e/operational-monitoring-e2e.spec.ts:26:3 › Operational Monitoring API › health/metrics/alerts/rate-limit require auth and tenant
+[1A[2K  10) [chromium] › tests/e2e/operational-monitoring-e2e.spec.ts:26:3 › Operational Monitoring API › health/metrics/alerts/rate-limit require auth and tenant 
+
+    TypeError: Failed to parse URL from /api/v1/operational/metrics
+
+      26 |   test('health/metrics/alerts/rate-limit require auth and tenant', async () => {
+      27 |     // 401 未认证
+    > 28 |     const noAuth = await fetch(`${COMMAND_BASE}/api/v1/operational/metrics`)
+         |                    ^
+      29 |     expect(noAuth.status).toBe(401)
+      30 |
+      31 |     // 生成开发令牌
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/operational-monitoring-e2e.spec.ts:28:20
+    [cause]: TypeError: Invalid URL
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/operational-monitoring-e2e.spec.ts:28:26
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/operational-monitoring-e2e-9c996-mit-require-auth-and-tenant-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/operational-monitoring-e2e-9c996-mit-require-auth-and-tenant-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[chromium] › tests/e2e/frontend-cqrs-compliance.spec.ts:138:3 › 前端CQRS协议遵循验证 › 🔍 前端网络请求协议分析
+📊 网络请求分析结果:
+
+[1A[2K  GraphQL查询: 1 个
+
+[1A[2K  REST GET: 0 个
+
+[1A[2K  REST POST: 0 个
+
+[1A[2K  REST PUT: 0 个
+
+[1A[2K  REST DELETE: 0 个
+
+[1A[2K✅ 前端CQRS协议使用正确
+
+[1A[2K🏁 前端CQRS协议遵循测试完成
+
+[1A[2K📊 测试结果总结:
+
+[1A[2K  ✅ 前端正确使用GraphQL进行查询
+
+[1A[2K  ✅ 前端正确使用REST API进行命令
+
+[1A[2K  ✅ 没有违反CQRS协议的请求
+
+[1A[2K  ✅ 网络请求模式符合架构设计
+
+[1A[2K[55/234] [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:62:3 › 优化效果验证测试 › Phase 2: 验证Zod复杂验证已简化
+[1A[2K[56/234] [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:39:3 › 优化效果验证测试 › Phase 2: 验证简化后的前端验证体系
+[1A[2K[chromium] › tests/e2e/optimization-verification-e2e.spec.ts:62:3 › 优化效果验证测试 › Phase 2: 验证Zod复杂验证已简化
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/optimization-verification-e2e.spec.ts:39:3 › 优化效果验证测试 › Phase 2: 验证简化后的前端验证体系
+✅ 认证设置已注入 localStorage
+
+[1A[2K[57/234] [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:88:3 › 优化效果验证测试 › Phase 3: 验证DDD简化效果
+[1A[2K[chromium] › tests/e2e/optimization-verification-e2e.spec.ts:88:3 › 优化效果验证测试 › Phase 3: 验证DDD简化效果
+✅ 认证设置已注入 localStorage
+
+[1A[2K简化后API响应时间: 205ms
+
+[1A[2K  11) [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:88:3 › 优化效果验证测试 › Phase 3: 验证DDD简化效果 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m500[39m
+
+      125 |     
+      126 |     // 验证响应成功且性能良好
+    > 127 |     expect(response.status).toBe(201);
+          |                             ^
+      128 |     expect(responseTime).toBeLessThan(500); // 简化后应该更快
+      129 |   });
+      130 |
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/optimization-verification-e2e.spec.ts:127:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-3-验证DDD简化效果-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-3-验证DDD简化效果-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/optimization-verification-e2e-优化效果验证测试-Phase-3-验证DDD简化效果-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-3-验证DDD简化效果-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/optimization-verification-e2e-优化效果验证测试-Phase-3-验证DDD简化效果-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[58/234] [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:131:3 › 优化效果验证测试 › 优化收益量化验证
+[1A[2K[chromium] › tests/e2e/optimization-verification-e2e.spec.ts:131:3 › 优化效果验证测试 › 优化收益量化验证
+✅ 认证设置已注入 localStorage
+
+[1A[2K前端资源总大小: 4483.78KB
+
+[1A[2K  12) [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:131:3 › 优化效果验证测试 › 优化收益量化验证 ─────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m2[39m
+    Received: [31m1[39m
+
+      177 |
+      178 |     // 验证只有2个服务在运行
+    > 179 |     expect(activeServices.length).toBe(2);
+          |                                   ^
+      180 |     expect(activeServices).toContain(8090); // 查询服务
+      181 |     expect(activeServices).toContain(9090); // 命令服务
+      182 |   });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/optimization-verification-e2e.spec.ts:179:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-优化收益量化验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-优化收益量化验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/optimization-verification-e2e-优化效果验证测试-优化收益量化验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-优化收益量化验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/optimization-verification-e2e-优化效果验证测试-优化收益量化验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[59/234] [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:184:3 › 优化效果验证测试 › 系统稳定性验证测试
+[1A[2K[chromium] › tests/e2e/optimization-verification-e2e.spec.ts:184:3 › 优化效果验证测试 › 系统稳定性验证测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K成功率: 0.00%
+
+[1A[2K平均响应时间: 149.80ms
+
+[1A[2K[60/234] [chromium] › tests/e2e/job-catalog-secondary-navigation.spec.ts:220:3 › 职位管理二级导航（真实后端权限验证） › 普通用户更新职类遭遇 403 禁止访问
+[1A[2K[61/234] [chromium] › tests/e2e/job-catalog-secondary-navigation.spec.ts:238:3 › 职位管理二级导航（真实后端权限验证） › If-Match 不匹配返回 412 Precondition Failed
+[1A[2K[62/234] [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:244:3 › 优化效果验证测试 › 监控指标验证测试
+[1A[2K  13) [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:184:3 › 优化效果验证测试 › 系统稳定性验证测试 ────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0.8[39m
+    Received:   [31m0[39m
+
+      238 |
+      239 |     // 断言稳定性要求
+    > 240 |     expect(successRate).toBeGreaterThan(0.8); // 成功率 > 80%
+          |                         ^
+      241 |     expect(avgDuration).toBeLessThan(1000);   // 平均响应时间 < 1秒
+      242 |   });
+      243 |
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/optimization-verification-e2e.spec.ts:240:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-系统稳定性验证测试-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-系统稳定性验证测试-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/optimization-verification-e2e-优化效果验证测试-系统稳定性验证测试-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-系统稳定性验证测试-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/optimization-verification-e2e-优化效果验证测试-系统稳定性验证测试-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[chromium] › tests/e2e/optimization-verification-e2e.spec.ts:244:3 › 优化效果验证测试 › 监控指标验证测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[63/234] [chromium] › tests/e2e/organization-create.spec.ts:12:3 › Organization Create Flow › allows selecting parent organization before submitting create request
+[1A[2K[chromium] › tests/e2e/organization-create.spec.ts:12:3 › Organization Create Flow › allows selecting parent organization before submitting create request
+✅ 认证设置已注入 localStorage
+
+[1A[2K  14) [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:244:3 › 优化效果验证测试 › 监控指标验证测试 ─────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: [32m"organization_operations_total"[39m
+    Received string:    [31m"# HELP db_connections_idle Number of idle database connections[39m
+    [31m# TYPE db_connections_idle gauge[39m
+    [31mdb_connections_idle{service=\"command-service\"} 3[39m
+    [31m# HELP db_connections_in_use Number of database connections currently in use[39m
+    [31m# TYPE db_connections_in_use gauge[39m
+    [31mdb_connections_in_use{service=\"command-service\"} 0[39m
+    [31m# HELP db_query_duration_seconds Database query duration in seconds[39m
+    [31m# TYPE db_query_duration_seconds histogram[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"0.001\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"0.005\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"0.01\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"0.05\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"0.1\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"0.5\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"1\"} 1[39m
+    [31mdb_query_duration_seconds_bucket{query_type=\"startup\",service=\"command-service\",le=\"+Inf\"} 1[39m
+    [31mdb_query_duration_seconds_sum{query_type=\"startup\",service=\"command-service\"} 0[39m
+    [31mdb_query_duration_seconds_count{query_type=\"startup\",service=\"command-service\"} 1[39m
+    [31m# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.[39m
+    [31m# TYPE go_gc_duration_seconds summary[39m
+    [31mgo_gc_duration_seconds{quantile=\"0\"} 6.2072e-05[39m
+    [31mgo_gc_duration_seconds{quantile=\"0.25\"} 0.000113779[39m
+    [31mgo_gc_duration_seconds{quantile=\"0.5\"} 0.000237866[39m
+    [31mgo_gc_duration_seconds{quantile=\"0.75\"} 0.000425013[39m
+    [31mgo_gc_duration_seconds{quantile=\"1\"} 0.008855365[39m
+    [31mgo_gc_duration_seconds_sum 0.096266734[39m
+    [31mgo_gc_duration_seconds_count 155[39m
+    [31m# HELP go_goroutines Number of goroutines that currently exist.[39m
+    [31m# TYPE go_goroutines gauge[39m
+    [31mgo_goroutines 19[39m
+    [31m# HELP go_info Information about the Go environment.[39m
+    [31m# TYPE go_info gauge[39m
+    [31mgo_info{version=\"go1.24.9\"} 1[39m
+    [31m# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.[39m
+    [31m# TYPE go_memstats_alloc_bytes gauge[39m
+    [31mgo_memstats_alloc_bytes 3.028688e+06[39m
+    [31m# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.[39m
+    [31m# TYPE go_memstats_alloc_bytes_total counter[39m
+    [31mgo_memstats_alloc_bytes_total 3.1882812e+08[39m
+    [31m# HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table.[39m
+    [31m# TYPE go_memstats_buck_hash_sys_bytes gauge[39m
+    [31mgo_memstats_buck_hash_sys_bytes 1.546927e+06[39m
+    [31m# HELP go_memstats_frees_total Total number of frees.[39m
+    [31m# TYPE go_memstats_frees_total counter[39m
+    [31mgo_memstats_frees_total 4.014267e+06[39m
+    [31m# HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata.[39m
+    [31m# TYPE go_memstats_gc_sys_bytes gauge[39m
+    [31mgo_memstats_gc_sys_bytes 3.134736e+06[39m
+    [31m# HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and still in use.[39m
+    [31m# TYPE go_memstats_heap_alloc_bytes gauge[39m
+    [31mgo_memstats_heap_alloc_bytes 3.028688e+06[39m
+    [31m# HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used.[39m
+    [31m# TYPE go_memstats_heap_idle_bytes gauge[39m
+    [31mgo_memstats_heap_idle_bytes 9.355264e+06[39m
+    [31m# HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use.[39m
+    [31m# TYPE go_memstats_heap_inuse_bytes gauge[39m
+    [31mgo_memstats_heap_inuse_bytes 6.144e+06[39m
+    [31m# HELP go_memstats_heap_objects Number of allocated objects.[39m
+    [31m# TYPE go_memstats_heap_objects gauge[39m
+    [31mgo_memstats_heap_objects 15601[39m
+    [31m# HELP go_memstats_heap_released_bytes Number of heap bytes released to OS.[39m
+    [31m# TYPE go_memstats_heap_released_bytes gauge[39m
+    [31mgo_memstats_heap_released_bytes 8.388608e+06[39m
+    [31m# HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system.[39m
+    [31m# TYPE go_memstats_heap_sys_bytes gauge[39m
+    [31mgo_memstats_heap_sys_bytes 1.5499264e+07[39m
+    [31m# HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.[39m
+    [31m# TYPE go_memstats_last_gc_time_seconds gauge[39m
+    [31mgo_memstats_last_gc_time_seconds 1.7639742762002504e+09[39m
+    [31m# HELP go_memstats_lookups_total Total number of pointer lookups.[39m
+    [31m# TYPE go_memstats_lookups_total counter[39m
+    [31mgo_memstats_lookups_total 0[39m
+    [31m# HELP go_memstats_mallocs_total Total number of mallocs.[39m
+    [31m# TYPE go_memstats_mallocs_total counter[39m
+    [31mgo_memstats_mallocs_total 4.029868e+06[39m
+    [31m# HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures.[39m
+    [31m# TYPE go_memstats_mcache_inuse_bytes gauge[39m
+    [31mgo_memstats_mcache_inuse_bytes 9664[39m
+    [31m# HELP go_memstats_mcache_sys_bytes Number of bytes used for mcache structures obtained from system.[39m
+    [31m# TYPE go_memstats_mcache_sys_bytes gauge[39m
+    [31mgo_memstats_mcache_sys_bytes 15704[39m
+    [31m# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures.[39m
+    [31m# TYPE go_memstats_mspan_inuse_bytes gauge[39m
+    [31mgo_memstats_mspan_inuse_bytes 189280[39m
+    [31m# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system.[39m
+    [31m# TYPE go_memstats_mspan_sys_bytes gauge[39m
+    [31mgo_memstats_mspan_sys_bytes 244800[39m
+    [31m# HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place.[39m
+    [31m# TYPE go_memstats_next_gc_bytes gauge[39m
+    [31mgo_memstats_next_gc_bytes 6.009978e+06[39m
+    [31m# HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations.[39m
+    [31m# TYPE go_memstats_other_sys_bytes gauge[39m
+    [31mgo_memstats_other_sys_bytes 1.960881e+06[39m
+    [31m# HELP go_memstats_stack_inuse_bytes Number of bytes in use by the stack allocator.[39m
+    [31m# TYPE go_memstats_stack_inuse_bytes gauge[39m
+    [31mgo_memstats_stack_inuse_bytes 1.277952e+06[39m
+    [31m# HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator.[39m
+    [31m# TYPE go_memstats_stack_sys_bytes gauge[39m
+    [31mgo_memstats_stack_sys_bytes 1.277952e+06[39m
+    [31m# HELP go_memstats_sys_bytes Number of bytes obtained from system.[39m
+    [31m# TYPE go_memstats_sys_bytes gauge[39m
+    [31mgo_memstats_sys_bytes 2.3680264e+07[39m
+    [31m# HELP go_threads Number of OS threads created.[39m
+    [31m# TYPE go_threads gauge[39m
+    [31mgo_threads 13[39m
+    [31m# HELP http_requests_total Total HTTP requests handled by the command service grouped by method, route, and status code.[39m
+    [31m# TYPE http_requests_total counter[39m
+    [31mhttp_requests_total{method=\"DELETE\",route=\"/api/v1/organization-units/*\",status=\"401\"} 2[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/.well-known/jwks.json\",status=\"200\"} 208[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/health\",status=\"200\"} 2[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/operational/alerts\",status=\"200\"} 4[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/operational/health\",status=\"200\"} 4[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/operational/metrics\",status=\"200\"} 4[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/operational/rate-limit/stats\",status=\"200\"} 4[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/organization-units\",status=\"401\"} 2[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/api/v1/organization-units/*\",status=\"401\"} 2[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/health\",status=\"200\"} 70[39m
+    [31mhttp_requests_total{method=\"GET\",route=\"/metrics\",status=\"200\"} 3[39m
+    [31mhttp_requests_total{method=\"OPTIONS\",route=\"unknown\",status=\"200\"} 11[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/job-family-groups\",status=\"201\"} 1[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/job-family-groups\",status=\"500\"} 1[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/organization-units\",status=\"201\"} 1[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/organization-units\",status=\"400\"} 1[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/organization-units\",status=\"401\"} 2[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/organization-units\",status=\"500\"} 18[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/positions\",status=\"422\"} 1[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/api/v1/positions\",status=\"500\"} 2[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/auth/dev-token\",status=\"200\"} 5[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/graphql\",status=\"200\"} 358[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/graphql\",status=\"401\"} 10[39m
+    [31mhttp_requests_total{method=\"POST\",route=\"/graphql\",status=\"422\"} 2[39m
+    [31mhttp_requests_total{method=\"PUT\",route=\"/api/v1/job-family-groups/{code}\",status=\"200\"} 1[39m
+    [31mhttp_requests_total{method=\"PUT\",route=\"/api/v1/job-family-groups/{code}\",status=\"403\"} 1[39m
+    [31mhttp_requests_total{method=\"PUT\",route=\"/api/v1/job-family-groups/{code}\",status=\"412\"} 1[39m
+    [31mhttp_requests_total{method=\"PUT\",route=\"/api/v1/organization-units/*\",status=\"401\"} 2[39m
+    [31mhttp_requests_total{method=\"PUT\",route=\"/api/v1/organization-units/{code}\",status=\"500\"} 2[39m
+    [31mhttp_requests_total{method=\"PUT\",route=\"/api/v1/positions/{code}\",status=\"404\"} 1[39m
+    [31m# HELP outbox_dispatch_active Indicator whether dispatcher is actively polling[39m
+    [31m# TYPE outbox_dispatch_active gauge[39m
+    [31moutbox_dispatch_active 0[39m
+    [31m# HELP outbox_dispatch_failure_total Number of outbox events failed to publish[39m
+    [31m# TYPE outbox_dispatch_failure_total counter[39m
+    [31moutbox_dispatch_failure_total 0[39m
+    [31m# HELP outbox_dispatch_retry_total Number of outbox events scheduled for retry[39m
+    [31m# TYPE outbox_dispatch_retry_total counter[39m
+    [31moutbox_dispatch_retry_total 0[39m
+    [31m# HELP outbox_dispatch_success_total Number of outbox events successfully published[39m
+    [31m# TYPE outbox_dispatch_success_total counter[39m
+    [31moutbox_dispatch_success_total 1[39m
+    [31m# HELP outbox_dispatch_total Total number of outbox dispatch operations grouped by result and event type[39m
+    [31m# TYPE outbox_dispatch_total counter[39m
+    [31moutbox_dispatch_total{event_type=\"standard_object.created\",result=\"success\"} 1[39m
+    [31m# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.[39m
+    [31m# TYPE process_cpu_seconds_total counter[39m
+    [31mprocess_cpu_seconds_total 4.13[39m
+    [31m# HELP process_max_fds Maximum number of open file descriptors.[39m
+    [31m# TYPE process_max_fds gauge[39m
+    [31mprocess_max_fds 1.048576e+06[39m
+    [31m# HELP process_open_fds Number of open file descriptors.[39m
+    [31m# TYPE process_open_fds gauge[39m
+    [31mprocess_open_fds 15[39m
+    [31m# HELP process_resident_memory_bytes Resident memory size in bytes.[39m
+    [31m# TYPE process_resident_memory_bytes gauge[39m
+    [31mprocess_resident_memory_bytes 2.838528e+07[39m
+    [31m# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.[39m
+    [31m# TYPE process_start_time_seconds gauge[39m
+    [31mprocess_start_time_seconds 1.76397370086e+09[39m
+    [31m# HELP process_virtual_memory_bytes Virtual memory size in bytes.[39m
+    [31m# TYPE process_virtual_memory_bytes gauge[39m
+    [31mprocess_virtual_memory_bytes 1.281671168e+09[39m
+    [31m# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.[39m
+    [31m# TYPE process_virtual_memory_max_bytes gauge[39m
+    [31mprocess_virtual_memory_max_bytes 1.8446744073709552e+19[39m
+    [31m# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.[39m
+    [31m# TYPE promhttp_metric_handler_requests_in_flight gauge[39m
+    [31mpromhttp_metric_handler_requests_in_flight 1[39m
+    [31m# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.[39m
+    [31m# TYPE promhttp_metric_handler_requests_total counter[39m
+    [31mpromhttp_metric_handler_requests_total{code=\"200\"} 3[39m
+    [31mpromhttp_metric_handler_requests_total{code=\"500\"} 0[39m
+    [31mpromhttp_metric_handler_requests_total{code=\"503\"} 0[39m
+    [31m# HELP validator_chain_duration_seconds Histogram of validation chain execution durations.[39m
+    [31m# TYPE validator_chain_duration_seconds histogram[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.005\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.01\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.025\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.05\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.1\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.25\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"0.5\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"1\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"2.5\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"5\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"10\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreateOrganization\",le=\"+Inf\"} 20[39m
+    [31mvalidator_chain_duration_seconds_sum{operation=\"CreateOrganization\"} 0.034066268999999996[39m
+    [31mvalidator_chain_duration_seconds_count{operation=\"CreateOrganization\"} 20[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.005\"} 1[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.01\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.025\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.05\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.1\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.25\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"0.5\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"1\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"2.5\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"5\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"10\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"CreatePosition\",le=\"+Inf\"} 3[39m
+    [31mvalidator_chain_duration_seconds_sum{operation=\"CreatePosition\"} 0.025101046000000002[39m
+    [31mvalidator_chain_duration_seconds_count{operation=\"CreatePosition\"} 3[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.005\"} 0[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.01\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.025\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.05\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.1\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.25\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"0.5\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"1\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"2.5\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"5\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"10\"} 2[39m
+    [31mvalidator_chain_duration_seconds_bucket{operation=\"UpdateOrganization\",le=\"+Inf\"} 2[39m
+    [31mvalidator_chain_duration_seconds_sum{operation=\"UpdateOrganization\"} 0.014015387[39m
+    [31mvalidator_chain_duration_seconds_count{operation=\"UpdateOrganization\"} 2[39m
+    [31m# HELP validator_chain_outcome_total Total number of validation chain executions grouped by outcome.[39m
+    [31m# TYPE validator_chain_outcome_total counter[39m
+    [31mvalidator_chain_outcome_total{operation=\"CreateOrganization\",outcome=\"success\"} 20[39m
+    [31mvalidator_chain_outcome_total{operation=\"CreatePosition\",outcome=\"failed\"} 1[39m
+    [31mvalidator_chain_outcome_total{operation=\"CreatePosition\",outcome=\"success\"} 2[39m
+    [31mvalidator_chain_outcome_total{operation=\"UpdateOrganization\",outcome=\"success\"} 2[39m
+    [31m# HELP validator_rule_duration_seconds Histogram of validation rule execution durations.[39m
+    [31m# TYPE validator_rule_duration_seconds histogram[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.005\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.01\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.025\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.05\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.1\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.25\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"0.5\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"1\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"2.5\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"5\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"10\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-CIRC\",le=\"+Inf\"} 2[39m
+    [31mvalidator_rule_duration_seconds_sum{rule_id=\"ORG-CIRC\"} 0.006903444[39m
+    [31mvalidator_rule_duration_seconds_count{rule_id=\"ORG-CIRC\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.005\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.01\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.025\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.05\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.1\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.25\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"0.5\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"1\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"2.5\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"5\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"10\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-DEPTH\",le=\"+Inf\"} 20[39m
+    [31mvalidator_rule_duration_seconds_sum{rule_id=\"ORG-DEPTH\"} 0.016591936[39m
+    [31mvalidator_rule_duration_seconds_count{rule_id=\"ORG-DEPTH\"} 20[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.005\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.01\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.025\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.05\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.1\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.25\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"0.5\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"1\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"2.5\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"5\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"10\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-STATUS\",le=\"+Inf\"} 2[39m
+    [31mvalidator_rule_duration_seconds_sum{rule_id=\"ORG-STATUS\"} 3.133e-06[39m
+    [31mvalidator_rule_duration_seconds_count{rule_id=\"ORG-STATUS\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.005\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.01\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.025\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.05\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.1\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.25\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"0.5\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"1\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"2.5\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"5\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"10\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"ORG-TEMPORAL\",le=\"+Inf\"} 19[39m
+    [31mvalidator_rule_duration_seconds_sum{rule_id=\"ORG-TEMPORAL\"} 0.023499043999999993[39m
+    [31mvalidator_rule_duration_seconds_count{rule_id=\"ORG-TEMPORAL\"} 19[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.005\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.01\"} 2[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.025\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.05\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.1\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.25\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"0.5\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"1\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"2.5\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"5\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"10\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-JC-LINK\",le=\"+Inf\"} 3[39m
+    [31mvalidator_rule_duration_seconds_sum{rule_id=\"POS-JC-LINK\"} 0.019225349000000003[39m
+    [31mvalidator_rule_duration_seconds_count{rule_id=\"POS-JC-LINK\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.005\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.01\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.025\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.05\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.1\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.25\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"0.5\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"1\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"2.5\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"5\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"10\"} 3[39m
+    [31mvalidator_rule_duration_seconds_bucket{rule_id=\"POS-ORG\",le=\"+Inf\"} 3[39m
+    [31mvalidator_rule_duration_seconds_sum{rule_id=\"POS-ORG\"} 0.005685261[39m
+    [31mvalidator_rule_duration_seconds_count{rule_id=\"POS-ORG\"} 3[39m
+    [31m# HELP validator_rule_outcome_total Total number of validation rule executions grouped by outcome.[39m
+    [31m# TYPE validator_rule_outcome_total counter[39m
+    [31mvalidator_rule_outcome_total{outcome=\"failed\",rule_id=\"POS-JC-LINK\"} 1[39m
+    [31mvalidator_rule_outcome_total{outcome=\"success\",rule_id=\"ORG-CIRC\"} 2[39m
+    [31mvalidator_rule_outcome_total{outcome=\"success\",rule_id=\"ORG-DEPTH\"} 20[39m
+    [31mvalidator_rule_outcome_total{outcome=\"success\",rule_id=\"ORG-STATUS\"} 2[39m
+    [31mvalidator_rule_outcome_total{outcome=\"success\",rule_id=\"ORG-TEMPORAL\"} 19[39m
+    [31mvalidator_rule_outcome_total{outcome=\"success\",rule_id=\"POS-JC-LINK\"} 2[39m
+    [31mvalidator_rule_outcome_total{outcome=\"success\",rule_id=\"POS-ORG\"} 3[39m
+    [31m"[39m
+
+      317 |
+      318 |     // 验证业务指标被正确记录
+    > 319 |     expect(updatedMetrics).toContain('organization_operations_total');
+          |                            ^
+      320 |     expect(updatedMetrics).toContain('http_requests_total');
+      321 |   });
+      322 | });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/optimization-verification-e2e.spec.ts:319:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-监控指标验证测试-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-监控指标验证测试-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/optimization-verification-e2e-优化效果验证测试-监控指标验证测试-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-监控指标验证测试-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/optimization-verification-e2e-优化效果验证测试-监控指标验证测试-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[64/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:38:3 › 职位管理完整CRUD生命周期 › Step 1: 创建职位 (Create)
+[1A[2K[chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:38:3 › 职位管理完整CRUD生命周期 › Step 1: 创建职位 (Create)
+✅ 认证设置已注入 localStorage
+
+[1A[2K
+🧪 [Step 1] 创建职位测试 - E2E-1763974278730-jdbwclhpj
+
+[1A[2K  15) [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:62:3 › 优化效果验证测试 › Phase 2: 验证Zod复杂验证已简化 
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('create-organization-button')[22m
+
+
+      75 |     });
+      76 |
+    > 77 |     await page.getByTestId('create-organization-button').click();
+         |                                                          ^
+      78 |     await page.waitForURL('**/organizations/new');
+      79 |     await page.getByTestId('form-field-name').focus();
+      80 |     await page.waitForTimeout(500);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/optimization-verification-e2e.spec.ts:77:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证Zod复杂验证已简化-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证Zod复杂验证已简化-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证Zod复杂验证已简化-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证Zod复杂验证已简化-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证Zod复杂验证已简化-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[65/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:424:3 › 职位管理CRUD错误处理 › 验证更新不存在的职位返回404
+[1A[2K  16) [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:38:3 › 职位管理完整CRUD生命周期 › Step 1: 创建职位 (Create) 
+
+    Error: 创建职位应返回201
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m500[39m
+
+      82 |
+      83 |     // 验证响应
+    > 84 |     expect(response.status(), '创建职位应返回201').toBe(201);
+         |                                             ^
+      85 |
+      86 |     console.log('✅ 创建职位响应:', JSON.stringify(responseBody, null, 2));
+      87 |
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-crud-full-lifecycle.spec.ts:84:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-crud-full-lifecyc-b9f01-RUD生命周期-Step-1-创建职位-Create--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-crud-full-lifecyc-b9f01-RUD生命周期-Step-1-创建职位-Create--chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-crud-full-lifecyc-b9f01-RUD生命周期-Step-1-创建职位-Create--chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-crud-full-lifecyc-b9f01-RUD生命周期-Step-1-创建职位-Create--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-crud-full-lifecyc-b9f01-RUD生命周期-Step-1-创建职位-Create--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[66/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:110:3 › 职位管理完整CRUD生命周期 › Step 2: 读取职位详情 (Read)
+[1A[2K[67/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:147:3 › 职位管理完整CRUD生命周期 › Step 3: 更新职位信息 (Update)
+[1A[2K[68/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:205:3 › 职位管理完整CRUD生命周期 › Step 4: 填充职位 (Fill Position)
+[1A[2K[69/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:265:3 › 职位管理完整CRUD生命周期 › Step 5: 空缺职位 (Vacate Position)
+[1A[2K[70/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:312:3 › 职位管理完整CRUD生命周期 › Step 6: 删除职位 (Delete)
+[1A[2K[71/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:363:3 › 职位管理完整CRUD生命周期 › Step 7: 验证完整生命周期一致性
+[1A[2K[72/234] [chromium] › tests/e2e/position-crud-live.spec.ts:15:3 › 职位管理 CRUD（真实后端链路） › 加载职位列表并跳转详情
+[1A[2K[73/234] [chromium] › tests/e2e/position-crud-live.spec.ts:96:3 › 职位管理 Mock 守护 › Mock 模式显示只读提示并禁用创建按钮
+[1A[2K  17) [chromium] › tests/e2e/optimization-verification-e2e.spec.ts:39:3 › 优化效果验证测试 › Phase 2: 验证简化后的前端验证体系 
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('create-organization-button')[22m
+
+
+      40 |     await page.goto('/organizations');
+      41 |
+    > 42 |     await page.getByTestId('create-organization-button').click();
+         |                                                          ^
+      43 |     await page.waitForURL('**/organizations/new');
+      44 |
+      45 |     const form = page.getByTestId(temporalEntitySelectors.organization.form);
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/optimization-verification-e2e.spec.ts:42:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证简化后的前端验证体系-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证简化后的前端验证体系-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证简化后的前端验证体系-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证简化后的前端验证体系-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/optimization-verification-e2e-优化效果验证测试-Phase-2-验证简化后的前端验证体系-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:424:3 › 职位管理CRUD错误处理 › 验证更新不存在的职位返回404
+✅ 认证设置已注入 localStorage
+
+[1A[2K✅ 不存在职位校验通过
+
+[1A[2K[74/234] [chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:396:3 › 职位管理CRUD错误处理 › 验证创建职位时的必填字段校验
+[1A[2K[75/234] [chromium] › tests/e2e/position-lifecycle.spec.ts:67:3 › 职位生命周期视图 › 展示任职与调动历史
+[1A[2K[76/234] [chromium] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D
+[1A[2K[chromium] › tests/e2e/position-crud-full-lifecycle.spec.ts:396:3 › 职位管理CRUD错误处理 › 验证创建职位时的必填字段校验
+✅ 认证设置已注入 localStorage
+
+[1A[2K[77/234] [chromium] › tests/e2e/position-tabs.spec.ts:139:3 › 职位详情多页签体验 › 六个页签可切换且展示对应内容
+[1A[2K✅ 必填字段校验返回状态 422
+
+[1A[2K[chromium] › tests/e2e/position-lifecycle.spec.ts:67:3 › 职位生命周期视图 › 展示任职与调动历史
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D
+✅ 认证设置已注入 localStorage
+
+[1A[2K[78/234] [chromium] › tests/e2e/position-tabs.spec.ts:186:3 › 职位详情多页签体验 › Mock 模式下隐藏写入按钮
+[1A[2K[79/234] [chromium] › tests/e2e/regression-e2e.spec.ts:25:3 › 回归测试和兼容性验证 › 关键功能回归测试
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:25:3 › 回归测试和兼容性验证 › 关键功能回归测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K  18) [chromium] › tests/e2e/position-observability.spec.ts:27:3 › Position Observability (Plan 240D) › collects [OBS] logs and writes to plan240/D 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m500[39m
+
+      91 |         test.skip(true, '职位创建依赖参考数据缺失（Job Catalog/Org），跳过观测验证');
+      92 |       }
+    > 93 |       expect(createResp.status()).toBe(201);
+         |                                   ^
+      94 |       const created = await createResp.json();
+      95 |       positionCode = created?.data?.code as string;
+      96 |
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:93:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[80/234] [chromium] › tests/e2e/regression-e2e.spec.ts:47:3 › 回归测试和兼容性验证 › API兼容性测试
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:47:3 › 回归测试和兼容性验证 › API兼容性测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K  19) [chromium] › tests/e2e/position-lifecycle.spec.ts:67:3 › 职位生命周期视图 › 展示任职与调动历史 ────────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByTestId('temporal-position-detail-card')
+    Expected substring: [32m"生命周期演示岗位"[39m
+    Error: strict mode violation: getByTestId('temporal-position-detail-card') resolved to 2 elements:
+        1) <div class="css-wcvs8w" data-testid="temporal-position-detail-card">…</div> aka getByTestId('temporal-position-detail-card').first()
+        2) <div class="css-roynbj" data-testid="temporal-position-detail-card">…</div> aka getByTestId('temporal-position-detail-card').nth(1)
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 15000ms[22m
+    [2m  - waiting for getByTestId('temporal-position-detail-card')[22m
+
+
+      84 |
+      85 |     const detailCard = page.getByTestId(temporalEntitySelectors.position.detailCard);
+    > 86 |     await expect(detailCard).toContainText('生命周期演示岗位');
+         |                              ^
+      87 |     await expect(detailCard).toContainText('当前任职');
+      88 |     await expect(detailCard).toContainText('张三');
+      89 |     await expect(detailCard).toContainText('夜班负责人');
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-lifecycle.spec.ts:86:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/position-lifecycle-职位生命周期视图-展示任职与调动历史-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/position-lifecycle-职位生命周期视图-展示任职与调动历史-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/position-lifecycle-职位生命周期视图-展示任职与调动历史-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/position-lifecycle-职位生命周期视图-展示任职与调动历史-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/position-lifecycle-职位生命周期视图-展示任职与调动历史-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  20) [chromium] › tests/e2e/regression-e2e.spec.ts:47:3 › 回归测试和兼容性验证 › API兼容性测试 ───────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m, [22m[32mvalue[39m[2m)[22m
+
+    Expected path: [32m"service"[39m
+
+    Expected value: [32m"organization-command-service"[39m
+    Received value: [31m"command"[39m
+
+      108 |     expect(restHealth.status).toBe(200);
+      109 |     expect(restHealth.data).toHaveProperty('status', 'healthy');
+    > 110 |     expect(restHealth.data).toHaveProperty('service', 'organization-command-service');
+          |                             ^
+      111 |   });
+      112 |
+      113 |   test('数据迁移验证测试', async ({ page }) => {
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/regression-e2e.spec.ts:110:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/regression-e2e-回归测试和兼容性验证-API兼容性测试-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/regression-e2e-回归测试和兼容性验证-API兼容性测试-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/regression-e2e-回归测试和兼容性验证-API兼容性测试-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/regression-e2e-回归测试和兼容性验证-API兼容性测试-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/regression-e2e-回归测试和兼容性验证-API兼容性测试-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[81/234] [chromium] › tests/e2e/regression-e2e.spec.ts:229:3 › 回归测试和兼容性验证 › 性能回归测试
+[1A[2K[82/234] [chromium] › tests/e2e/regression-e2e.spec.ts:113:3 › 回归测试和兼容性验证 › 数据迁移验证测试
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:229:3 › 回归测试和兼容性验证 › 性能回归测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[83/234] [chromium] › tests/e2e/regression-e2e.spec.ts:187:3 › 回归测试和兼容性验证 › 跨浏览器兼容性验证
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:113:3 › 回归测试和兼容性验证 › 数据迁移验证测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:187:3 › 回归测试和兼容性验证 › 跨浏览器兼容性验证
+✅ 认证设置已注入 localStorage
+
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:229:3 › 回归测试和兼容性验证 › 性能回归测试
+页面加载时间: 1406ms
+
+[1A[2K内存使用: 29.75MB
+
+[1A[2KAPI响应时间: 27ms
+
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:187:3 › 回归测试和兼容性验证 › 跨浏览器兼容性验证
+测试浏览器: chromium
+
+[1A[2K[84/234] [chromium] › tests/e2e/regression-e2e.spec.ts:286:3 › 回归测试和兼容性验证 › 错误边界和异常处理测试
+[1A[2K[85/234] [chromium] › tests/e2e/schema-validation.spec.ts:26:3 › Schema & 契约验证 › REST 创建组织返回契约字段
+[1A[2K[chromium] › tests/e2e/schema-validation.spec.ts:26:3 › Schema & 契约验证 › REST 创建组织返回契约字段
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K  21) [chromium] › tests/e2e/schema-validation.spec.ts:26:3 › Schema & 契约验证 › REST 创建组织返回契约字段 ──────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m500[39m
+
+      42 |     });
+      43 |
+    > 44 |     expect(response.status()).toBe(201);
+         |                               ^
+      45 |     const body = await response.json();
+      46 |
+      47 |     expect(body).toMatchObject({
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/schema-validation.spec.ts:44:31
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/schema-validation-Schema-契约验证-REST-创建组织返回契约字段-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/schema-validation-Schema-契约验证-REST-创建组织返回契约字段-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[chromium] › tests/e2e/regression-e2e.spec.ts:286:3 › 回归测试和兼容性验证 › 错误边界和异常处理测试
+✅ 认证设置已注入 localStorage
+
+[1A[2K[86/234] [chromium] › tests/e2e/schema-validation.spec.ts:79:3 › Schema & 契约验证 › GraphQL organizations 字段类型正确
+[1A[2K[chromium] › tests/e2e/schema-validation.spec.ts:79:3 › Schema & 契约验证 › GraphQL organizations 字段类型正确
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[87/234] [chromium] › tests/e2e/schema-validation.spec.ts:115:3 › Schema & 契约验证 › GraphQL 错误响应携带 message
+[1A[2K[88/234] [chromium] › tests/e2e/simple-connection-test.spec.ts:6:1 › 简单的服务器连接测试
+[1A[2K[chromium] › tests/e2e/schema-validation.spec.ts:115:3 › Schema & 契约验证 › GraphQL 错误响应携带 message
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[chromium] › tests/e2e/simple-connection-test.spec.ts:6:1 › 简单的服务器连接测试
+开始测试服务器连接...
+
+[1A[2K✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K✅ 使用前端基址: http://localhost:3000
+
+[1A[2K  22) [chromium] › tests/e2e/schema-validation.spec.ts:115:3 › Schema & 契约验证 › GraphQL 错误响应携带 message 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      130 |     });
+      131 |
+    > 132 |     expect(response.ok()).toBeTruthy();
+          |                           ^
+      133 |     const body = await response.json();
+      134 |     expect(body.errors?.[0]?.message).toContain('nonexistentField');
+      135 |   });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/schema-validation.spec.ts:132:27
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/schema-validation-Schema-契约验证-GraphQL-错误响应携带-message-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/schema-validation-Schema-契约验证-GraphQL-错误响应携带-message-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K页面加载成功
+
+[1A[2K当前URL: http://localhost:3000/
+
+[1A[2K页面标题: Cube Castle - 人力资源管理系统
+
+[1A[2K[89/234] [chromium] › tests/e2e/schema-validation.spec.ts:59:3 › Schema & 契约验证 › REST 创建组织缺少字段时返回 400
+[1A[2K[chromium] › tests/e2e/schema-validation.spec.ts:59:3 › Schema & 契约验证 › REST 创建组织缺少字段时返回 400
+✅ 发现活跃前端服务：http://localhost:3000
+
+[1A[2K[90/234] [chromium] › tests/e2e/temporal-editform-defaults-smoke.spec.ts:13:1 › Temporal edit form creation page renders (smoke)
+[1A[2K[91/234] [chromium] › tests/e2e/smoke-org-detail.spec.ts:8:3 › 组织详情 Smoke › 可以打开组织详情页面（Temporal）
+[1A[2K[92/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:112:5 › 时态GraphQL功能完整验证 › 功能完整性测试 › 历史记录查看功能验证
+[1A[2K[chromium] › tests/e2e/simple-connection-test.spec.ts:6:1 › 简单的服务器连接测试
+测试完成成功
+
+[1A[2K[93/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:132:5 › 时态GraphQL功能完整验证 › 功能完整性测试 › 时间点查询功能验证
+[1A[2K[chromium] › tests/e2e/smoke-org-detail.spec.ts:8:3 › 组织详情 Smoke › 可以打开组织详情页面（Temporal）
+✅ 认证设置已注入 localStorage
+
+[1A[2K[94/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:148:5 › 时态GraphQL功能完整验证 › 功能完整性测试 › 组织切换功能验证
+[1A[2K[95/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:170:5 › 时态GraphQL功能完整验证 › 错误处理验证 › 无效组织代码处理
+[1A[2K  23) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:112:5 › 时态GraphQL功能完整验证 › 功能完整性测试 › 历史记录查看功能验证 
+
+    TimeoutError: page.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('tab:has-text("历史记录查看")')[22m
+
+
+      57 |
+      58 |   async switchToHistoryTab() {
+    > 59 |     await this.page.click('tab:has-text("历史记录查看")');
+         |                     ^
+      60 |     await this.page.waitForSelector('[data-testid="history-records"]', { timeout: 5000 });
+      61 |   }
+      62 |
+        at TemporalTestHelper.switchToHistoryTab (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:59:21)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:114:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0d544-QL功能完整验证-功能完整性测试-历史记录查看功能验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0d544-QL功能完整验证-功能完整性测试-历史记录查看功能验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-0d544-QL功能完整验证-功能完整性测试-历史记录查看功能验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0d544-QL功能完整验证-功能完整性测试-历史记录查看功能验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-0d544-QL功能完整验证-功能完整性测试-历史记录查看功能验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  24) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:132:5 › 时态GraphQL功能完整验证 › 功能完整性测试 › 时间点查询功能验证 
+
+    TimeoutError: page.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('tab:has-text("时间点查询")')[22m
+
+
+      62 |
+      63 |   async switchToTimePointTab() {
+    > 64 |     await this.page.click('tab:has-text("时间点查询")');
+         |                     ^
+      65 |     await this.page.waitForSelector('[data-testid="timepoint-query"]', { timeout: 5000 });
+      66 |   }
+      67 |
+        at TemporalTestHelper.switchToTimePointTab (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:64:21)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:133:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0f86a-hQL功能完整验证-功能完整性测试-时间点查询功能验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0f86a-hQL功能完整验证-功能完整性测试-时间点查询功能验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-0f86a-hQL功能完整验证-功能完整性测试-时间点查询功能验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0f86a-hQL功能完整验证-功能完整性测试-时间点查询功能验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-0f86a-hQL功能完整验证-功能完整性测试-时间点查询功能验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[96/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:185:5 › 时态GraphQL功能完整验证 › 错误处理验证 › 无记录时间点处理
+[1A[2K[97/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:193:5 › 时态GraphQL功能完整验证 › 错误处理验证 › 用户界面反馈验证
+[1A[2K  25) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:148:5 › 时态GraphQL功能完整验证 › 功能完整性测试 › 组织切换功能验证 
+
+    TimeoutError: page.fill: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('input[placeholder*="输入组织代码"]')[22m
+
+
+      47 |     } else {
+      48 |       // 使用自定义代码
+    > 49 |       await this.page.fill('input[placeholder*="输入组织代码"]', orgCode);
+         |                       ^
+      50 |       await this.page.click('button:has-text("使用自定义代码")');
+      51 |     }
+      52 |     
+        at TemporalTestHelper.selectOrganization (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:49:23)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:150:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-6fa2f-phQL功能完整验证-功能完整性测试-组织切换功能验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-6fa2f-phQL功能完整验证-功能完整性测试-组织切换功能验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-6fa2f-phQL功能完整验证-功能完整性测试-组织切换功能验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-6fa2f-phQL功能完整验证-功能完整性测试-组织切换功能验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-6fa2f-phQL功能完整验证-功能完整性测试-组织切换功能验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  26) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:170:5 › 时态GraphQL功能完整验证 › 错误处理验证 › 无效组织代码处理 
+
+    TimeoutError: page.fill: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('input[placeholder*="输入组织代码"]')[22m
+
+
+      47 |     } else {
+      48 |       // 使用自定义代码
+    > 49 |       await this.page.fill('input[placeholder*="输入组织代码"]', orgCode);
+         |                       ^
+      50 |       await this.page.click('button:has-text("使用自定义代码")');
+      51 |     }
+      52 |     
+        at TemporalTestHelper.selectOrganization (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:49:23)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:171:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0bb84-aphQL功能完整验证-错误处理验证-无效组织代码处理-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0bb84-aphQL功能完整验证-错误处理验证-无效组织代码处理-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-0bb84-aphQL功能完整验证-错误处理验证-无效组织代码处理-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-0bb84-aphQL功能完整验证-错误处理验证-无效组织代码处理-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-0bb84-aphQL功能完整验证-错误处理验证-无效组织代码处理-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[98/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:210:5 › 时态GraphQL功能完整验证 › 性能基准验证 › 页面加载性能
+[1A[2K[99/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:218:5 › 时态GraphQL功能完整验证 › 性能基准验证 › API响应性能
+[1A[2K[100/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:239:5 › 时态GraphQL功能完整验证 › 性能基准验证 › 缓存效率验证
+[1A[2K  27) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:185:5 › 时态GraphQL功能完整验证 › 错误处理验证 › 无记录时间点处理 
+
+    TimeoutError: page.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('tab:has-text("时间点查询")')[22m
+
+
+      62 |
+      63 |   async switchToTimePointTab() {
+    > 64 |     await this.page.click('tab:has-text("时间点查询")');
+         |                     ^
+      65 |     await this.page.waitForSelector('[data-testid="timepoint-query"]', { timeout: 5000 });
+      66 |   }
+      67 |
+        at TemporalTestHelper.switchToTimePointTab (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:64:21)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:186:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-7cf40-aphQL功能完整验证-错误处理验证-无记录时间点处理-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-7cf40-aphQL功能完整验证-错误处理验证-无记录时间点处理-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-7cf40-aphQL功能完整验证-错误处理验证-无记录时间点处理-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-7cf40-aphQL功能完整验证-错误处理验证-无记录时间点处理-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-7cf40-aphQL功能完整验证-错误处理验证-无记录时间点处理-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  28) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:193:5 › 时态GraphQL功能完整验证 › 错误处理验证 › 用户界面反馈验证 
+
+    TimeoutError: page.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('tab:has-text("时间点查询")')[22m
+
+
+      62 |
+      63 |   async switchToTimePointTab() {
+    > 64 |     await this.page.click('tab:has-text("时间点查询")');
+         |                     ^
+      65 |     await this.page.waitForSelector('[data-testid="timepoint-query"]', { timeout: 5000 });
+      66 |   }
+      67 |
+        at TemporalTestHelper.switchToTimePointTab (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:64:21)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:194:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-91fe3-aphQL功能完整验证-错误处理验证-用户界面反馈验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-91fe3-aphQL功能完整验证-错误处理验证-用户界面反馈验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-91fe3-aphQL功能完整验证-错误处理验证-用户界面反馈验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-91fe3-aphQL功能完整验证-错误处理验证-用户界面反馈验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-91fe3-aphQL功能完整验证-错误处理验证-用户界面反馈验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[101/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:253:5 › 时态GraphQL功能完整验证 › 性能基准验证 › 历史记录刷新性能
+[1A[2K[102/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:267:5 › 时态GraphQL功能完整验证 › 用户体验验证 › 加载状态显示
+[1A[2K  29) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:218:5 › 时态GraphQL功能完整验证 › 性能基准验证 › API响应性能 
+
+    TimeoutError: page.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('tab:has-text("时间点查询")')[22m
+
+
+      62 |
+      63 |   async switchToTimePointTab() {
+    > 64 |     await this.page.click('tab:has-text("时间点查询")');
+         |                     ^
+      65 |     await this.page.waitForSelector('[data-testid="timepoint-query"]', { timeout: 5000 });
+      66 |   }
+      67 |
+        at TemporalTestHelper.switchToTimePointTab (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:64:21)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:219:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-1551b-raphQL功能完整验证-性能基准验证-API响应性能-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-1551b-raphQL功能完整验证-性能基准验证-API响应性能-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehen-1551b-raphQL功能完整验证-性能基准验证-API响应性能-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehen-1551b-raphQL功能完整验证-性能基准验证-API响应性能-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehen-1551b-raphQL功能完整验证-性能基准验证-API响应性能-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[103/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:284:5 › 时态GraphQL功能完整验证 › 用户体验验证 › 视觉反馈验证
+[1A[2K  30) [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:239:5 › 时态GraphQL功能完整验证 › 性能基准验证 › 缓存效率验证 
+
+    TimeoutError: page.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('tab:has-text("时间点查询")')[22m
+
+
+      62 |
+      63 |   async switchToTimePointTab() {
+    > 64 |     await this.page.click('tab:has-text("时间点查询")');
+         |                     ^
+      65 |     await this.page.waitForSelector('[data-testid="timepoint-query"]', { timeout: 5000 });
+      66 |   }
+      67 |
+        at TemporalTestHelper.switchToTimePointTab (/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:64:21)
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-graphql-comprehensive.spec.ts:240:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehensive-时态GraphQL功能完整验证-性能基准验证-缓存效率验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehensive-时态GraphQL功能完整验证-性能基准验证-缓存效率验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/temporal-graphql-comprehensive-时态GraphQL功能完整验证-性能基准验证-缓存效率验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/temporal-graphql-comprehensive-时态GraphQL功能完整验证-性能基准验证-缓存效率验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/temporal-graphql-comprehensive-时态GraphQL功能完整验证-性能基准验证-缓存效率验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[104/234] [chromium] › tests/e2e/temporal-graphql-comprehensive.spec.ts:296:5 › 时态GraphQL功能完整验证 › 用户体验验证 › 交互流畅性验证

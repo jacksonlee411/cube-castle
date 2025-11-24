@@ -152,13 +152,17 @@ Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行�
 - **前端 E2E 执行**：重新执行 `npm run test:e2e`（`PW_BASE_URL=http://localhost:3000`，`PW_JWT=.cache/dev.jwt`），早期日志保存在 `logs/plan402/ui/20251124-150536-playwright.log`；最新 OBS 版本日志为 `logs/plan402/ui/20251124-165028-playwright.log`。目前测试整体失败，原因见阻塞项。
 - **健康检查兼容**：命令服务新增 `/api/v1/health`/`/api/v1/health/` 映射（沿用原 `/health` handler），并在 `logs/plan402/verification/api-v1-health-20251124-155458.log` 留下可重复验证记录，Playwright Phase 1「服务合并验证」不再因 404 阻断。
 - **Legacy 写锁可控**：`database/scripts/plan402/drop-legacy-write-paths.sql` 已扩展为可通过 `plan402_runtime_flags.enforce_legacy_lock` 动态开关，配套脚本 `database/scripts/plan402/{disable,enable}-legacy-lock.sql` 在当前环境验证成功（释放锁后 `curl /api/v1/organization-units` 返回 201），后续需在 `logs/plan402/cleanup/` 记录每次切换。
-- **门禁日志最新状态**：`PW_OBS=1 VITE_OBS_ENABLED=true npm --prefix frontend run test:e2e` 与 `npm run quality:preflight` 均已执行，日志分别落盘 `logs/plan402/ui/20251124-165028-playwright.log` 与 `logs/plan402/verification/20251124-165235-quality-preflight.log`。虽然结果失败，但为后续排障提供了统一的证据入口。
+- **SOM 数据灌入完成**：按 Runbook 执行 `go run -tags legacy ./cmd/tools/standardobject-migrator` 与 `standardobject-validator`，日志位于 `logs/plan402/migration/20251124-173908-migrator.log`、`logs/plan402/validator/20251124-173940-report.json`，`legacyCount=505`、`transactionGapCount=0`、`validityOverlapCount=0`。
+- **命令层双写修复**：通过 `standardobject.ObjectService` 在重复 `effectiveDate` 时优先更新同一版本，避免 `STANDARD_OBJECT_ERROR`（请求 `PUT /api/v1/organization-units/1000080` 现返回 200，rest-service 日志截留于 `docker compose logs rest-service`）。但由于命令层仍依赖 legacy 表，写锁仍需保持为“关闭”模式。
+- **门禁日志最新状态**：`PW_OBS=1 VITE_OBS_ENABLED=true npm --prefix frontend run test:e2e` 与 `npm run quality:preflight` 均已执行，日志分别落盘 `logs/plan402/ui/20251124-165028-playwright.log` 与 `logs/plan402/verification/20251124-165235-quality-preflight.log`。尽管结果失败，但为后续排障提供了统一证据。
+- **CREATE_ERROR 复现日志**：当 `plan402_runtime_flags.enforce_legacy_lock=true` 时，`POST /api/v1/organization-units` 仍命中 legacy Guard 并返回 500，命令服务日志已记录于 `logs/plan402/ui/20251124-100921-create-lock.log`；该证据将作为切换至 SOM 仓储的回归基线。
+- **Vite 冗余服务守卫**：开发服务器新增 `legacy-service-guard` 中间件（`frontend/vite.config.ts`），命中 `/api-gateway/*`、`/api-server/*`、`/query-service/*`、`/sync-service/*` 时统一返回 502，以确保 Phase 1 冗余检测在本地与 CI 中一致。
 
 ## 9. 阻塞点与建议
 
-1. **标准对象写路径仍不可用**  
-   - 虽然临时解除 legacy 写锁后 `POST /api/v1/organization-units` 可返回 201，但 `rest-service` 仍持续输出 `STANDARD_OBJECT_ERROR`（参考 `docker compose -f docker-compose.dev.yml logs rest-service | rg STANDARD_OBJECT_ERROR`），`cqrs-protocol-separation`/`business-flow-e2e` 也因此失败。SOM 仓储未正常 upsert、`standard_objects*` 差异未消除。  
-   - **建议**：结合最新 trace（`logs/plan402/ui/20251124-165028-playwright.log`）与 DB 约束定位原因，修复 `standardobject.ObjectService.Upsert` 后再跑 `npx playwright test tests/e2e/business-flow-e2e.spec.ts --project=chromium` 验证，同时在 `logs/plan402/cleanup/` 记录重新开启写锁的日志。
+1. **命令层仍依赖 legacy 表**  
+   - migrator/validator 虽已完成，但命令服务写路径依旧落在 `organization_units`，一旦 `plan402_runtime_flags.enforce_legacy_lock=true` 即返回 `CREATE_ERROR`（详见 `logs/plan402/ui/20251124-100921-create-lock.log`），与 402D「旧表只读」目标冲突。  
+   - **建议**：在命令层补齐 SOM 仓储注入（生成 `recordId`、层级元数据与 `ORG_HIERARCHY` 链接），逐步改造 `internal/organization/repository` 读取 `standard_objects*`，并在 readiness 验收前重新执行 `database/scripts/plan402/enable-legacy-lock.sql`，将操作日志落盘 `logs/plan402/cleanup/<ts>-write-lock.log`，确保切换窗口可在锁定状态运行。
 
 2. **Temporal GraphQL E2E 缺少必要 UI**  
    - `temporal-graphql-comprehensive.spec.ts` 在“时间点查询”场景频繁超时（找不到 `input[placeholder*="输入组织代码"]`、Tab 组件），说明 SOM 详情页尚未接入新的 Manifest/Slot/adapter。  

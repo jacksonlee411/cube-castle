@@ -1,0 +1,2 @@
+❌ Plan 272 artifact guard 检测到以下问题：
+  - [ARTIFACT] logs/plan254/results-1763966636477.json (1078KB) 仍以 .json 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。

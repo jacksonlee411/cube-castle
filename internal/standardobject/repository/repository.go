@@ -14,6 +14,7 @@ import (
 	"cube-castle/pkg/temporal/clock"
 	"cube-castle/pkg/temporal/constraints"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 var objectConstraints = map[standardobject.ObjectType]constraints.ConstraintType{
@@ -75,19 +76,42 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 		if err := r.closeOpenWindow(ctx, existing, r.defaultTime(version.TransactionFrom), constraintType, validation, version.EffectiveDate); err != nil {
 			return err
 		}
+		validityRange := buildRangeLiteral(version.EffectiveDate, version.EndDate)
+		transactionRange := buildRangeLiteral(r.defaultTime(version.TransactionFrom), txTo)
+		endDate := sql.NullTime{Time: derefTime(validTo), Valid: validTo != nil}
+		checksum := sql.NullString{String: version.Checksum, Valid: version.Checksum != ""}
+
 		if _, err := r.queries.InsertStandardObjectVersion(ctx, sqlc.InsertStandardObjectVersionParams{
 			ObjectID:         kernelRec.ID,
 			VersionCode:      version.VersionCode,
 			EffectiveDate:    version.EffectiveDate,
-			EndDate:          sql.NullTime{Time: derefTime(validTo), Valid: validTo != nil},
-			ValidityRange:    buildRangeLiteral(version.EffectiveDate, version.EndDate),
-			TransactionRange: buildRangeLiteral(r.defaultTime(version.TransactionFrom), txTo),
+			EndDate:          endDate,
+			ValidityRange:    validityRange,
+			TransactionRange: transactionRange,
 			IsCurrent:        version.IsCurrent,
 			Payload:          mustJSON(version.Payload),
 			Audit:            mustJSON(version.AuditTrail),
-			Checksum:         sql.NullString{String: version.Checksum, Valid: version.Checksum != ""},
+			Checksum:         checksum,
 		}); err != nil {
-			return fmt.Errorf("insert version: %w", err)
+			if isConstraintViolation(err, "idx_standard_object_versions_effective") {
+				updateErr := r.queries.UpdateStandardObjectVersion(ctx, sqlc.UpdateStandardObjectVersionParams{
+					ObjectID:         kernelRec.ID,
+					EffectiveDate:    version.EffectiveDate,
+					VersionCode:      version.VersionCode,
+					EndDate:          endDate,
+					ValidityRange:    validityRange,
+					TransactionRange: transactionRange,
+					IsCurrent:        version.IsCurrent,
+					Payload:          mustJSON(version.Payload),
+					Audit:            mustJSON(version.AuditTrail),
+					Checksum:         checksum,
+				})
+				if updateErr != nil {
+					return fmt.Errorf("update existing version: %w", updateErr)
+				}
+			} else {
+				return fmt.Errorf("insert version: %w", err)
+			}
 		}
 	}
 
@@ -209,6 +233,14 @@ func constraintForObjectType(t standardobject.ObjectType) constraints.Constraint
 		return value
 	}
 	return constraints.ConstraintTypeTC2
+}
+
+func isConstraintViolation(err error, constraint string) bool {
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		return pqErr.Constraint == constraint
+	}
+	return false
 }
 
 func convertLinks(rows []sqlc.ListLinksForSourceRow) []standardobject.Link {

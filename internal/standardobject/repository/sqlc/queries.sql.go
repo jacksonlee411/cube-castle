@@ -552,6 +552,50 @@ func (q *Queries) ListStandardObjectVersionsForObject(ctx context.Context, objec
 	return items, nil
 }
 
+const updateStandardObjectVersion = `-- name: UpdateStandardObjectVersion :exec
+UPDATE standard_object_versions
+SET version_code = $3,
+    end_date = $4,
+    validity_range = $5,
+    transaction_range = $6,
+    is_current = $7,
+    payload = $8,
+    audit = $9,
+    checksum = $10,
+    updated_at = now()
+WHERE object_id = $1
+  AND effective_date = $2
+`
+
+type UpdateStandardObjectVersionParams struct {
+	ObjectID         uuid.UUID       `json:"object_id"`
+	EffectiveDate    time.Time       `json:"effective_date"`
+	VersionCode      string          `json:"version_code"`
+	EndDate          sql.NullTime    `json:"end_date"`
+	ValidityRange    string          `json:"validity_range"`
+	TransactionRange string          `json:"transaction_range"`
+	IsCurrent        bool            `json:"is_current"`
+	Payload          json.RawMessage `json:"payload"`
+	Audit            json.RawMessage `json:"audit"`
+	Checksum         sql.NullString  `json:"checksum"`
+}
+
+func (q *Queries) UpdateStandardObjectVersion(ctx context.Context, arg UpdateStandardObjectVersionParams) error {
+	_, err := q.db.ExecContext(ctx, updateStandardObjectVersion,
+		arg.ObjectID,
+		arg.EffectiveDate,
+		arg.VersionCode,
+		arg.EndDate,
+		arg.ValidityRange,
+		arg.TransactionRange,
+		arg.IsCurrent,
+		arg.Payload,
+		arg.Audit,
+		arg.Checksum,
+	)
+	return err
+}
+
 const upsertStandardObject = `-- name: UpsertStandardObject :one
 INSERT INTO standard_objects (
     object_type,

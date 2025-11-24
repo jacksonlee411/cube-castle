@@ -41,6 +41,20 @@ INSERT INTO standard_object_versions (
 )
 RETURNING *;
 
+-- name: UpdateStandardObjectVersion :exec
+UPDATE standard_object_versions
+SET version_code = $3,
+    end_date = $4,
+    validity_range = $5,
+    transaction_range = $6,
+    is_current = $7,
+    payload = $8,
+    audit = $9,
+    checksum = $10,
+    updated_at = now()
+WHERE object_id = $1
+  AND effective_date = $2;
+
 -- name: ListStandardObjectVersionsForObject :many
 SELECT *
 FROM standard_object_versions
