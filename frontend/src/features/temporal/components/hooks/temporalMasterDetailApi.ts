@@ -9,20 +9,23 @@ import { env } from "@/shared/config/environment";
 import type { OrganizationRequest } from "@/shared/types/organization";
 import type { TemporalVersionPayload } from "@/shared/types/temporal";
 import type { TimelineVersion } from '../TimelineComponent';
-import {
-  organizationTimelineAdapter,
-  type OrganizationTimelineSource,
-} from '@/features/temporal/entity/timelineAdapter';
 import { standardObjectAdapter } from '@/features/temporal/entity/standardObjectAdapter';
-import type { StandardObject } from '@/generated/graphql-types';
-import { StandardObjectType } from '@/generated/graphql-types';
+import type {
+  StandardObject,
+  StandardObjectAudit,
+  StandardObjectKernel,
+  StandardObjectLink,
+  StandardObjectVersion,
+  Status,
+} from '@/generated/graphql-types';
+import { StandardObjectLinkType, StandardObjectType } from '@/generated/graphql-types';
 
 export interface HierarchyPaths {
   codePath: string;
   namePath: string;
 }
 
-interface OrganizationVersion extends OrganizationTimelineSource {
+interface OrganizationVersion {
   code: string;
   name: string;
   unitType: string;
@@ -37,26 +40,20 @@ interface OrganizationVersion extends OrganizationTimelineSource {
   recordId: string;
   createdAt: string;
   updatedAt: string;
+  isCurrent?: boolean | null;
+  changeReason?: string | null;
+  suspendedAt?: string | null;
+  suspendedBy?: string | null;
+  suspensionReason?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  deletionReason?: string | null;
 }
 
 // 版本与快照查询改由 Facade 提供
 
-interface TimelineItemResponse extends OrganizationTimelineSource {
-  recordId: string;
-  code: string;
-  name: string;
-  unitType: string;
-  status: string;
-  level: number;
-  effectiveDate: string;
-  endDate: string | null;
+interface TimelineItemResponse extends OrganizationVersion {
   isCurrent: boolean;
-  createdAt: string;
-  updatedAt: string;
-  parentCode?: string | null;
-  description?: string | null;
-  codePath?: string | null;
-  namePath?: string | null;
 }
 
 interface TimelineEventData {
@@ -141,14 +138,106 @@ const STANDARD_OBJECT_TIMELINE_QUERY = `
   }
 `;
 
-// 注意：当前 GraphQL 仅返回 status=ACTIVE/INACTIVE 与 isCurrent。
-// 这里将 lifecycleStatus 固定映射为 CURRENT/HISTORICAL，dataStatus 固定为 'NORMAL'，
-// 以避免误解为后端已提供五态或软删除数据。
-const mapOrganizationVersions = (organizations: OrganizationVersion[]): TimelineVersion[] =>
-  organizationTimelineAdapter.toTimelineVersions(organizations);
+const toStandardObjectStatus = (status: string): Status => {
+  switch (status) {
+    case Status.INACTIVE:
+      return Status.INACTIVE;
+    case Status.PLANNED:
+      return Status.PLANNED;
+    case Status.DELETED:
+      return Status.DELETED;
+    default:
+      return Status.ACTIVE;
+  }
+};
+
+const legacyAggregateToStandardObject = (source: OrganizationVersion): StandardObject => {
+  const createdAt = source.createdAt ?? source.effectiveDate;
+  const updatedAt = source.updatedAt ?? createdAt;
+  const kernel: StandardObjectKernel = {
+    __typename: 'StandardObjectKernel',
+    objectType: StandardObjectType.ORGANIZATION_UNIT,
+    code: source.code,
+    displayName: source.name,
+    tenantCode: env.defaultTenantId,
+    status: toStandardObjectStatus(source.status),
+    labels: { unitType: source.unitType ?? 'ORGANIZATION' },
+    schemaVersion: 'v1',
+    dataClassification: 'INTERNAL',
+    retentionPolicy: 'default',
+    createdBy: undefined,
+    createdAt,
+    updatedAt,
+  };
+
+  const auditTrail: StandardObjectAudit = {
+    __typename: 'StandardObjectAudit',
+    createdAt,
+    updatedAt,
+    suspendedAt: source.suspendedAt ?? undefined,
+    suspendedBy: source.suspendedBy ?? undefined,
+    suspensionReason: source.suspensionReason ?? undefined,
+    deletedAt: source.deletedAt ?? undefined,
+    deletedBy: source.deletedBy ?? undefined,
+    deletionReason: source.deletionReason ?? undefined,
+  };
+
+  const payload = {
+    name: source.name,
+    unitType: source.unitType,
+    status: source.status,
+    description: source.description,
+    level: source.level,
+    parentCode: source.parentCode,
+    codePath: source.codePath,
+    namePath: source.namePath,
+    sortOrder: 0,
+    changeReason: source.changeReason,
+  };
+
+  const version: StandardObjectVersion = {
+    __typename: 'StandardObjectVersion',
+    versionCode: source.recordId ?? `${source.code}-${source.effectiveDate}`,
+    effectiveDate: source.effectiveDate,
+    endDate: source.endDate ?? undefined,
+    isCurrent: Boolean(source.isCurrent ?? source.endDate === null),
+    payload,
+    auditTrail,
+    createdAt,
+    updatedAt,
+    checksum: null,
+  };
+
+  const links: StandardObjectLink[] = source.parentCode
+    ? [
+        {
+          __typename: 'StandardObjectLink',
+          linkType: StandardObjectLinkType.ORG_HIERARCHY,
+          sourceCode: source.code,
+          targetCode: source.parentCode,
+          attributes: { level: source.level ?? 0 },
+        },
+      ]
+    : [];
+
+  return {
+    __typename: 'StandardObject',
+    kernel,
+    version,
+    links,
+  };
+};
+
+const mapOrganizationVersions = (versions: OrganizationVersion[]): TimelineVersion[] => {
+  if (!versions?.length) {
+    return [];
+  }
+  const aggregates = versions.map(legacyAggregateToStandardObject);
+  return standardObjectAdapter.toTimelineVersions(aggregates);
+};
 
 const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion =>
-  organizationTimelineAdapter.toTimelineVersion(item);
+  standardObjectAdapter.toTimelineVersion(legacyAggregateToStandardObject(item));
 
 export const fetchOrganizationVersions = async (
   organizationCode: string,
