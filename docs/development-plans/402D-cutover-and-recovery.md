@@ -158,13 +158,14 @@ Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行�
 - **前端 E2E 执行**：重新执行 `npm run test:e2e`（`PW_BASE_URL=http://localhost:3000`，`PW_JWT=.cache/dev.jwt`），早期日志保存在 `logs/plan402/ui/20251124-150536-playwright.log`；最新 OBS 版本日志为 `logs/plan402/ui/20251124-165028-playwright.log`。目前测试整体失败，原因见阻塞项。
 - **健康检查兼容**：命令服务新增 `/api/v1/health`/`/api/v1/health/` 映射（沿用原 `/health` handler），并在 `logs/plan402/verification/api-v1-health-20251124-155458.log` 留下可重复验证记录，Playwright Phase 1「服务合并验证」不再因 404 阻断。
 - **Legacy 写锁可控**：`database/scripts/plan402/drop-legacy-write-paths.sql` 已扩展为可通过 `plan402_runtime_flags.enforce_legacy_lock` 动态开关，配套脚本 `database/scripts/plan402/{disable,enable}-legacy-lock.sql` 在当前环境验证成功（释放锁后 `curl /api/v1/organization-units` 返回 201），后续需在 `logs/plan402/cleanup/` 记录每次切换。
+- **回滚脚本演练完成**：已在本地执行 `scripts/plan402/export-standardobject-snapshot.sh`、`database/scripts/plan402/revert-to-legacy.sql`、`database/scripts/plan402/checkpoints/replay_view.sql`、`database/scripts/plan402/enable-legacy-lock.sql`，日志与产物落在 `logs/plan402/rollback/20251124T145525Z-*`、`logs/plan402/rollback/20251124T145540Z-revert-to-legacy.log`、`logs/plan402/verification/as-of-20251124T145600Z.log` 与 `logs/plan402/cleanup/20251124T145637Z-enable-legacy-lock.log`，可直接作为 R6/R7 的证据引用。
 - **SOM 数据灌入完成**：按 Runbook 执行 `go run -tags legacy ./cmd/tools/standardobject-migrator` 与 `standardobject-validator`，日志位于 `logs/plan402/migration/20251124-173908-migrator.log`、`logs/plan402/validator/20251124-173940-report.json`，`legacyCount=505`、`transactionGapCount=0`、`validityOverlapCount=0`。
 - **命令层双写修复**：通过 `standardobject.ObjectService` 在重复 `effectiveDate` 时优先更新同一版本，避免 `STANDARD_OBJECT_ERROR`（请求 `PUT /api/v1/organization-units/1000080` 现返回 200，rest-service 日志截留于 `docker compose logs rest-service`）。但由于命令层仍依赖 legacy 表，写锁仍需保持为“关闭”模式。
 - **门禁日志最新状态**：`PW_OBS=1 VITE_OBS_ENABLED=true npm --prefix frontend run test:e2e` 与 `npm run quality:preflight` 均已执行，日志分别落盘 `logs/plan402/ui/20251124-165028-playwright.log` 与 `logs/plan402/verification/20251124-165235-quality-preflight.log`。尽管结果失败，但为后续排障提供了统一证据。
 - **CREATE_ERROR 复现日志**：当 `plan402_runtime_flags.enforce_legacy_lock=true` 时，`POST /api/v1/organization-units` 仍命中 legacy Guard 并返回 500，命令服务日志已记录于 `logs/plan402/ui/20251124-100921-create-lock.log`；该证据将作为切换至 SOM 仓储的回归基线。
 - **Vite 冗余服务守卫**：开发服务器新增 `legacy-service-guard` 中间件（`frontend/vite.config.ts`），命中 `/api-gateway/*`、`/api-server/*`、`/query-service/*`、`/sync-service/*` 时统一返回 502，以确保 Phase 1 冗余检测在本地与 CI 中一致。
 - **标准对象 GraphQL 接入受阻**：在实现查询层 `standardObjects`/`standardObject` 时，当前 shell 环境会拦截 Go 文件中的反引号和 `$` 占位符，导致无法安全落地包含 SQL Raw String 或 struct tag 的代码（多次尝试 `cat <<'EOF'`/base64/Python here-doc 仍被命令替换截获）。该问题阻断了 Repository 与 gqlgen resolver 的提交，需切换到支持原样写入的编辑器或由具备直接编辑能力的成员协助创建初始文件，再继续完成 GraphQL 侧工作。
-- **GraphQL SOM 查询已启用**：查询服务与单体的 GraphQL handler 均已接入 `standardObjects`/`standardObject` Resolver，并通过 `internal/organization/resolver` 的新 Store 直接读取 `standard_objects*`；`standardobject.Repository` 提供 `GetAt` 能力，可按 `asOf` 时间获取版本。该能力为前端 Temporal UI 改造提供统一数据源，但 UI 仍需切换到新字段。
+- **GraphQL SOM 查询已启用**：查询服务（8090）与命令服务 GraphQL 入口均已接入 `standardObjects`/`standardObject` Resolver，并通过 `internal/organization/resolver` 的新 Store 直接读取 `standard_objects*`；`standardobject.Repository` 提供 `GetAt` 能力，可按 `asOf` 时间获取版本，测试覆盖已补齐。该能力为前端 Temporal UI 改造提供统一数据源，但 UI 仍需切换到新字段（参见阻塞项 #2）。
 
 ## 9. 阻塞点与建议
 
@@ -176,9 +177,9 @@ Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行�
    - `temporal-graphql-comprehensive.spec.ts` 在“时间点查询”场景频繁超时（找不到 `input[placeholder*="输入组织代码"]`、Tab 组件），说明 SOM 详情页尚未接入新的 Manifest/Slot/adapter。  
    - **建议**：对照 `frontend/src/features/temporal/pages/**` 与 `standardObjectAdapter` 恢复 Tab/表单，并在 UI 中补齐 `data-testid`，Manifest/Slot 更新后运行 `npm run manifest:forms`、`npm run manifest:columns` 与 OBS/Playwright（`--grep standard-object`）脚本，保证日志/截图落盘 `logs/plan402/ui/obs/` 作为通过凭证。
 
-3. **Plan 272 Artifact Guard 未通过**  
-   - `npm run quality:preflight` 在 `guard:plan272` 步骤失败（`reports/plan272/plan272-artifact-guard-20251124T085244Z.txt`），原因是 `logs/plan254/results-1763966636477.json` 未归档/压缩，Plan 272 守卫阻断 402D 门禁。  
-   - **建议**：按照 Plan 272 Runbook 归档该 JSON（压缩为 `.tar.zst` 或迁移至 `archive/runtime-artifacts/<yyyy-mm>/`），更新 manifest 后再次执行 preflight，并将成功日志写入 `logs/plan402/verification/<ts>-plan272-guard.log` 供守卫查验。
+3. **Plan 272 Artifact Guard 已恢复**  
+   - 通过 `scripts/plan272/archive-run-artifacts.sh` 归档大体积运行产物后重新执行 `npm run quality:preflight`，最新报告/日志为 `reports/plan272/plan272-artifact-guard-20251124T142254Z.txt`、`logs/plan272/guard/plan272-guard-20251124T142254Z.log`，Plan 272 守卫已通过。  
+   - **提醒**：切换前仍需保持归档流程，每次新增大体积日志都需重新运行 `archive-run-artifacts` 并附最新 Plan 272 日志到切换报告。
 
 4. **全量门禁仍未闭环**  
    - OBS 模式 E2E 与 `quality:preflight` 均失败，仅有失败日志可供分析。  
