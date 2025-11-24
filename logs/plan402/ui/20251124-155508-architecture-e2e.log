@@ -1,0 +1,114 @@
+
+Running 3 tests using 2 workers
+✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+··✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+F
+
+  1) [chromium] › tests/e2e/architecture-e2e.spec.ts:93:3 › 重构后架构完整性验证 › Phase 1: 冗余服务移除验证 ─────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mtrue[39m
+
+      114 |
+      115 |       // 期望服务不可达（已移除）
+    > 116 |       expect(response.reachable).toBe(false);
+          |                                  ^
+      117 |     }
+      118 |   });
+      119 | });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/architecture-e2e.spec.ts:116:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mtrue[39m
+
+      114 |
+      115 |       // 期望服务不可达（已移除）
+    > 116 |       expect(response.reachable).toBe(false);
+          |                                  ^
+      117 |     }
+      118 |   });
+      119 | });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/architecture-e2e.spec.ts:116:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mtrue[39m
+
+      114 |
+      115 |       // 期望服务不可达（已移除）
+    > 116 |       expect(response.reachable).toBe(false);
+          |                                  ^
+      117 |     }
+      118 |   });
+      119 | });
+        at /home/shangmeilin/cube-castle/frontend/tests/e2e/architecture-e2e.spec.ts:116:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry2/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry2/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry2/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/architecture-e2e-重构后架构完整性验证-Phase-1-冗余服务移除验证-chromium-retry2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/architecture-e2e.spec.ts:93:3 › 重构后架构完整性验证 › Phase 1: 冗余服务移除验证 ──────────
+  2 passed (13.8s)

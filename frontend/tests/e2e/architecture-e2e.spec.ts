@@ -15,7 +15,7 @@ test.describe('重构后架构完整性验证', () => {
     const commandResponse = await page.evaluate(async () => {
       try {
         const base = (window as any).process?.env?.PW_BASE_URL || '';
-        const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/api/v1/health`);
+        const response = await fetch(`${(base || '').replace(/\/+$/, '')}/api/v1/health`);
         return { status: response.status, ok: response.ok };
       } catch (error) {
         return { error: error.message };
@@ -26,7 +26,7 @@ test.describe('重构后架构完整性验证', () => {
     const queryResponse = await page.evaluate(async () => {
       try {
         const base = (window as any).process?.env?.PW_BASE_URL || '';
-        const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/health`);
+        const response = await fetch(`${(base || '').replace(/\/+$/, '')}/health`);
         return { status: response.status, ok: response.ok };
       } catch (error) {
         return { error: error.message };
@@ -103,7 +103,7 @@ test.describe('重构后架构完整性验证', () => {
       const response = await page.evaluate(async (url) => {
         try {
           const base = (window as any).process?.env?.PW_BASE_URL || '';
-          const response = await fetch(`${(base || '').replace(/\\/+$/, '')}${url}/health`, { 
+          const response = await fetch(`${(base || '').replace(/\/+$/, '')}${url}/health`, { 
             signal: AbortSignal.timeout(2000) 
           });
           return { reachable: true, status: response.status };

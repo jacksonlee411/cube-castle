@@ -1,0 +1,9 @@
+DO
+DO
+🔒 Legacy tables write privileges after lock:
+     table_name     | role_name | can_insert | can_update | can_delete 
+--------------------+-----------+------------+------------+------------
+ organization_units | user      | t          | t          | t
+ positions          | user      | t          | t          | t
+(2 rows)
+

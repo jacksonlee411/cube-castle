@@ -1,6 +1,8 @@
 # 技术架构设计方案
 
-版本: v4.2 | 最后更新: 2025-11-17 | 状态: 生产就绪架构
+版本: v4.2 | 最后更新: 2025-11-17 | 状态: 生产就绪架构  
+OpenAPI version: "4.7.0"（同步 `docs/api/openapi.yaml`）  
+前端关键依赖：React 19.1.0 / Vite 7.0.4 / TypeScript 5.8.3（同步 `frontend/package.json`）
 
 ---
 

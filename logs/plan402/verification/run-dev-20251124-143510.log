@@ -1,0 +1,108 @@
+🚀 启动开发环境（Docker 强制原则）...
+🔐 检查 RS256 密钥...
+🐳 拉起最小依赖 (postgres, redis)...
+docker compose -f docker-compose.dev.yml up -d postgres redis
+ Container cubecastle-postgres  Running
+ Container cubecastle-redis  Running
+⏳ 等待数据库/缓存就绪...
+  ✅ postgres 就绪
+🧭 执行数据库迁移（Goose）...
+make[1]: Entering directory '/home/shangmeilin/cube-castle'
+🧭 使用 Goose 执行数据库迁移...
+ℹ️  未设置 DATABASE_URL，使用默认: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+2025/11/24 14:35:10     Applied At                  Migration
+2025/11/24 14:35:10     =======================================
+2025/11/24 14:35:10     Sat Nov 15 23:54:35 2025 -- 20251106000000_base_schema.sql
+2025/11/24 14:35:10     Sat Nov 15 23:54:35 2025 -- 20251107090000_create_outbox_events.sql
+2025/11/24 14:35:10     Sat Nov 15 23:54:36 2025 -- 20251107123000_230_job_catalog_oper_fix.sql
+2025/11/24 14:35:10     Sat Nov 15 23:54:36 2025 -- 20251110110000_234_remove_org_unit_triggers.sql
+2025/11/24 14:35:10     Mon Nov 24 05:02:49 2025 -- 20251201090000_create_standard_objects.sql
+2025/11/24 14:35:10 goose: no migrations to run. current version: 20251201090000
+✅ Goose up 完成
+make[1]: Leaving directory '/home/shangmeilin/cube-castle'
+🐳 拉起应用服务 (rest-service, graphql-service)...
+docker compose -f docker-compose.dev.yml up -d --build rest-service
+#1 [internal] load local bake definitions
+#1 reading from stdin 434B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.65kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/alpine:latest
+#3 DONE 0.0s
+
+#4 [internal] load metadata for docker.io/library/golang:1.24-alpine
+#4 DONE 0.0s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 604B done
+#5 DONE 0.0s
+
+#6 [release 1/4] FROM docker.io/library/alpine:latest
+#6 DONE 0.0s
+
+#7 [builder 1/6] FROM docker.io/library/golang:1.24-alpine
+#7 CACHED
+
+#8 [internal] load build context
+#8 transferring context: 515.91MB 4.2s done
+#8 DONE 4.3s
+
+#9 [builder 2/6] RUN apk add --no-cache git ca-certificates tzdata curl
+#9 0.445 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+#9 59.34 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/APKINDEX.tar.gz
+#9 385.4 WARNING: fetching https://dl-cdn.alpinelinux.org/alpine/v3.22/community: network connection aborted
+#9 385.4 (1/1) Installing curl (8.14.1-r2)
+#9 386.6 Executing busybox-1.37.0-r19.trigger
+#9 386.6 OK: 22 MiB in 35 packages
+#9 DONE 385.4s
+
+#10 [builder 3/6] WORKDIR /workspace
+#10 DONE 0.2s
+
+#11 [builder 4/6] COPY . .
+#11 DONE 3.4s
+
+#12 [builder 5/6] RUN go mod download
+#12 DONE 16.9s
+
+#13 [builder 6/6] RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build     -ldflags='-w -s -extldflags "-static"'     -a -installsuffix cgo     -o /main ./cmd/hrms-server/command
+#13 DONE 31.7s
+
+#14 [release 2/4] RUN apk --no-cache add ca-certificates tzdata curl jq
+#14 CACHED
+
+#15 [release 3/4] COPY --from=builder /main /main
+#15 DONE 0.2s
+
+#16 [release 4/4] RUN echo '#!/bin/sh' > /healthcheck.sh &&     echo 'curl -f http://localhost:9090/health | jq -r .status | grep -E "(healthy|degraded)" > /dev/null' >> /healthcheck.sh &&     chmod +x /healthcheck.sh
+#16 DONE 0.5s
+
+#17 exporting to image
+#17 exporting layers
+#17 exporting layers 0.2s done
+#17 writing image sha256:6be650d8d4fd2e73550df2065aa327f6f233113b46bf567ddd617918ed70b52a 0.0s done
+#17 naming to docker.io/library/cube-castle-rest-service 0.0s done
+#17 DONE 0.2s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+ rest-service  Built
+ Container cubecastle-postgres  Running
+ Container cubecastle-redis  Running
+ Container cubecastle-rest  Creating
+ Container cubecastle-rest  Created
+ Container cubecastle-redis  Waiting
+ Container cubecastle-postgres  Waiting
+ Container cubecastle-postgres  Healthy
+ Container cubecastle-redis  Healthy
+ Container cubecastle-rest  Starting
+ Container cubecastle-rest  Started
+⏳ 等待服务健康...
+  ✅ command-service 就绪 (http://localhost:9090/health)
+
+📊 查看日志: docker compose -f docker-compose.dev.yml logs -f rest-service
+🛑 停止服务: docker compose -f docker-compose.dev.yml down 或 make docker-down
+ℹ️  若需宿主机调试，请使用: make run-dev-debug

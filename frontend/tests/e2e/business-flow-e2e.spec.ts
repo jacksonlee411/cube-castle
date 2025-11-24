@@ -389,7 +389,7 @@ test.describe('业务流程端到端测试', () => {
     
     await page.evaluate(async () => {
       const base = (window as any).process?.env?.PW_BASE_URL || '';
-      const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/graphql`, {
+      const response = await fetch(`${(base || '').replace(/\/+$/, '')}/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -473,7 +473,7 @@ test.describe('业务流程端到端测试', () => {
     // 2. 直接调用API获取数据
     const apiData = await page.evaluate(async () => {
       const base = (window as any).process?.env?.PW_BASE_URL || '';
-      const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/graphql`, {
+      const response = await fetch(`${(base || '').replace(/\/+$/, '')}/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
