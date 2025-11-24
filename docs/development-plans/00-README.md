@@ -33,8 +33,10 @@
   - `402A-standard-object-mapping-spec.md`
   - `402B-som-schema-and-tooling.md`
   - `402C-service-integration-and-double-write.md`
-  - `402D-cutover-and-recovery.md`
-  - `402E-convergence-and-governance.md`
+- `402D-cutover-and-recovery.md`
+- `402E-convergence-and-governance.md`
+- `410-command-som-write-path.md` —— 命令层彻底切换至 SOM 写路径（去除 legacy 表与 Feature Flag）。
+- `411-temporal-ui-som-experience.md` —— Temporal UI/Manifest/OBS 全面对齐 SOM 数据源。
 
 > 2025-11-27：402A《映射与契约准备》已通过评审并进入交付归档，依据其日志与规格可启动 402B。
 
