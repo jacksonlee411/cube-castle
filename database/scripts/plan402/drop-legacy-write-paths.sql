@@ -2,14 +2,40 @@
 -- 将旧组织/职位表切换为只读，防止上线期间出现遗留写入。
 -- 该脚本可重复执行；若在 402E 彻底清理旧表前需要临时恢复写权限，请更新本脚本并重新执行。
 
+-- 运行时锁控制：允许通过 plan402_runtime_flags.enforce_legacy_lock 控制读写锁是否开启，默认 true。
+CREATE TABLE IF NOT EXISTS plan402_runtime_flags (
+  id integer PRIMARY KEY DEFAULT 1,
+  enforce_legacy_lock boolean NOT NULL DEFAULT true,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO plan402_runtime_flags (id, enforce_legacy_lock)
+VALUES (1, true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION plan402_legacy_lock_enabled()
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  locked boolean;
+BEGIN
+  SELECT enforce_legacy_lock INTO locked FROM plan402_runtime_flags WHERE id = 1;
+  RETURN COALESCE(locked, true);
+END;
+$$;
+
 -- 全局防护函数：拒绝所有 DML
 CREATE OR REPLACE FUNCTION plan402_legacy_readonly_guard()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  RAISE EXCEPTION 'Plan 402D: legacy table % is read-only. Update SOM tables instead.', TG_TABLE_NAME
-    USING ERRCODE = 'read_only_sql_transaction';
+  IF plan402_legacy_lock_enabled() THEN
+    RAISE EXCEPTION 'Plan 402D: legacy table % is read-only. Update SOM tables instead.', TG_TABLE_NAME
+      USING ERRCODE = 'read_only_sql_transaction';
+  END IF;
+  RETURN NEW;
 END;
 $$;
 

@@ -51,6 +51,7 @@
 
   报告需记录 `legacyCount`、`standardObjectVersions`、`validityOverlapCount`、`transactionOverlapCount`、`transactionGapCount`，并附最近 5 条差异样本，Plan 222/255 可直接复查。
 - 关闭旧仓储写路径（Feature Flag 默认开启 SOM），旧表仅保留只读视图或直接冻结。
+- 触发 `database/scripts/plan402/drop-legacy-write-paths.sql` 后可通过 `plan402_runtime_flags.enforce_legacy_lock` 控制锁定状态：`enable-legacy-lock.sql`/`disable-legacy-lock.sql` 用于切换，运行日志需附在 `logs/plan402/cleanup/`。
 - 部署前统一在 `config/feature-flags.yaml`/`internal/standardobject/featureflag` 中将 `organization.useLegacyStore`、`position.useLegacyStore` 设置为 `false`，并在命令层移除 `standardobject.NewNoopService()` 注入；旧表权限降至 `SELECT`，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 更新真源说明。
 - 输出切换 Runbook（步骤、负责人、回滚条件）与 DEC/OCL/Time Constraint + 双时态体检报告，确保 `docs/reference/schema-registry.json` 与能力契约无缺口。
 - Runbook 必须覆盖：切换窗口、暂停写入、迁移命令、校验命令、监控指标、回滚条件、复盘模板；体检报告引用 `docs/reference/standard-object-evidence-guide.md` 的日志目录，并对 `schema-registry.json` 哈希与 DEC/OCL/binding 缺口逐项说明。
@@ -148,22 +149,25 @@ Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行�
 
 - **基础设施恢复**：由于企业代理阻断 `golang:1.24-alpine` 拉取，已按 Plan 272 约束在本地构建同名镜像（`/tmp/plan402/golang-base/Dockerfile`），`make run-dev` 现可直接命中本地缓存完成编译，最新日志：`logs/plan402/verification/run-dev-20251124-143510.log`。
 - **容器健康**：`docker compose -f docker-compose.dev.yml ps` 显示 postgres/redis/rest-service 均为 healthy，`curl http://localhost:9090/health` 返回健康结果，可用于 Playwright 与 preflight。
-- **前端 E2E 执行**：重新执行 `npm run test:e2e`（`PW_BASE_URL=http://localhost:3000`，`PW_JWT=.cache/dev.jwt`），日志保存在 `logs/plan402/ui/20251124-150536-playwright.log`。目前测试整体失败，原因见阻塞项。
+- **前端 E2E 执行**：重新执行 `npm run test:e2e`（`PW_BASE_URL=http://localhost:3000`，`PW_JWT=.cache/dev.jwt`），早期日志保存在 `logs/plan402/ui/20251124-150536-playwright.log`；最新 OBS 版本日志为 `logs/plan402/ui/20251124-165028-playwright.log`。目前测试整体失败，原因见阻塞项。
 - **健康检查兼容**：命令服务新增 `/api/v1/health`/`/api/v1/health/` 映射（沿用原 `/health` handler），并在 `logs/plan402/verification/api-v1-health-20251124-155458.log` 留下可重复验证记录，Playwright Phase 1「服务合并验证」不再因 404 阻断。
+- **Legacy 写锁可控**：`database/scripts/plan402/drop-legacy-write-paths.sql` 已扩展为可通过 `plan402_runtime_flags.enforce_legacy_lock` 动态开关，配套脚本 `database/scripts/plan402/{disable,enable}-legacy-lock.sql` 在当前环境验证成功（释放锁后 `curl /api/v1/organization-units` 返回 201），后续需在 `logs/plan402/cleanup/` 记录每次切换。
+- **门禁日志最新状态**：`PW_OBS=1 VITE_OBS_ENABLED=true npm --prefix frontend run test:e2e` 与 `npm run quality:preflight` 均已执行，日志分别落盘 `logs/plan402/ui/20251124-165028-playwright.log` 与 `logs/plan402/verification/20251124-165235-quality-preflight.log`。虽然结果失败，但为后续排障提供了统一的证据入口。
 
 ## 9. 阻塞点与建议
 
-1. **组织创建命令持续 500（`CREATE_ERROR`）**  
-   - `business-flow-e2e`、`cqrs-protocol-separation` 等脚本向 `/api/v1/organizations` 发送创建/更新请求时，多次收到 `{"code":"CREATE_ERROR","message":"创建操作失败"}`，详见 `logs/plan402/ui/20251124-150536-playwright.log`。这说明 SOM 写路径仍存在缺口（可能仍命中 legacy pipeline 或缺少标准对象转换）。  
-   - **建议**：结合 Playwright trace（`frontend/test-results/**/trace.zip`）抽取一条失败请求，对照 `cmd/hrms-server/command/internal/organization` 逻辑，确认 payload→SOM 的转换链路；修复后先以 `npx playwright test tests/e2e/business-flow-e2e.spec.ts --project=chromium` 验证。
+1. **标准对象写路径仍不可用**  
+   - 虽然临时解除 legacy 写锁后 `POST /api/v1/organization-units` 可返回 201，但 `rest-service` 仍持续输出 `STANDARD_OBJECT_ERROR`（参考 `docker compose -f docker-compose.dev.yml logs rest-service | rg STANDARD_OBJECT_ERROR`），`cqrs-protocol-separation`/`business-flow-e2e` 也因此失败。SOM 仓储未正常 upsert、`standard_objects*` 差异未消除。  
+   - **建议**：结合最新 trace（`logs/plan402/ui/20251124-165028-playwright.log`）与 DB 约束定位原因，修复 `standardobject.ObjectService.Upsert` 后再跑 `npx playwright test tests/e2e/business-flow-e2e.spec.ts --project=chromium` 验证，同时在 `logs/plan402/cleanup/` 记录重新开启写锁的日志。
 
-2. **冗余服务探测用例仍视为失败**  
-   - `architecture-e2e` 的“Phase 1: 冗余服务移除验证”仍期待对 `/api-gateway`、`/query-service` 等占位路径的 `fetch` 报错（`reachable=false`）。当前 Vite dev server 会立即返回 404 → `response.ok=false 但 fetch 成功`, 导致断言 `response.reachable`=false 失败，日志：`logs/plan402/ui/20251124-155508-architecture-e2e.log`。  
-   - **建议**：在前端 dev server 代理层显式把这些占位路径映射到 `http://127.0.0.1:9` 或返回 `net::ERR_CONNECTION_REFUSED`，或更新脚本判断逻辑（例如允许 `reachable=true 且 status in {404, 502}` 视为 PASS），再 rerun `architecture-e2e`.
+2. **Temporal GraphQL E2E 缺少必要 UI**  
+   - `temporal-graphql-comprehensive.spec.ts` 在“时间点查询”场景频繁超时（找不到 `input[placeholder*="输入组织代码"]`、Tab 组件），说明 SOM 详情页尚未接入新的 Manifest/Slot/adapter。  
+   - **建议**：对照 `frontend/src/features/temporal/pages/**` 与 `standardObjectAdapter` 恢复 Tab/表单，并在 UI 中补齐 `data-testid`，再 rerun 该脚本以收集 `[OBS] standardObject.*` 日志。
 
-3. **全量门禁尚未闭环**  
-   - 由于上述阻塞，Plan 402D 要求的 “`npm run test:e2e` + OBS 证据 + `npm run quality:preflight`” 仍未达成；当前仅保留失败日志用于追溯。  
-   - **建议**：待接口问题解决后按顺序执行：  
-     1. `architecture-e2e`、`business-flow-e2e` 等关键脚本；  
-     2. `npm run test:e2e`（CI 模式、附 OBS）；  
-     3. `npm run quality:preflight` 与 `npm run test`，将日志分别落盘 `logs/plan402/ui/`、`logs/plan402/verification/`。
+3. **Plan 272 Artifact Guard 未通过**  
+   - `npm run quality:preflight` 在 `guard:plan272` 步骤失败（`reports/plan272/plan272-artifact-guard-20251124T085244Z.txt`），原因是 `logs/plan254/results-1763966636477.json` 未归档/压缩，Plan 272 守卫阻断 402D 门禁。  
+   - **建议**：按照 Plan 272 Runbook 归档该 JSON（压缩为 `.tar.zst` 或迁移至 `archive/runtime-artifacts/<yyyy-mm>/`），更新 manifest 后再次执行 preflight。
+
+4. **全量门禁仍未闭环**  
+   - OBS 模式 E2E 与 `quality:preflight` 均失败，仅有失败日志可供分析。  
+   - **建议**：待标准对象与 Temporal UI 修复后按顺序执行：`architecture-e2e` → `business-flow-e2e`/`cqrs-protocol-separation`（Chromium）→ `npm run test:e2e`（OBS）→ `npm run test` + `npm run quality:preflight`，并将成功日志落盘 `logs/plan402/ui/`、`logs/plan402/verification/`。
