@@ -53,11 +53,14 @@
 - 关闭旧仓储写路径（Feature Flag 默认开启 SOM），旧表仅保留只读视图或直接冻结。
 - 触发 `database/scripts/plan402/drop-legacy-write-paths.sql` 后可通过 `plan402_runtime_flags.enforce_legacy_lock` 控制锁定状态：`enable-legacy-lock.sql`/`disable-legacy-lock.sql` 用于切换，运行日志需附在 `logs/plan402/cleanup/`。
 - 部署前统一在 `config/feature-flags.yaml`/`internal/standardobject/featureflag` 中将 `organization.useLegacyStore`、`position.useLegacyStore` 设置为 `false`，并在命令层移除 `standardobject.NewNoopService()` 注入；旧表权限降至 `SELECT`，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 更新真源说明。
+- 命令层切换守卫：在 `internal/organization/repository`/`internal/position/repository` 中补齐 SOM 仓储（含 `recordId`、层级元数据与 `ORG_HIERARCHY` 链接）后，必须以 `plan402_runtime_flags.enforce_legacy_lock=true` 运行 `make test`、`make test-db` 与命令层集成测试，确认 `POST/PUT /api/v1/organization-units`、`/positions` 均直接写入 `standard_objects*`；执行期间需记录 `logs/plan402/cleanup/<ts>-write-lock.log`，并在锁定状态下重复 `standardobject-validator` 以验证 0 差异。
+- 标准对象 REST Port：命令服务挂载 `/api/v1/standard-objects/{objectType}`、`/{code}/versions`、`/{code}/status`，供 Runbook 在切换窗口通过统一端点执行 Kernel/版本/状态调度。接口契约以 `docs/api/openapi.yaml` 为准，调用日志写入 `logs/plan402/cleanup/<ts>-standardobject-api.log` 并附请求 ID，方便 Plan 272 守卫复核。
 - 输出切换 Runbook（步骤、负责人、回滚条件）与 DEC/OCL/Time Constraint + 双时态体检报告，确保 `docs/reference/schema-registry.json` 与能力契约无缺口。
 - Runbook 必须覆盖：切换窗口、暂停写入、迁移命令、校验命令、监控指标、回滚条件、复盘模板；体检报告引用 `docs/reference/standard-object-evidence-guide.md` 的日志目录，并对 `schema-registry.json` 哈希与 DEC/OCL/binding 缺口逐项说明。
 
 ### D2 · 前端与查询适配
 - 前端（组织/职位页面）完全接入 `standardObjectAdapter`；清理组织特有冗余字段。
+- Temporal GraphQL UI 必须补齐 Tab、查询表单与 `data-testid`，遵循 `standardObjectAdapter` 的字段映射，并以 `PW_OBS=1 VITE_OBS_ENABLED=true npm run test:e2e -- --grep standard-object` 复核 `temporal-graphql-comprehensive.spec.ts`，将成功日志与 `[OBS] standardObject.*` 事件保存到 `logs/plan402/ui/obs/`。
 - 聚焦以下入口：`frontend/src/features/organizations/OrganizationDashboard.tsx`、`frontend/src/features/temporal/pages/entityRoutes.tsx`、`frontend/src/features/positions/PositionDetailView.tsx`、`frontend/src/shared/api/facade/*.ts`，一律使用 `frontend/src/features/temporal/entity/standardObjectAdapter.ts` 暴露的转换函数，禁止散落解析 `standard_objects*` 字段。
 - 重新运行 `npm run quality:preflight`、`npm run test`、`npm run test:e2e`，并把日志写入 `logs/plan402/ui/*.log`。
 - 运行 `PW_OBS=1 VITE_OBS_ENABLED=true npm run test:e2e -- --grep standard-object`，并在 `logs/plan402/ui/obs/` 记录 `[OBS] standardObject.*` 事件截图/日志，作为观察视点证据。
@@ -73,14 +76,17 @@
   | Playwright / OBS | `frontend/tests/e2e/standard-object-lifecycle.spec.ts` | `PW_TENANT_ID` + `PW_JWT` | 增加“禁写期间只读提示”“版本回滚”“asOf 参数”三类脚本，日志落盘 `logs/plan402/ui/playwright-<ts>.log` | QA |
 
 - Manifest/Slot 更新完成后执行 `npm run manifest:forms`、`npm run manifest:columns`，并把 diff/日志同步到 `logs/plan400/manifest/*.log` 以供 `document-sync` 守卫复查。
+- Manifest/Slot 更新后需立即运行 `npm run quality:preflight -- guard=manifest` 与 `npm run test:e2e -- --grep temporal-manifest`（Chromium），并在切换报告中引用 `logs/plan400/manifest/*.log`、`logs/plan402/ui/<ts>-manifest-e2e.log`，确保前端缓存/Query Key/失效策略与 adapter 输出完全一致。
 
 ### D3 · 门禁与回滚
 - 跑通 `make test`、`make test-db`、`scripts/quality/*`（含 capabilityContracts 规则），输出 `logs/plan402/verification/*.log`。
+- Plan 272 Artifact Guard：执行 `make archive-run-artifacts` 前需将 `logs/plan254/results-*.json` 等历史运行产物压缩或迁移到 `archive/runtime-artifacts/<yyyy-mm>/` 并更新 manifest，随后重新运行 `npm run quality:preflight`（含 `guard:plan272`）并把 PASS 日志写入 `logs/plan402/verification/<ts>-plan272-guard.log`，作为切换门禁的入场条件。
 - 固化命令：`node scripts/quality/architecture-validator.js --rule capabilityContracts --output logs/plan402/capability/$(date +%Y%m%d-%H%M%S)-capability.log`，需验证 Organization/Position/Shared Federate 三个条目均 PASS；若有缺口，阻断切换。
 - 编写 Goose Down + 数据回滚脚本，并在 staging 演练；日志存入 `logs/plan402/rollback/*.log`。
 - 回滚脚本包含：`make db-rollback-last`、`psql -f database/scripts/plan402/revert-to-legacy.sql`、`scripts/plan402/export-standardobject-snapshot.sh`，并在 staging 使用真实快照演练；输出 `logs/plan402/rollback/<ts>-staging.log`，记录耗时、恢复点与验证命令。
 - 在 `scripts/quality/architecture-validator.js` 中运行 capability contract 完整性检查，确认 4.3 表格条目覆盖全部 Federate，并在演练中验证双时态回放（恢复某事务时间点的视图）可行。
 - 双时态回放步骤：`psql -f database/scripts/plan402/checkpoints/replay_view.sql -v as_of_ts="'2025-11-30 10:00:00+00'"` → `curl http://localhost:9090/api/standard-objects/organization/:code?asOfTransaction=2025-11-30T10:00:00Z`，再与 `standardobject-validator` 结果对比并写入 `logs/plan402/verification/as-of-<ts>.log`，确保 30 分钟恢复 SLA 可实测。
+- 全量门禁顺序：`npm run test:e2e -- --project architecture-e2e` → `npm run test:e2e -- --project business-flow-e2e --browser=chromium` → `npm run test:e2e`（OBS 模式）→ `npm run test` → `npm run quality:preflight`，每一步成功后需将日志写入 `logs/plan402/ui/` 或 `logs/plan402/verification/` 并在切换报告中列出文件名，确保 402D 验收能够引用单一事实来源。
 
 ### D4 · 切换后最小回收与产物归档
 - 将 `organization_units`、`positions` 等旧表在切换窗口内切换为只读视图，并移除写入触发器或写索引（执行 `database/scripts/plan402/drop-legacy-write-paths.sql`，日志写入 `logs/plan402/cleanup/<ts>-write-lock.log`），确保上线期间不会发生回写；完整的表/代码清理由 402E 统一安排。
@@ -157,21 +163,23 @@ Runbook 签核后需存档到 `docs/archive/development-plans/`，并在执行�
 - **门禁日志最新状态**：`PW_OBS=1 VITE_OBS_ENABLED=true npm --prefix frontend run test:e2e` 与 `npm run quality:preflight` 均已执行，日志分别落盘 `logs/plan402/ui/20251124-165028-playwright.log` 与 `logs/plan402/verification/20251124-165235-quality-preflight.log`。尽管结果失败，但为后续排障提供了统一证据。
 - **CREATE_ERROR 复现日志**：当 `plan402_runtime_flags.enforce_legacy_lock=true` 时，`POST /api/v1/organization-units` 仍命中 legacy Guard 并返回 500，命令服务日志已记录于 `logs/plan402/ui/20251124-100921-create-lock.log`；该证据将作为切换至 SOM 仓储的回归基线。
 - **Vite 冗余服务守卫**：开发服务器新增 `legacy-service-guard` 中间件（`frontend/vite.config.ts`），命中 `/api-gateway/*`、`/api-server/*`、`/query-service/*`、`/sync-service/*` 时统一返回 502，以确保 Phase 1 冗余检测在本地与 CI 中一致。
+- **标准对象 GraphQL 接入受阻**：在实现查询层 `standardObjects`/`standardObject` 时，当前 shell 环境会拦截 Go 文件中的反引号和 `$` 占位符，导致无法安全落地包含 SQL Raw String 或 struct tag 的代码（多次尝试 `cat <<'EOF'`/base64/Python here-doc 仍被命令替换截获）。该问题阻断了 Repository 与 gqlgen resolver 的提交，需切换到支持原样写入的编辑器或由具备直接编辑能力的成员协助创建初始文件，再继续完成 GraphQL 侧工作。
+- **GraphQL SOM 查询已启用**：查询服务与单体的 GraphQL handler 均已接入 `standardObjects`/`standardObject` Resolver，并通过 `internal/organization/resolver` 的新 Store 直接读取 `standard_objects*`；`standardobject.Repository` 提供 `GetAt` 能力，可按 `asOf` 时间获取版本。该能力为前端 Temporal UI 改造提供统一数据源，但 UI 仍需切换到新字段。
 
 ## 9. 阻塞点与建议
 
-1. **命令层仍依赖 legacy 表**  
-   - migrator/validator 虽已完成，但命令服务写路径依旧落在 `organization_units`，一旦 `plan402_runtime_flags.enforce_legacy_lock=true` 即返回 `CREATE_ERROR`（详见 `logs/plan402/ui/20251124-100921-create-lock.log`），与 402D「旧表只读」目标冲突。  
-   - **建议**：在命令层补齐 SOM 仓储注入（生成 `recordId`、层级元数据与 `ORG_HIERARCHY` 链接），逐步改造 `internal/organization/repository` 读取 `standard_objects*`，并在 readiness 验收前重新执行 `database/scripts/plan402/enable-legacy-lock.sql`，将操作日志落盘 `logs/plan402/cleanup/<ts>-write-lock.log`，确保切换窗口可在锁定状态运行。
+   1. **命令层仍依赖 legacy 表**  
+      - migrator/validator 虽已完成，但命令服务写路径依旧落在 `organization_units`，一旦 `plan402_runtime_flags.enforce_legacy_lock=true` 即返回 `CREATE_ERROR`（详见 `logs/plan402/ui/20251124-100921-create-lock.log`），与 402D「旧表只读」目标冲突。  
+      - **建议**：在命令层补齐 SOM 仓储注入（生成 `recordId`、层级元数据与 `ORG_HIERARCHY` 链接），逐步改造 `internal/organization/repository` 读取 `standard_objects*`，并在 readiness 验收前重新执行 `database/scripts/plan402/enable-legacy-lock.sql`，将操作日志落盘 `logs/plan402/cleanup/<ts>-write-lock.log`，确保切换窗口可在锁定状态运行；新增的命令层守卫要求在锁定模式下跑完 `make test`/集成测试并重复 `standardobject-validator`，以此作为验收基线。
 
 2. **Temporal GraphQL E2E 缺少必要 UI**  
    - `temporal-graphql-comprehensive.spec.ts` 在“时间点查询”场景频繁超时（找不到 `input[placeholder*="输入组织代码"]`、Tab 组件），说明 SOM 详情页尚未接入新的 Manifest/Slot/adapter。  
-   - **建议**：对照 `frontend/src/features/temporal/pages/**` 与 `standardObjectAdapter` 恢复 Tab/表单，并在 UI 中补齐 `data-testid`，再 rerun 该脚本以收集 `[OBS] standardObject.*` 日志。
+   - **建议**：对照 `frontend/src/features/temporal/pages/**` 与 `standardObjectAdapter` 恢复 Tab/表单，并在 UI 中补齐 `data-testid`，Manifest/Slot 更新后运行 `npm run manifest:forms`、`npm run manifest:columns` 与 OBS/Playwright（`--grep standard-object`）脚本，保证日志/截图落盘 `logs/plan402/ui/obs/` 作为通过凭证。
 
 3. **Plan 272 Artifact Guard 未通过**  
    - `npm run quality:preflight` 在 `guard:plan272` 步骤失败（`reports/plan272/plan272-artifact-guard-20251124T085244Z.txt`），原因是 `logs/plan254/results-1763966636477.json` 未归档/压缩，Plan 272 守卫阻断 402D 门禁。  
-   - **建议**：按照 Plan 272 Runbook 归档该 JSON（压缩为 `.tar.zst` 或迁移至 `archive/runtime-artifacts/<yyyy-mm>/`），更新 manifest 后再次执行 preflight。
+   - **建议**：按照 Plan 272 Runbook 归档该 JSON（压缩为 `.tar.zst` 或迁移至 `archive/runtime-artifacts/<yyyy-mm>/`），更新 manifest 后再次执行 preflight，并将成功日志写入 `logs/plan402/verification/<ts>-plan272-guard.log` 供守卫查验。
 
 4. **全量门禁仍未闭环**  
    - OBS 模式 E2E 与 `quality:preflight` 均失败，仅有失败日志可供分析。  
-   - **建议**：待标准对象与 Temporal UI 修复后按顺序执行：`architecture-e2e` → `business-flow-e2e`/`cqrs-protocol-separation`（Chromium）→ `npm run test:e2e`（OBS）→ `npm run test` + `npm run quality:preflight`，并将成功日志落盘 `logs/plan402/ui/`、`logs/plan402/verification/`。
+   - **建议**：待标准对象与 Temporal UI 修复后按顺序执行：`architecture-e2e` → `business-flow-e2e`/`cqrs-protocol-separation`（Chromium）→ `npm run test:e2e`（OBS）→ `npm run test` + `npm run quality:preflight`，并将成功日志落盘 `logs/plan402/ui/`、`logs/plan402/verification/`，切换报告中必须列出所有日志文件，作为 402D 验收凭据。

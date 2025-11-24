@@ -304,6 +304,9 @@ type ComplexityRoot struct {
 		Name           func(childComplexity int) int
 		NamePath       func(childComplexity int) int
 		ParentChain    func(childComplexity int) int
+		ParentCode     func(childComplexity int) int
+		Status         func(childComplexity int) int
+		UnitType       func(childComplexity int) int
 	}
 
 	OrganizationStats struct {
@@ -484,7 +487,7 @@ type ComplexityRoot struct {
 		Organization            func(childComplexity int, code string, asOfDate *string) int
 		OrganizationHierarchy   func(childComplexity int, code string, tenantID string) int
 		OrganizationStats       func(childComplexity int, asOfDate *string, includeHistorical *bool) int
-		OrganizationSubtree     func(childComplexity int, code string, tenantID string, maxDepth *int, includeInactive *bool) int
+		OrganizationSubtree     func(childComplexity int, code string, tenantID *string, maxDepth *int, includeInactive *bool) int
 		OrganizationVersions    func(childComplexity int, code string, includeDeleted *bool) int
 		Organizations           func(childComplexity int, filter *model.OrganizationFilter, pagination *model.PaginationInput) int
 		Position                func(childComplexity int, code dto.PositionCode, asOfDate *dto.Date) int
@@ -495,6 +498,8 @@ type ComplexityRoot struct {
 		PositionTransfers       func(childComplexity int, positionCode *dto.PositionCode, organizationCode *string, pagination *model.PaginationInput) int
 		PositionVersions        func(childComplexity int, code dto.PositionCode, includeDeleted *bool) int
 		Positions               func(childComplexity int, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) int
+		StandardObject          func(childComplexity int, objectType model.StandardObjectType, code string, asOfDate *dto.Date) int
+		StandardObjects         func(childComplexity int, objectType model.StandardObjectType, filter *model.StandardObjectFilterInput, pagination *model.PaginationInput) int
 		VacantPositions         func(childComplexity int, filter *model.VacantPositionFilterInput, pagination *model.PaginationInput, sorting []model.VacantPositionSortInput) int
 	}
 
@@ -504,6 +509,64 @@ type ComplexityRoot struct {
 		IssueType       func(childComplexity int) int
 		RiskLevel       func(childComplexity int) int
 		SuggestedAction func(childComplexity int) int
+	}
+
+	StandardObject struct {
+		Kernel  func(childComplexity int) int
+		Links   func(childComplexity int) int
+		Version func(childComplexity int) int
+	}
+
+	StandardObjectAudit struct {
+		CreatedAt        func(childComplexity int) int
+		CreatedBy        func(childComplexity int) int
+		DeletedAt        func(childComplexity int) int
+		DeletedBy        func(childComplexity int) int
+		DeletionReason   func(childComplexity int) int
+		SuspendedAt      func(childComplexity int) int
+		SuspendedBy      func(childComplexity int) int
+		SuspensionReason func(childComplexity int) int
+		UpdatedAt        func(childComplexity int) int
+		UpdatedBy        func(childComplexity int) int
+	}
+
+	StandardObjectConnection struct {
+		Data       func(childComplexity int) int
+		Pagination func(childComplexity int) int
+	}
+
+	StandardObjectKernel struct {
+		Code               func(childComplexity int) int
+		CreatedAt          func(childComplexity int) int
+		CreatedBy          func(childComplexity int) int
+		DataClassification func(childComplexity int) int
+		DisplayName        func(childComplexity int) int
+		Labels             func(childComplexity int) int
+		ObjectType         func(childComplexity int) int
+		RetentionPolicy    func(childComplexity int) int
+		SchemaVersion      func(childComplexity int) int
+		Status             func(childComplexity int) int
+		TenantCode         func(childComplexity int) int
+		UpdatedAt          func(childComplexity int) int
+	}
+
+	StandardObjectLink struct {
+		Attributes func(childComplexity int) int
+		LinkType   func(childComplexity int) int
+		SourceCode func(childComplexity int) int
+		TargetCode func(childComplexity int) int
+	}
+
+	StandardObjectVersion struct {
+		AuditTrail    func(childComplexity int) int
+		Checksum      func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		EffectiveDate func(childComplexity int) int
+		EndDate       func(childComplexity int) int
+		IsCurrent     func(childComplexity int) int
+		Payload       func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
+		VersionCode   func(childComplexity int) int
 	}
 
 	StatusStatistic struct {
@@ -574,8 +637,10 @@ type QueryResolver interface {
 	Organization(ctx context.Context, code string, asOfDate *string) (*model.Organization, error)
 	OrganizationStats(ctx context.Context, asOfDate *string, includeHistorical *bool) (*model.OrganizationStats, error)
 	OrganizationHierarchy(ctx context.Context, code string, tenantID string) (*model.OrganizationHierarchy, error)
-	OrganizationSubtree(ctx context.Context, code string, tenantID string, maxDepth *int, includeInactive *bool) ([]model.OrganizationHierarchy, error)
+	OrganizationSubtree(ctx context.Context, code string, tenantID *string, maxDepth *int, includeInactive *bool) ([]model.OrganizationHierarchy, error)
 	HierarchyStatistics(ctx context.Context, tenantID string, includeIntegrityCheck *bool) (*model.HierarchyStatistics, error)
+	StandardObjects(ctx context.Context, objectType model.StandardObjectType, filter *model.StandardObjectFilterInput, pagination *model.PaginationInput) (*model.StandardObjectConnection, error)
+	StandardObject(ctx context.Context, objectType model.StandardObjectType, code string, asOfDate *dto.Date) (*model.StandardObject, error)
 	Positions(ctx context.Context, filter *model.PositionFilterInput, pagination *model.PaginationInput, sorting []model.PositionSortInput) (*model.PositionConnection, error)
 	Position(ctx context.Context, code dto.PositionCode, asOfDate *dto.Date) (*model.Position, error)
 	PositionTimeline(ctx context.Context, code dto.PositionCode, startDate *dto.Date, endDate *dto.Date) ([]model.PositionTimelineEntry, error)
@@ -1869,6 +1934,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.OrganizationHierarchy.ParentChain(childComplexity), true
 
+	case "OrganizationHierarchy.parentCode":
+		if e.complexity.OrganizationHierarchy.ParentCode == nil {
+			break
+		}
+
+		return e.complexity.OrganizationHierarchy.ParentCode(childComplexity), true
+
+	case "OrganizationHierarchy.status":
+		if e.complexity.OrganizationHierarchy.Status == nil {
+			break
+		}
+
+		return e.complexity.OrganizationHierarchy.Status(childComplexity), true
+
+	case "OrganizationHierarchy.unitType":
+		if e.complexity.OrganizationHierarchy.UnitType == nil {
+			break
+		}
+
+		return e.complexity.OrganizationHierarchy.UnitType(childComplexity), true
+
 	case "OrganizationStats.activeCount":
 		if e.complexity.OrganizationStats.ActiveCount == nil {
 			break
@@ -2847,7 +2933,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.OrganizationSubtree(childComplexity, args["code"].(string), args["tenantId"].(string), args["maxDepth"].(*int), args["includeInactive"].(*bool)), true
+		return e.complexity.Query.OrganizationSubtree(childComplexity, args["code"].(string), args["tenantId"].(*string), args["maxDepth"].(*int), args["includeInactive"].(*bool)), true
 
 	case "Query.organizationVersions":
 		if e.complexity.Query.OrganizationVersions == nil {
@@ -2969,6 +3055,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Positions(childComplexity, args["filter"].(*model.PositionFilterInput), args["pagination"].(*model.PaginationInput), args["sorting"].([]model.PositionSortInput)), true
 
+	case "Query.standardObject":
+		if e.complexity.Query.StandardObject == nil {
+			break
+		}
+
+		args, err := ec.field_Query_standardObject_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.StandardObject(childComplexity, args["objectType"].(model.StandardObjectType), args["code"].(string), args["asOfDate"].(*dto.Date)), true
+
+	case "Query.standardObjects":
+		if e.complexity.Query.StandardObjects == nil {
+			break
+		}
+
+		args, err := ec.field_Query_standardObjects_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.StandardObjects(childComplexity, args["objectType"].(model.StandardObjectType), args["filter"].(*model.StandardObjectFilterInput), args["pagination"].(*model.PaginationInput)), true
+
 	case "Query.vacantPositions":
 		if e.complexity.Query.VacantPositions == nil {
 			break
@@ -3015,6 +3125,286 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RepairSuggestion.SuggestedAction(childComplexity), true
+
+	case "StandardObject.kernel":
+		if e.complexity.StandardObject.Kernel == nil {
+			break
+		}
+
+		return e.complexity.StandardObject.Kernel(childComplexity), true
+
+	case "StandardObject.links":
+		if e.complexity.StandardObject.Links == nil {
+			break
+		}
+
+		return e.complexity.StandardObject.Links(childComplexity), true
+
+	case "StandardObject.version":
+		if e.complexity.StandardObject.Version == nil {
+			break
+		}
+
+		return e.complexity.StandardObject.Version(childComplexity), true
+
+	case "StandardObjectAudit.createdAt":
+		if e.complexity.StandardObjectAudit.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.CreatedAt(childComplexity), true
+
+	case "StandardObjectAudit.createdBy":
+		if e.complexity.StandardObjectAudit.CreatedBy == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.CreatedBy(childComplexity), true
+
+	case "StandardObjectAudit.deletedAt":
+		if e.complexity.StandardObjectAudit.DeletedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.DeletedAt(childComplexity), true
+
+	case "StandardObjectAudit.deletedBy":
+		if e.complexity.StandardObjectAudit.DeletedBy == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.DeletedBy(childComplexity), true
+
+	case "StandardObjectAudit.deletionReason":
+		if e.complexity.StandardObjectAudit.DeletionReason == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.DeletionReason(childComplexity), true
+
+	case "StandardObjectAudit.suspendedAt":
+		if e.complexity.StandardObjectAudit.SuspendedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.SuspendedAt(childComplexity), true
+
+	case "StandardObjectAudit.suspendedBy":
+		if e.complexity.StandardObjectAudit.SuspendedBy == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.SuspendedBy(childComplexity), true
+
+	case "StandardObjectAudit.suspensionReason":
+		if e.complexity.StandardObjectAudit.SuspensionReason == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.SuspensionReason(childComplexity), true
+
+	case "StandardObjectAudit.updatedAt":
+		if e.complexity.StandardObjectAudit.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.UpdatedAt(childComplexity), true
+
+	case "StandardObjectAudit.updatedBy":
+		if e.complexity.StandardObjectAudit.UpdatedBy == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectAudit.UpdatedBy(childComplexity), true
+
+	case "StandardObjectConnection.data":
+		if e.complexity.StandardObjectConnection.Data == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectConnection.Data(childComplexity), true
+
+	case "StandardObjectConnection.pagination":
+		if e.complexity.StandardObjectConnection.Pagination == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectConnection.Pagination(childComplexity), true
+
+	case "StandardObjectKernel.code":
+		if e.complexity.StandardObjectKernel.Code == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.Code(childComplexity), true
+
+	case "StandardObjectKernel.createdAt":
+		if e.complexity.StandardObjectKernel.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.CreatedAt(childComplexity), true
+
+	case "StandardObjectKernel.createdBy":
+		if e.complexity.StandardObjectKernel.CreatedBy == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.CreatedBy(childComplexity), true
+
+	case "StandardObjectKernel.dataClassification":
+		if e.complexity.StandardObjectKernel.DataClassification == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.DataClassification(childComplexity), true
+
+	case "StandardObjectKernel.displayName":
+		if e.complexity.StandardObjectKernel.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.DisplayName(childComplexity), true
+
+	case "StandardObjectKernel.labels":
+		if e.complexity.StandardObjectKernel.Labels == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.Labels(childComplexity), true
+
+	case "StandardObjectKernel.objectType":
+		if e.complexity.StandardObjectKernel.ObjectType == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.ObjectType(childComplexity), true
+
+	case "StandardObjectKernel.retentionPolicy":
+		if e.complexity.StandardObjectKernel.RetentionPolicy == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.RetentionPolicy(childComplexity), true
+
+	case "StandardObjectKernel.schemaVersion":
+		if e.complexity.StandardObjectKernel.SchemaVersion == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.SchemaVersion(childComplexity), true
+
+	case "StandardObjectKernel.status":
+		if e.complexity.StandardObjectKernel.Status == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.Status(childComplexity), true
+
+	case "StandardObjectKernel.tenantCode":
+		if e.complexity.StandardObjectKernel.TenantCode == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.TenantCode(childComplexity), true
+
+	case "StandardObjectKernel.updatedAt":
+		if e.complexity.StandardObjectKernel.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectKernel.UpdatedAt(childComplexity), true
+
+	case "StandardObjectLink.attributes":
+		if e.complexity.StandardObjectLink.Attributes == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectLink.Attributes(childComplexity), true
+
+	case "StandardObjectLink.linkType":
+		if e.complexity.StandardObjectLink.LinkType == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectLink.LinkType(childComplexity), true
+
+	case "StandardObjectLink.sourceCode":
+		if e.complexity.StandardObjectLink.SourceCode == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectLink.SourceCode(childComplexity), true
+
+	case "StandardObjectLink.targetCode":
+		if e.complexity.StandardObjectLink.TargetCode == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectLink.TargetCode(childComplexity), true
+
+	case "StandardObjectVersion.auditTrail":
+		if e.complexity.StandardObjectVersion.AuditTrail == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.AuditTrail(childComplexity), true
+
+	case "StandardObjectVersion.checksum":
+		if e.complexity.StandardObjectVersion.Checksum == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.Checksum(childComplexity), true
+
+	case "StandardObjectVersion.createdAt":
+		if e.complexity.StandardObjectVersion.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.CreatedAt(childComplexity), true
+
+	case "StandardObjectVersion.effectiveDate":
+		if e.complexity.StandardObjectVersion.EffectiveDate == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.EffectiveDate(childComplexity), true
+
+	case "StandardObjectVersion.endDate":
+		if e.complexity.StandardObjectVersion.EndDate == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.EndDate(childComplexity), true
+
+	case "StandardObjectVersion.isCurrent":
+		if e.complexity.StandardObjectVersion.IsCurrent == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.IsCurrent(childComplexity), true
+
+	case "StandardObjectVersion.payload":
+		if e.complexity.StandardObjectVersion.Payload == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.Payload(childComplexity), true
+
+	case "StandardObjectVersion.updatedAt":
+		if e.complexity.StandardObjectVersion.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.UpdatedAt(childComplexity), true
+
+	case "StandardObjectVersion.versionCode":
+		if e.complexity.StandardObjectVersion.VersionCode == nil {
+			break
+		}
+
+		return e.complexity.StandardObjectVersion.VersionCode(childComplexity), true
 
 	case "StatusStatistic.count":
 		if e.complexity.StatusStatistic.Count == nil {
@@ -3276,6 +3666,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputPositionAssignmentSortInput,
 		ec.unmarshalInputPositionFilterInput,
 		ec.unmarshalInputPositionSortInput,
+		ec.unmarshalInputStandardObjectFilterInput,
 		ec.unmarshalInputVacantPositionFilterInput,
 		ec.unmarshalInputVacantPositionSortInput,
 	)
@@ -3361,6 +3752,15 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "../../../../../docs/api/schema.graphql", Input: `# Organization Units Management GraphQL Schema
+# -----------------------------------------------------------------------------
+# Plan 245 – Temporal Entity 命名统一说明（注释，仅用于规范与索引）
+# - 本 schema 作为唯一事实来源，不在本阶段引入破坏性重命名
+# - 前端与文档约定统一采用 TemporalEntity* 命名作为操作名与概念归类
+#   • 详情操作统一命名：TemporalEntityDetail / TemporalEntityOrganizationDetail
+#   • 版本/时间线/路径等操作命名：TemporalEntityOrganizationVersions / TemporalEntityOrganizationSnapshot / TemporalEntityHierarchyPaths
+# - 查询字段与类型（Organization/Position 等）保持不变，避免破坏既有生成与依赖
+# - 该约定与 Plan 242/244 的实现一致，后续重命名将以兼容窗口与生成链路评估后进行
+# -----------------------------------------------------------------------------
 # Version: 4.7.0
 # Architecture: CQRS Query Layer (Read Operations Only)
 # Data Source: PostgreSQL with temporal data support
@@ -3451,7 +3851,7 @@ type Query {
   """
   organizationSubtree(
     code: String!
-    tenantId: String!
+    tenantId: String
     maxDepth: Int = 10
     includeInactive: Boolean = false
   ): [OrganizationHierarchy!]!
@@ -3466,6 +3866,30 @@ type Query {
     tenantId: String!
     includeIntegrityCheck: Boolean = false
   ): HierarchyStatistics!
+
+  # Standard Object (Plan 400/402 – contract-first)
+
+  """
+  Retrieve Standard Objects via SOM Port. Feature Flag controlled (402A output only).
+  
+  Permissions Required: standard-object:read
+  """
+  standardObjects(
+    objectType: StandardObjectType!
+    filter: StandardObjectFilterInput
+    pagination: PaginationInput
+  ): StandardObjectConnection!
+
+  """
+  Fetch single Standard Object aggregate by business code.
+  
+  Permissions Required: standard-object:read
+  """
+  standardObject(
+    objectType: StandardObjectType!
+    code: String!
+    asOfDate: Date
+  ): StandardObject
 
   # Position Queries
   
@@ -3513,8 +3937,8 @@ type Query {
 
   """
   Get paginated assignment records for a position.
-
-  Permissions Required: position:read
+  
+  Permissions Required: position:assignments:read
   """
   positionAssignments(
     positionCode: PositionCode!
@@ -3537,8 +3961,8 @@ type Query {
 
   """
   List current assignments with optional filters for a single position.
-
-  Permissions Required: position:read
+  
+  Permissions Required: position:assignments:read
   """
   assignments(
     organizationCode: String
@@ -3700,7 +4124,9 @@ Represents the current state based on asOfDate parameter or latest effective rec
 type Organization {
   # Business Identifiers
   code: String!
-  parentCode: String!  # Parent organization code. Use "0" for root organizations, or valid 7-digit code for child organizations
+  parentCode: String!  # Parent organization code. Root organizations return "" (empty string).
+                       # Input compatibility: legacy markers "0" or "0000000" are accepted on write paths
+                       # and normalized to root internally; clients should not rely on these legacy values.
   tenantId: String!
 
   # Basic Information
@@ -3712,14 +4138,14 @@ type Organization {
   status: Status!
   # Hierarchy Information
   level: Int!
-  sortOrder: Int
+  sortOrder: Int!
   codePath: String!
   namePath: String!
   path: String @deprecated(reason: "使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除")
 
   # Configuration
   description: String
-  profile: String
+  profile: JSON
   changeReason: String
 
   # Temporal Information
@@ -3765,6 +4191,9 @@ Hierarchy-specific organization information with relationship context.
 type OrganizationHierarchy {
   code: String!
   name: String!
+  unitType: UnitType
+  status: Status
+  parentCode: String
   level: Int!
   hierarchyDepth: Int!
   codePath: String!
@@ -3885,7 +4314,8 @@ type TemporalInfo {
 }
 
 """
-Entry describing a specific temporal version of a position.
+TemporalEntity timeline entry（职位特化实现），保持与 REST ` + "`" + `TemporalEntityTimelineVersion` + "`" + ` 字段一致，
+用于 Plan 244 的 Timeline 命名统一基线。
 """
 type PositionTimelineEntry {
   recordId: UUID!
@@ -4488,7 +4918,8 @@ enum UnitType {
 }
 
 """
-Organization business status (ADR-008: 一维业务状态模型).
+TemporalEntityStatus（组织特化，ADR-008 一维业务状态模型）。Plan 244 要求 REST/GraphQL/前端均复用该命名，与
+` + "`" + `TEMPORAL_ENTITY_STATUS_META.organization` + "`" + ` 对齐。
 """
 enum Status {
   ACTIVE         # Actively operating unit
@@ -4554,7 +4985,7 @@ enum SortOrder {
 }
 
 """
-Lifecycle status for positions.
+TemporalEntityStatus（职位特化），命名与 ` + "`" + `TEMPORAL_ENTITY_STATUS_META.position` + "`" + ` / Plan 244 前端实现保持一致。
 """
 enum PositionStatus {
   PLANNED
@@ -4607,6 +5038,90 @@ Status for job catalog entries.
 enum JobCatalogStatus {
   ACTIVE
   INACTIVE
+}
+
+# Standard Object Types (Plan 400/402)
+
+"""
+Standard Object 类型枚举。402A 契约阶段开放 ORGANIZATION_UNIT，POSITION_ROLE 保留供后续扩展。
+"""
+enum StandardObjectType {
+  ORGANIZATION_UNIT
+  POSITION_ROLE
+}
+
+"""
+Link 类型（Plan 400 定义）。当前仅支持 ORG_HIERARCHY。
+"""
+enum StandardObjectLinkType {
+  ORG_HIERARCHY
+}
+
+"""
+过滤条件（契约阶段仅暴露 code/status/asOfDate）。
+"""
+input StandardObjectFilterInput {
+  code: String
+  status: Status
+  asOfDate: Date
+}
+
+type StandardObjectKernel {
+  objectType: StandardObjectType!
+  code: String!
+  displayName: String!
+  tenantCode: String!
+  status: Status!
+  labels: JSON
+  schemaVersion: String
+  dataClassification: String
+  retentionPolicy: String
+  createdBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type StandardObjectVersion {
+  versionCode: String!
+  effectiveDate: Date!
+  endDate: Date
+  isCurrent: Boolean!
+  payload: JSON!
+  auditTrail: StandardObjectAudit
+  checksum: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type StandardObjectAudit {
+  createdBy: String
+  createdAt: DateTime
+  updatedBy: String
+  updatedAt: DateTime
+  deletedAt: DateTime
+  deletedBy: String
+  deletionReason: String
+  suspendedAt: DateTime
+  suspendedBy: String
+  suspensionReason: String
+}
+
+type StandardObjectLink {
+  linkType: StandardObjectLinkType!
+  sourceCode: String!
+  targetCode: String!
+  attributes: JSON
+}
+
+type StandardObject {
+  kernel: StandardObjectKernel!
+  version: StandardObjectVersion!
+  links: [StandardObjectLink!]
+}
+
+type StandardObjectConnection {
+  data: [StandardObject!]!
+  pagination: PaginationInfo!
 }
 
 # Scalar Types
@@ -5112,10 +5627,10 @@ func (ec *executionContext) field_Query_organizationSubtree_args(ctx context.Con
 		}
 	}
 	args["code"] = arg0
-	var arg1 string
+	var arg1 *string
 	if tmp, ok := rawArgs["tenantId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tenantId"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -5466,6 +5981,72 @@ func (ec *executionContext) field_Query_positions_args(ctx context.Context, rawA
 		}
 	}
 	args["sorting"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_standardObject_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.StandardObjectType
+	if tmp, ok := rawArgs["objectType"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("objectType"))
+		arg0, err = ec.unmarshalNStandardObjectType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectType(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["objectType"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["code"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["code"] = arg1
+	var arg2 *dto.Date
+	if tmp, ok := rawArgs["asOfDate"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("asOfDate"))
+		arg2, err = ec.unmarshalODate2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDate(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["asOfDate"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_standardObjects_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.StandardObjectType
+	if tmp, ok := rawArgs["objectType"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("objectType"))
+		arg0, err = ec.unmarshalNStandardObjectType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectType(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["objectType"] = arg0
+	var arg1 *model.StandardObjectFilterInput
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg1, err = ec.unmarshalOStandardObjectFilterInput2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectFilterInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg1
+	var arg2 *model.PaginationInput
+	if tmp, ok := rawArgs["pagination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+		arg2, err = ec.unmarshalOPaginationInput2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐPaginationInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pagination"] = arg2
 	return args, nil
 }
 
@@ -11903,11 +12484,14 @@ func (ec *executionContext) _Organization_sortOrder(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Organization_sortOrder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12116,9 +12700,9 @@ func (ec *executionContext) _Organization_profile(ctx context.Context, field gra
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(dto.JSON)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOJSON2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJSON(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Organization_profile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12128,7 +12712,7 @@ func (ec *executionContext) fieldContext_Organization_profile(ctx context.Contex
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type JSON does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13162,6 +13746,129 @@ func (ec *executionContext) fieldContext_OrganizationHierarchy_name(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _OrganizationHierarchy_unitType(ctx context.Context, field graphql.CollectedField, obj *model.OrganizationHierarchy) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrganizationHierarchy_unitType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UnitType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.UnitType)
+	fc.Result = res
+	return ec.marshalOUnitType2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐUnitType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrganizationHierarchy_unitType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrganizationHierarchy",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UnitType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrganizationHierarchy_status(ctx context.Context, field graphql.CollectedField, obj *model.OrganizationHierarchy) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrganizationHierarchy_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Status)
+	fc.Result = res
+	return ec.marshalOStatus2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrganizationHierarchy_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrganizationHierarchy",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Status does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OrganizationHierarchy_parentCode(ctx context.Context, field graphql.CollectedField, obj *model.OrganizationHierarchy) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OrganizationHierarchy_parentCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ParentCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OrganizationHierarchy_parentCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OrganizationHierarchy",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _OrganizationHierarchy_level(ctx context.Context, field graphql.CollectedField, obj *model.OrganizationHierarchy) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_OrganizationHierarchy_level(ctx, field)
 	if err != nil {
@@ -13557,6 +14264,12 @@ func (ec *executionContext) fieldContext_OrganizationHierarchy_children(ctx cont
 				return ec.fieldContext_OrganizationHierarchy_code(ctx, field)
 			case "name":
 				return ec.fieldContext_OrganizationHierarchy_name(ctx, field)
+			case "unitType":
+				return ec.fieldContext_OrganizationHierarchy_unitType(ctx, field)
+			case "status":
+				return ec.fieldContext_OrganizationHierarchy_status(ctx, field)
+			case "parentCode":
+				return ec.fieldContext_OrganizationHierarchy_parentCode(ctx, field)
 			case "level":
 				return ec.fieldContext_OrganizationHierarchy_level(ctx, field)
 			case "hierarchyDepth":
@@ -19341,6 +20054,12 @@ func (ec *executionContext) fieldContext_Query_organizationHierarchy(ctx context
 				return ec.fieldContext_OrganizationHierarchy_code(ctx, field)
 			case "name":
 				return ec.fieldContext_OrganizationHierarchy_name(ctx, field)
+			case "unitType":
+				return ec.fieldContext_OrganizationHierarchy_unitType(ctx, field)
+			case "status":
+				return ec.fieldContext_OrganizationHierarchy_status(ctx, field)
+			case "parentCode":
+				return ec.fieldContext_OrganizationHierarchy_parentCode(ctx, field)
 			case "level":
 				return ec.fieldContext_OrganizationHierarchy_level(ctx, field)
 			case "hierarchyDepth":
@@ -19391,7 +20110,7 @@ func (ec *executionContext) _Query_organizationSubtree(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().OrganizationSubtree(rctx, fc.Args["code"].(string), fc.Args["tenantId"].(string), fc.Args["maxDepth"].(*int), fc.Args["includeInactive"].(*bool))
+		return ec.resolvers.Query().OrganizationSubtree(rctx, fc.Args["code"].(string), fc.Args["tenantId"].(*string), fc.Args["maxDepth"].(*int), fc.Args["includeInactive"].(*bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -19420,6 +20139,12 @@ func (ec *executionContext) fieldContext_Query_organizationSubtree(ctx context.C
 				return ec.fieldContext_OrganizationHierarchy_code(ctx, field)
 			case "name":
 				return ec.fieldContext_OrganizationHierarchy_name(ctx, field)
+			case "unitType":
+				return ec.fieldContext_OrganizationHierarchy_unitType(ctx, field)
+			case "status":
+				return ec.fieldContext_OrganizationHierarchy_status(ctx, field)
+			case "parentCode":
+				return ec.fieldContext_OrganizationHierarchy_parentCode(ctx, field)
 			case "level":
 				return ec.fieldContext_OrganizationHierarchy_level(ctx, field)
 			case "hierarchyDepth":
@@ -19525,6 +20250,127 @@ func (ec *executionContext) fieldContext_Query_hierarchyStatistics(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_hierarchyStatistics_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_standardObjects(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_standardObjects(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().StandardObjects(rctx, fc.Args["objectType"].(model.StandardObjectType), fc.Args["filter"].(*model.StandardObjectFilterInput), fc.Args["pagination"].(*model.PaginationInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.StandardObjectConnection)
+	fc.Result = res
+	return ec.marshalNStandardObjectConnection2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_standardObjects(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "data":
+				return ec.fieldContext_StandardObjectConnection_data(ctx, field)
+			case "pagination":
+				return ec.fieldContext_StandardObjectConnection_pagination(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObjectConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_standardObjects_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_standardObject(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_standardObject(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().StandardObject(rctx, fc.Args["objectType"].(model.StandardObjectType), fc.Args["code"].(string), fc.Args["asOfDate"].(*dto.Date))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.StandardObject)
+	fc.Result = res
+	return ec.marshalOStandardObject2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObject(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_standardObject(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "kernel":
+				return ec.fieldContext_StandardObject_kernel(ctx, field)
+			case "version":
+				return ec.fieldContext_StandardObject_version(ctx, field)
+			case "links":
+				return ec.fieldContext_StandardObject_links(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObject", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_standardObject_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -21336,6 +22182,1792 @@ func (ec *executionContext) fieldContext_RepairSuggestion_riskLevel(ctx context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObject_kernel(ctx context.Context, field graphql.CollectedField, obj *model.StandardObject) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObject_kernel(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Kernel, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.StandardObjectKernel)
+	fc.Result = res
+	return ec.marshalNStandardObjectKernel2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectKernel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObject_kernel(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObject",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "objectType":
+				return ec.fieldContext_StandardObjectKernel_objectType(ctx, field)
+			case "code":
+				return ec.fieldContext_StandardObjectKernel_code(ctx, field)
+			case "displayName":
+				return ec.fieldContext_StandardObjectKernel_displayName(ctx, field)
+			case "tenantCode":
+				return ec.fieldContext_StandardObjectKernel_tenantCode(ctx, field)
+			case "status":
+				return ec.fieldContext_StandardObjectKernel_status(ctx, field)
+			case "labels":
+				return ec.fieldContext_StandardObjectKernel_labels(ctx, field)
+			case "schemaVersion":
+				return ec.fieldContext_StandardObjectKernel_schemaVersion(ctx, field)
+			case "dataClassification":
+				return ec.fieldContext_StandardObjectKernel_dataClassification(ctx, field)
+			case "retentionPolicy":
+				return ec.fieldContext_StandardObjectKernel_retentionPolicy(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_StandardObjectKernel_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_StandardObjectKernel_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_StandardObjectKernel_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObjectKernel", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObject_version(ctx context.Context, field graphql.CollectedField, obj *model.StandardObject) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObject_version(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.StandardObjectVersion)
+	fc.Result = res
+	return ec.marshalNStandardObjectVersion2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectVersion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObject_version(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObject",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "versionCode":
+				return ec.fieldContext_StandardObjectVersion_versionCode(ctx, field)
+			case "effectiveDate":
+				return ec.fieldContext_StandardObjectVersion_effectiveDate(ctx, field)
+			case "endDate":
+				return ec.fieldContext_StandardObjectVersion_endDate(ctx, field)
+			case "isCurrent":
+				return ec.fieldContext_StandardObjectVersion_isCurrent(ctx, field)
+			case "payload":
+				return ec.fieldContext_StandardObjectVersion_payload(ctx, field)
+			case "auditTrail":
+				return ec.fieldContext_StandardObjectVersion_auditTrail(ctx, field)
+			case "checksum":
+				return ec.fieldContext_StandardObjectVersion_checksum(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_StandardObjectVersion_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_StandardObjectVersion_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObjectVersion", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObject_links(ctx context.Context, field graphql.CollectedField, obj *model.StandardObject) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObject_links(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Links, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]model.StandardObjectLink)
+	fc.Result = res
+	return ec.marshalOStandardObjectLink2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLinkᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObject_links(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObject",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "linkType":
+				return ec.fieldContext_StandardObjectLink_linkType(ctx, field)
+			case "sourceCode":
+				return ec.fieldContext_StandardObjectLink_sourceCode(ctx, field)
+			case "targetCode":
+				return ec.fieldContext_StandardObjectLink_targetCode(ctx, field)
+			case "attributes":
+				return ec.fieldContext_StandardObjectLink_attributes(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObjectLink", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_createdBy(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_createdBy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_createdBy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_updatedBy(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_updatedBy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_updatedBy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_deletedAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_deletedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeletedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_deletedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_deletedBy(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_deletedBy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeletedBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_deletedBy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_deletionReason(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_deletionReason(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeletionReason, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_deletionReason(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_suspendedAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_suspendedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SuspendedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_suspendedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_suspendedBy(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_suspendedBy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SuspendedBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_suspendedBy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectAudit_suspensionReason(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectAudit) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectAudit_suspensionReason(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SuspensionReason, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectAudit_suspensionReason(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectAudit",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectConnection_data(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectConnection_data(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.StandardObject)
+	fc.Result = res
+	return ec.marshalNStandardObject2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectConnection_data(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "kernel":
+				return ec.fieldContext_StandardObject_kernel(ctx, field)
+			case "version":
+				return ec.fieldContext_StandardObject_version(ctx, field)
+			case "links":
+				return ec.fieldContext_StandardObject_links(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObject", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectConnection_pagination(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectConnection_pagination(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PaginationInfo)
+	fc.Result = res
+	return ec.marshalNPaginationInfo2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐPaginationInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectConnection_pagination(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "total":
+				return ec.fieldContext_PaginationInfo_total(ctx, field)
+			case "page":
+				return ec.fieldContext_PaginationInfo_page(ctx, field)
+			case "pageSize":
+				return ec.fieldContext_PaginationInfo_pageSize(ctx, field)
+			case "hasNext":
+				return ec.fieldContext_PaginationInfo_hasNext(ctx, field)
+			case "hasPrevious":
+				return ec.fieldContext_PaginationInfo_hasPrevious(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PaginationInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_objectType(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_objectType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ObjectType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.StandardObjectType)
+	fc.Result = res
+	return ec.marshalNStandardObjectType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_objectType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type StandardObjectType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_code(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_code(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Code, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_code(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_displayName(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_displayName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisplayName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_displayName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_tenantCode(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_tenantCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TenantCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_tenantCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_status(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Status)
+	fc.Result = res
+	return ec.marshalNStatus2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Status does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_labels(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_labels(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Labels, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(dto.JSON)
+	fc.Result = res
+	return ec.marshalOJSON2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJSON(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_labels(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_schemaVersion(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_schemaVersion(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SchemaVersion, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_schemaVersion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_dataClassification(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_dataClassification(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DataClassification, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_dataClassification(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_retentionPolicy(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_retentionPolicy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RetentionPolicy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_retentionPolicy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_createdBy(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_createdBy(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_createdBy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectKernel_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectKernel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectKernel_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectKernel_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectKernel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectLink_linkType(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectLink) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectLink_linkType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LinkType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.StandardObjectLinkType)
+	fc.Result = res
+	return ec.marshalNStandardObjectLinkType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLinkType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectLink_linkType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectLink",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type StandardObjectLinkType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectLink_sourceCode(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectLink) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectLink_sourceCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SourceCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectLink_sourceCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectLink",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectLink_targetCode(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectLink) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectLink_targetCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectLink_targetCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectLink",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectLink_attributes(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectLink) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectLink_attributes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Attributes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(dto.JSON)
+	fc.Result = res
+	return ec.marshalOJSON2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJSON(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectLink_attributes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectLink",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_versionCode(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_versionCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.VersionCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_versionCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_effectiveDate(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_effectiveDate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EffectiveDate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(dto.Date)
+	fc.Result = res
+	return ec.marshalNDate2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_effectiveDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Date does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_endDate(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_endDate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndDate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.Date)
+	fc.Result = res
+	return ec.marshalODate2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_endDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Date does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_isCurrent(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_isCurrent(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsCurrent, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_isCurrent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_payload(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_payload(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Payload, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(dto.JSON)
+	fc.Result = res
+	return ec.marshalNJSON2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJSON(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_payload(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_auditTrail(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_auditTrail(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AuditTrail, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.StandardObjectAudit)
+	fc.Result = res
+	return ec.marshalOStandardObjectAudit2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectAudit(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_auditTrail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "createdBy":
+				return ec.fieldContext_StandardObjectAudit_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_StandardObjectAudit_createdAt(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_StandardObjectAudit_updatedBy(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_StandardObjectAudit_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_StandardObjectAudit_deletedAt(ctx, field)
+			case "deletedBy":
+				return ec.fieldContext_StandardObjectAudit_deletedBy(ctx, field)
+			case "deletionReason":
+				return ec.fieldContext_StandardObjectAudit_deletionReason(ctx, field)
+			case "suspendedAt":
+				return ec.fieldContext_StandardObjectAudit_suspendedAt(ctx, field)
+			case "suspendedBy":
+				return ec.fieldContext_StandardObjectAudit_suspendedBy(ctx, field)
+			case "suspensionReason":
+				return ec.fieldContext_StandardObjectAudit_suspensionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StandardObjectAudit", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_checksum(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_checksum(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Checksum, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_checksum(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StandardObjectVersion_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.StandardObjectVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_StandardObjectVersion_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*dto.DateTime)
+	fc.Result = res
+	return ec.marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_StandardObjectVersion_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StandardObjectVersion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
 		},
 	}
 	return fc, nil
@@ -25247,6 +27879,47 @@ func (ec *executionContext) unmarshalInputPositionSortInput(ctx context.Context,
 	return &it, nil
 }
 
+func (ec *executionContext) unmarshalInputStandardObjectFilterInput(ctx context.Context, obj interface{}) (*model.StandardObjectFilterInput, error) {
+	var it model.StandardObjectFilterInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"code", "status", "asOfDate"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "code":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return &it, err
+			}
+			it.Code = data
+		case "status":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			data, err := ec.unmarshalOStatus2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStatus(ctx, v)
+			if err != nil {
+				return &it, err
+			}
+			it.Status = data
+		case "asOfDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("asOfDate"))
+			data, err := ec.unmarshalODate2ᚖcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDate(ctx, v)
+			if err != nil {
+				return &it, err
+			}
+			it.AsOfDate = data
+		}
+	}
+
+	return &it, nil
+}
+
 func (ec *executionContext) unmarshalInputVacantPositionFilterInput(ctx context.Context, obj interface{}) (*model.VacantPositionFilterInput, error) {
 	var it model.VacantPositionFilterInput
 	asMap := map[string]interface{}{}
@@ -26847,6 +29520,9 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 			}
 		case "sortOrder":
 			out.Values[i] = ec._Organization_sortOrder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "codePath":
 			out.Values[i] = ec._Organization_codePath(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -27017,6 +29693,12 @@ func (ec *executionContext) _OrganizationHierarchy(ctx context.Context, sel ast.
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "unitType":
+			out.Values[i] = ec._OrganizationHierarchy_unitType(ctx, field, obj)
+		case "status":
+			out.Values[i] = ec._OrganizationHierarchy_status(ctx, field, obj)
+		case "parentCode":
+			out.Values[i] = ec._OrganizationHierarchy_parentCode(ctx, field, obj)
 		case "level":
 			out.Values[i] = ec._OrganizationHierarchy_level(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -28297,6 +30979,47 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "standardObjects":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_standardObjects(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "standardObject":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_standardObject(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "positions":
 			field := field
 
@@ -28776,6 +31499,338 @@ func (ec *executionContext) _RepairSuggestion(ctx context.Context, sel ast.Selec
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var standardObjectImplementors = []string{"StandardObject"}
+
+func (ec *executionContext) _StandardObject(ctx context.Context, sel ast.SelectionSet, obj *model.StandardObject) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, standardObjectImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StandardObject")
+		case "kernel":
+			out.Values[i] = ec._StandardObject_kernel(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "version":
+			out.Values[i] = ec._StandardObject_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "links":
+			out.Values[i] = ec._StandardObject_links(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var standardObjectAuditImplementors = []string{"StandardObjectAudit"}
+
+func (ec *executionContext) _StandardObjectAudit(ctx context.Context, sel ast.SelectionSet, obj *model.StandardObjectAudit) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, standardObjectAuditImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StandardObjectAudit")
+		case "createdBy":
+			out.Values[i] = ec._StandardObjectAudit_createdBy(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._StandardObjectAudit_createdAt(ctx, field, obj)
+		case "updatedBy":
+			out.Values[i] = ec._StandardObjectAudit_updatedBy(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._StandardObjectAudit_updatedAt(ctx, field, obj)
+		case "deletedAt":
+			out.Values[i] = ec._StandardObjectAudit_deletedAt(ctx, field, obj)
+		case "deletedBy":
+			out.Values[i] = ec._StandardObjectAudit_deletedBy(ctx, field, obj)
+		case "deletionReason":
+			out.Values[i] = ec._StandardObjectAudit_deletionReason(ctx, field, obj)
+		case "suspendedAt":
+			out.Values[i] = ec._StandardObjectAudit_suspendedAt(ctx, field, obj)
+		case "suspendedBy":
+			out.Values[i] = ec._StandardObjectAudit_suspendedBy(ctx, field, obj)
+		case "suspensionReason":
+			out.Values[i] = ec._StandardObjectAudit_suspensionReason(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var standardObjectConnectionImplementors = []string{"StandardObjectConnection"}
+
+func (ec *executionContext) _StandardObjectConnection(ctx context.Context, sel ast.SelectionSet, obj *model.StandardObjectConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, standardObjectConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StandardObjectConnection")
+		case "data":
+			out.Values[i] = ec._StandardObjectConnection_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pagination":
+			out.Values[i] = ec._StandardObjectConnection_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var standardObjectKernelImplementors = []string{"StandardObjectKernel"}
+
+func (ec *executionContext) _StandardObjectKernel(ctx context.Context, sel ast.SelectionSet, obj *model.StandardObjectKernel) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, standardObjectKernelImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StandardObjectKernel")
+		case "objectType":
+			out.Values[i] = ec._StandardObjectKernel_objectType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._StandardObjectKernel_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._StandardObjectKernel_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tenantCode":
+			out.Values[i] = ec._StandardObjectKernel_tenantCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._StandardObjectKernel_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "labels":
+			out.Values[i] = ec._StandardObjectKernel_labels(ctx, field, obj)
+		case "schemaVersion":
+			out.Values[i] = ec._StandardObjectKernel_schemaVersion(ctx, field, obj)
+		case "dataClassification":
+			out.Values[i] = ec._StandardObjectKernel_dataClassification(ctx, field, obj)
+		case "retentionPolicy":
+			out.Values[i] = ec._StandardObjectKernel_retentionPolicy(ctx, field, obj)
+		case "createdBy":
+			out.Values[i] = ec._StandardObjectKernel_createdBy(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._StandardObjectKernel_createdAt(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._StandardObjectKernel_updatedAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var standardObjectLinkImplementors = []string{"StandardObjectLink"}
+
+func (ec *executionContext) _StandardObjectLink(ctx context.Context, sel ast.SelectionSet, obj *model.StandardObjectLink) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, standardObjectLinkImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StandardObjectLink")
+		case "linkType":
+			out.Values[i] = ec._StandardObjectLink_linkType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sourceCode":
+			out.Values[i] = ec._StandardObjectLink_sourceCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetCode":
+			out.Values[i] = ec._StandardObjectLink_targetCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "attributes":
+			out.Values[i] = ec._StandardObjectLink_attributes(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var standardObjectVersionImplementors = []string{"StandardObjectVersion"}
+
+func (ec *executionContext) _StandardObjectVersion(ctx context.Context, sel ast.SelectionSet, obj *model.StandardObjectVersion) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, standardObjectVersionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StandardObjectVersion")
+		case "versionCode":
+			out.Values[i] = ec._StandardObjectVersion_versionCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "effectiveDate":
+			out.Values[i] = ec._StandardObjectVersion_effectiveDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endDate":
+			out.Values[i] = ec._StandardObjectVersion_endDate(ctx, field, obj)
+		case "isCurrent":
+			out.Values[i] = ec._StandardObjectVersion_isCurrent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "payload":
+			out.Values[i] = ec._StandardObjectVersion_payload(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "auditTrail":
+			out.Values[i] = ec._StandardObjectVersion_auditTrail(ctx, field, obj)
+		case "checksum":
+			out.Values[i] = ec._StandardObjectVersion_checksum(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._StandardObjectVersion_createdAt(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._StandardObjectVersion_updatedAt(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -29794,13 +32849,12 @@ func (ec *executionContext) marshalNConsistencyFindings2ᚖcubeᚑcastleᚋcmd�
 }
 
 func (ec *executionContext) unmarshalNDate2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDate(ctx context.Context, v interface{}) (dto.Date, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.Date(tmp)
+	res, err := dto.UnmarshalDate(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNDate2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDate(ctx context.Context, sel ast.SelectionSet, v dto.Date) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalDate(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -29810,13 +32864,12 @@ func (ec *executionContext) marshalNDate2cubeᚑcastleᚋinternalᚋorganization
 }
 
 func (ec *executionContext) unmarshalNDateTime2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx context.Context, v interface{}) (dto.DateTime, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.DateTime(tmp)
+	res, err := dto.UnmarshalDateTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNDateTime2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐDateTime(ctx context.Context, sel ast.SelectionSet, v dto.DateTime) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalDateTime(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -30133,6 +33186,27 @@ func (ec *executionContext) marshalNIntegrityIssue2ᚕcubeᚑcastleᚋcmdᚋhrms
 	return ret
 }
 
+func (ec *executionContext) unmarshalNJSON2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJSON(ctx context.Context, v interface{}) (dto.JSON, error) {
+	res, err := dto.UnmarshalJSON(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJSON2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJSON(ctx context.Context, sel ast.SelectionSet, v dto.JSON) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := dto.MarshalJSON(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNJobCatalogStatus2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐJobCatalogStatus(ctx context.Context, v interface{}) (model.JobCatalogStatus, error) {
 	var res model.JobCatalogStatus
 	err := res.UnmarshalGQL(v)
@@ -30192,13 +33266,12 @@ func (ec *executionContext) marshalNJobFamily2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑse
 }
 
 func (ec *executionContext) unmarshalNJobFamilyCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobFamilyCode(ctx context.Context, v interface{}) (dto.JobFamilyCode, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.JobFamilyCode(tmp)
+	res, err := dto.UnmarshalJobFamilyCode(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNJobFamilyCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobFamilyCode(ctx context.Context, sel ast.SelectionSet, v dto.JobFamilyCode) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalJobFamilyCode(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -30256,13 +33329,12 @@ func (ec *executionContext) marshalNJobFamilyGroup2ᚕcubeᚑcastleᚋcmdᚋhrms
 }
 
 func (ec *executionContext) unmarshalNJobFamilyGroupCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobFamilyGroupCode(ctx context.Context, v interface{}) (dto.JobFamilyGroupCode, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.JobFamilyGroupCode(tmp)
+	res, err := dto.UnmarshalJobFamilyGroupCode(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNJobFamilyGroupCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobFamilyGroupCode(ctx context.Context, sel ast.SelectionSet, v dto.JobFamilyGroupCode) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalJobFamilyGroupCode(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -30320,13 +33392,12 @@ func (ec *executionContext) marshalNJobLevel2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑser
 }
 
 func (ec *executionContext) unmarshalNJobLevelCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobLevelCode(ctx context.Context, v interface{}) (dto.JobLevelCode, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.JobLevelCode(tmp)
+	res, err := dto.UnmarshalJobLevelCode(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNJobLevelCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobLevelCode(ctx context.Context, sel ast.SelectionSet, v dto.JobLevelCode) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalJobLevelCode(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -30384,13 +33455,12 @@ func (ec *executionContext) marshalNJobRole2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑserv
 }
 
 func (ec *executionContext) unmarshalNJobRoleCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobRoleCode(ctx context.Context, v interface{}) (dto.JobRoleCode, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.JobRoleCode(tmp)
+	res, err := dto.UnmarshalJobRoleCode(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNJobRoleCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobRoleCode(ctx context.Context, sel ast.SelectionSet, v dto.JobRoleCode) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalJobRoleCode(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -31059,13 +34129,12 @@ func (ec *executionContext) marshalNPositionAssignmentType2cubeᚑcastleᚋcmd�
 }
 
 func (ec *executionContext) unmarshalNPositionCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐPositionCode(ctx context.Context, v interface{}) (dto.PositionCode, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.PositionCode(tmp)
+	res, err := dto.UnmarshalPositionCode(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNPositionCode2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐPositionCode(ctx context.Context, sel ast.SelectionSet, v dto.PositionCode) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalPositionCode(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -31407,6 +34476,112 @@ func (ec *executionContext) marshalNSearchField2cubeᚑcastleᚋcmdᚋhrmsᚑser
 	return v
 }
 
+func (ec *executionContext) marshalNStandardObject2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObject(ctx context.Context, sel ast.SelectionSet, v model.StandardObject) graphql.Marshaler {
+	return ec._StandardObject(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStandardObject2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectᚄ(ctx context.Context, sel ast.SelectionSet, v []model.StandardObject) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStandardObject2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObject(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNStandardObjectConnection2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectConnection(ctx context.Context, sel ast.SelectionSet, v model.StandardObjectConnection) graphql.Marshaler {
+	return ec._StandardObjectConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStandardObjectConnection2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectConnection(ctx context.Context, sel ast.SelectionSet, v *model.StandardObjectConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._StandardObjectConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStandardObjectKernel2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectKernel(ctx context.Context, sel ast.SelectionSet, v *model.StandardObjectKernel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._StandardObjectKernel(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStandardObjectLink2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLink(ctx context.Context, sel ast.SelectionSet, v model.StandardObjectLink) graphql.Marshaler {
+	return ec._StandardObjectLink(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNStandardObjectLinkType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLinkType(ctx context.Context, v interface{}) (model.StandardObjectLinkType, error) {
+	var res model.StandardObjectLinkType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNStandardObjectLinkType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLinkType(ctx context.Context, sel ast.SelectionSet, v model.StandardObjectLinkType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNStandardObjectType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectType(ctx context.Context, v interface{}) (model.StandardObjectType, error) {
+	var res model.StandardObjectType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNStandardObjectType2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectType(ctx context.Context, sel ast.SelectionSet, v model.StandardObjectType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNStandardObjectVersion2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectVersion(ctx context.Context, sel ast.SelectionSet, v *model.StandardObjectVersion) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._StandardObjectVersion(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNStatus2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStatus(ctx context.Context, v interface{}) (model.Status, error) {
 	var res model.Status
 	err := res.UnmarshalGQL(v)
@@ -31629,13 +34804,12 @@ func (ec *executionContext) marshalNTypeStatistic2ᚕcubeᚑcastleᚋcmdᚋhrms�
 }
 
 func (ec *executionContext) unmarshalNUUID2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐUUID(ctx context.Context, v interface{}) (dto.UUID, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.UUID(tmp)
+	res, err := dto.UnmarshalUUID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNUUID2cubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐUUID(ctx context.Context, sel ast.SelectionSet, v dto.UUID) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
+	res := dto.MarshalUUID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -32079,8 +35253,7 @@ func (ec *executionContext) unmarshalODate2ᚖcubeᚑcastleᚋinternalᚋorganiz
 	if v == nil {
 		return nil, nil
 	}
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.Date(tmp)
+	res, err := dto.UnmarshalDate(v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -32088,7 +35261,7 @@ func (ec *executionContext) marshalODate2ᚖcubeᚑcastleᚋinternalᚋorganizat
 	if v == nil {
 		return graphql.Null
 	}
-	res := graphql.MarshalString(string(*v))
+	res := dto.MarshalDate(*v)
 	return res
 }
 
@@ -32104,8 +35277,7 @@ func (ec *executionContext) unmarshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorg
 	if v == nil {
 		return nil, nil
 	}
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.DateTime(tmp)
+	res, err := dto.UnmarshalDateTime(v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -32113,7 +35285,7 @@ func (ec *executionContext) marshalODateTime2ᚖcubeᚑcastleᚋinternalᚋorgan
 	if v == nil {
 		return graphql.Null
 	}
-	res := graphql.MarshalString(string(*v))
+	res := dto.MarshalDateTime(*v)
 	return res
 }
 
@@ -32204,7 +35376,7 @@ func (ec *executionContext) unmarshalOJSON2cubeᚑcastleᚋinternalᚋorganizati
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputJSON(ctx, v)
+	res, err := dto.UnmarshalJSON(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -32212,7 +35384,8 @@ func (ec *executionContext) marshalOJSON2cubeᚑcastleᚋinternalᚋorganization
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._JSON(ctx, sel, v)
+	res := dto.MarshalJSON(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOJobFamilyCode2ᚕcubeᚑcastleᚋinternalᚋorganizationᚋdtoᚐJobFamilyCodeᚄ(ctx context.Context, v interface{}) ([]dto.JobFamilyCode, error) {
@@ -32596,8 +35769,7 @@ func (ec *executionContext) unmarshalOPositionCode2ᚖcubeᚑcastleᚋinternal�
 	if v == nil {
 		return nil, nil
 	}
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.PositionCode(tmp)
+	res, err := dto.UnmarshalPositionCode(v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -32605,7 +35777,7 @@ func (ec *executionContext) marshalOPositionCode2ᚖcubeᚑcastleᚋinternalᚋo
 	if v == nil {
 		return graphql.Null
 	}
-	res := graphql.MarshalString(string(*v))
+	res := dto.MarshalPositionCode(*v)
 	return res
 }
 
@@ -32803,6 +35975,75 @@ func (ec *executionContext) marshalOSortOrder2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑse
 	return v
 }
 
+func (ec *executionContext) marshalOStandardObject2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObject(ctx context.Context, sel ast.SelectionSet, v *model.StandardObject) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._StandardObject(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOStandardObjectAudit2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectAudit(ctx context.Context, sel ast.SelectionSet, v *model.StandardObjectAudit) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._StandardObjectAudit(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOStandardObjectFilterInput2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectFilterInput(ctx context.Context, v interface{}) (*model.StandardObjectFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputStandardObjectFilterInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOStandardObjectLink2ᚕcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLinkᚄ(ctx context.Context, sel ast.SelectionSet, v []model.StandardObjectLink) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStandardObjectLink2cubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStandardObjectLink(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOStatus2ᚖcubeᚑcastleᚋcmdᚋhrmsᚑserverᚋqueryᚋinternalᚋgraphqlᚋmodelᚐStatus(ctx context.Context, v interface{}) (*model.Status, error) {
 	if v == nil {
 		return nil, nil
@@ -32877,8 +36118,7 @@ func (ec *executionContext) unmarshalOUUID2ᚖcubeᚑcastleᚋinternalᚋorganiz
 	if v == nil {
 		return nil, nil
 	}
-	tmp, err := graphql.UnmarshalString(v)
-	res := dto.UUID(tmp)
+	res, err := dto.UnmarshalUUID(v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -32886,7 +36126,7 @@ func (ec *executionContext) marshalOUUID2ᚖcubeᚑcastleᚋinternalᚋorganizat
 	if v == nil {
 		return graphql.Null
 	}
-	res := graphql.MarshalString(string(*v))
+	res := dto.MarshalUUID(*v)
 	return res
 }
 

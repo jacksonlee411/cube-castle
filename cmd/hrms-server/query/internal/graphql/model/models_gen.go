@@ -249,12 +249,12 @@ type Organization struct {
 	UnitType         UnitType `json:"unitType"`
 	Status           Status   `json:"status"`
 	Level            int      `json:"level"`
-	SortOrder        *int     `json:"sortOrder,omitempty"`
+	SortOrder        int      `json:"sortOrder"`
 	CodePath         string   `json:"codePath"`
 	NamePath         string   `json:"namePath"`
 	Path             *string  `json:"path,omitempty"`
 	Description      *string  `json:"description,omitempty"`
-	Profile          *string  `json:"profile,omitempty"`
+	Profile          dto.JSON `json:"profile,omitempty"`
 	ChangeReason     *string  `json:"changeReason,omitempty"`
 	EffectiveDate    string   `json:"effectiveDate"`
 	EndDate          *string  `json:"endDate,omitempty"`
@@ -312,6 +312,9 @@ type OrganizationFilter struct {
 type OrganizationHierarchy struct {
 	Code           string                  `json:"code"`
 	Name           string                  `json:"name"`
+	UnitType       *UnitType               `json:"unitType,omitempty"`
+	Status         *Status                 `json:"status,omitempty"`
+	ParentCode     *string                 `json:"parentCode,omitempty"`
 	Level          int                     `json:"level"`
 	HierarchyDepth int                     `json:"hierarchyDepth"`
 	CodePath       string                  `json:"codePath"`
@@ -501,7 +504,8 @@ type PositionSortInput struct {
 	Direction *SortOrder        `json:"direction,omitempty"`
 }
 
-// Entry describing a specific temporal version of a position.
+// TemporalEntity timeline entry（职位特化实现），保持与 REST `TemporalEntityTimelineVersion` 字段一致，
+// 用于 Plan 244 的 Timeline 命名统一基线。
 type PositionTimelineEntry struct {
 	RecordID         dto.UUID                  `json:"recordId"`
 	Status           PositionStatus            `json:"status"`
@@ -550,6 +554,71 @@ type RepairSuggestion struct {
 	SuggestedAction string   `json:"suggestedAction"`
 	Automatable     bool     `json:"automatable"`
 	RiskLevel       string   `json:"riskLevel"`
+}
+
+type StandardObject struct {
+	Kernel  *StandardObjectKernel  `json:"kernel"`
+	Version *StandardObjectVersion `json:"version"`
+	Links   []StandardObjectLink   `json:"links,omitempty"`
+}
+
+type StandardObjectAudit struct {
+	CreatedBy        *string       `json:"createdBy,omitempty"`
+	CreatedAt        *dto.DateTime `json:"createdAt,omitempty"`
+	UpdatedBy        *string       `json:"updatedBy,omitempty"`
+	UpdatedAt        *dto.DateTime `json:"updatedAt,omitempty"`
+	DeletedAt        *dto.DateTime `json:"deletedAt,omitempty"`
+	DeletedBy        *string       `json:"deletedBy,omitempty"`
+	DeletionReason   *string       `json:"deletionReason,omitempty"`
+	SuspendedAt      *dto.DateTime `json:"suspendedAt,omitempty"`
+	SuspendedBy      *string       `json:"suspendedBy,omitempty"`
+	SuspensionReason *string       `json:"suspensionReason,omitempty"`
+}
+
+type StandardObjectConnection struct {
+	Data       []StandardObject `json:"data"`
+	Pagination *PaginationInfo  `json:"pagination"`
+}
+
+// 过滤条件（契约阶段仅暴露 code/status/asOfDate）。
+type StandardObjectFilterInput struct {
+	Code     *string   `json:"code,omitempty"`
+	Status   *Status   `json:"status,omitempty"`
+	AsOfDate *dto.Date `json:"asOfDate,omitempty"`
+}
+
+type StandardObjectKernel struct {
+	ObjectType         StandardObjectType `json:"objectType"`
+	Code               string             `json:"code"`
+	DisplayName        string             `json:"displayName"`
+	TenantCode         string             `json:"tenantCode"`
+	Status             Status             `json:"status"`
+	Labels             dto.JSON           `json:"labels,omitempty"`
+	SchemaVersion      *string            `json:"schemaVersion,omitempty"`
+	DataClassification *string            `json:"dataClassification,omitempty"`
+	RetentionPolicy    *string            `json:"retentionPolicy,omitempty"`
+	CreatedBy          *string            `json:"createdBy,omitempty"`
+	CreatedAt          *dto.DateTime      `json:"createdAt,omitempty"`
+	UpdatedAt          *dto.DateTime      `json:"updatedAt,omitempty"`
+}
+
+type StandardObjectLink struct {
+	LinkType   StandardObjectLinkType `json:"linkType"`
+	SourceCode string                 `json:"sourceCode"`
+	TargetCode string                 `json:"targetCode"`
+	Attributes dto.JSON               `json:"attributes,omitempty"`
+}
+
+type StandardObjectVersion struct {
+	VersionCode   string               `json:"versionCode"`
+	EffectiveDate dto.Date             `json:"effectiveDate"`
+	EndDate       *dto.Date            `json:"endDate,omitempty"`
+	IsCurrent     bool                 `json:"isCurrent"`
+	Payload       dto.JSON             `json:"payload"`
+	AuditTrail    *StandardObjectAudit `json:"auditTrail,omitempty"`
+	Checksum      *string              `json:"checksum,omitempty"`
+	CreatedAt     *dto.DateTime        `json:"createdAt,omitempty"`
+	UpdatedAt     *dto.DateTime        `json:"updatedAt,omitempty"`
 }
 
 // Statistics by organization status.
@@ -994,7 +1063,7 @@ func (e PositionSortField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-// Lifecycle status for positions.
+// TemporalEntityStatus（职位特化），命名与 `TEMPORAL_ENTITY_STATUS_META.position` / Plan 244 前端实现保持一致。
 type PositionStatus string
 
 const (
@@ -1269,7 +1338,90 @@ func (e SortOrder) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-// Organization business status (ADR-008: 一维业务状态模型).
+// Link 类型（Plan 400 定义）。当前仅支持 ORG_HIERARCHY。
+type StandardObjectLinkType string
+
+const (
+	StandardObjectLinkTypeOrgHierarchy StandardObjectLinkType = "ORG_HIERARCHY"
+)
+
+var AllStandardObjectLinkType = []StandardObjectLinkType{
+	StandardObjectLinkTypeOrgHierarchy,
+}
+
+func (e StandardObjectLinkType) IsValid() bool {
+	switch e {
+	case StandardObjectLinkTypeOrgHierarchy:
+		return true
+	}
+	return false
+}
+
+func (e StandardObjectLinkType) String() string {
+	return string(e)
+}
+
+func (e *StandardObjectLinkType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = StandardObjectLinkType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid StandardObjectLinkType", str)
+	}
+	return nil
+}
+
+func (e StandardObjectLinkType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// Standard Object 类型枚举。402A 契约阶段开放 ORGANIZATION_UNIT，POSITION_ROLE 保留供后续扩展。
+type StandardObjectType string
+
+const (
+	StandardObjectTypeOrganizationUnit StandardObjectType = "ORGANIZATION_UNIT"
+	StandardObjectTypePositionRole     StandardObjectType = "POSITION_ROLE"
+)
+
+var AllStandardObjectType = []StandardObjectType{
+	StandardObjectTypeOrganizationUnit,
+	StandardObjectTypePositionRole,
+}
+
+func (e StandardObjectType) IsValid() bool {
+	switch e {
+	case StandardObjectTypeOrganizationUnit, StandardObjectTypePositionRole:
+		return true
+	}
+	return false
+}
+
+func (e StandardObjectType) String() string {
+	return string(e)
+}
+
+func (e *StandardObjectType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = StandardObjectType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid StandardObjectType", str)
+	}
+	return nil
+}
+
+func (e StandardObjectType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// TemporalEntityStatus（组织特化，ADR-008 一维业务状态模型）。Plan 244 要求 REST/GraphQL/前端均复用该命名，与
+// `TEMPORAL_ENTITY_STATUS_META.organization` 对齐。
 type Status string
 
 const (

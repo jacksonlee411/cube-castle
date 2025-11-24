@@ -48,6 +48,7 @@ type QueryRepository = repositorypkg.PostgreSQLRepository
 type QueryRepositoryInterface = resolver.QueryRepository
 type QueryResolver = resolver.Resolver
 type QueryPermissionChecker = resolver.PermissionChecker
+type StandardObjectStore = resolver.StandardObjectStore
 type AssignmentFacade interface {
 	GetAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
 	GetAssignmentHistory(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
@@ -237,15 +238,19 @@ func NewQueryRepository(db *sql.DB, redisClient *redis.Client, logger pkglogger.
 	return repositorypkg.NewPostgreSQLRepository(db, redisClient, logger, auditConfig)
 }
 
-func NewQueryResolver(repo QueryRepositoryInterface, assignments resolver.AssignmentProvider, logger pkglogger.Logger, permissions QueryPermissionChecker) *resolver.Resolver {
+func NewQueryResolver(repo QueryRepositoryInterface, assignments resolver.AssignmentProvider, store StandardObjectStore, logger pkglogger.Logger, permissions QueryPermissionChecker) *resolver.Resolver {
 	if assignments != nil {
-		return resolver.NewResolverWithAssignments(repo, assignments, logger, permissions)
+		return resolver.NewResolverWithAssignments(repo, assignments, store, logger, permissions)
 	}
-	return resolver.NewResolver(repo, logger, permissions)
+	return resolver.NewResolver(repo, store, logger, permissions)
 }
 
 func NewAssignmentFacade(repo *repositorypkg.PostgreSQLRepository, redisClient *redis.Client, logger pkglogger.Logger, cacheTTL time.Duration) *AssignmentQueryFacade {
 	return NewAssignmentQueryFacade(repo, redisClient, logger, cacheTTL)
+}
+
+func NewStandardObjectStore(db *sql.DB, clk clockpkg.Clock) StandardObjectStore {
+	return resolver.NewStandardObjectStore(db, clk)
 }
 
 func DefaultAuditHistoryConfig() AuditHistoryConfig {

@@ -81,8 +81,8 @@ const config = {
     },
     {
       name: 'presence: plan 241 references appendix A',
-      source: 'docs/development-plans/241-frontend-framework-refactor.md',
-      targets: ['docs/development-plans/241-frontend-framework-refactor.md'],
+      source: 'docs/archive/development-plans/241-frontend-framework-refactor.md',
+      targets: ['docs/archive/development-plans/241-frontend-framework-refactor.md'],
       syncType: 'presence',
       pattern: /附录 A\s*.+框架与工程实践清单/,
       description: 'Plan 241 需固定引用附录A作为执行/验收依据'

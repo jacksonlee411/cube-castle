@@ -13,6 +13,9 @@ import {
   organizationTimelineAdapter,
   type OrganizationTimelineSource,
 } from '@/features/temporal/entity/timelineAdapter';
+import { standardObjectAdapter } from '@/features/temporal/entity/standardObjectAdapter';
+import type { StandardObject } from '@/generated/graphql-types';
+import { StandardObjectType } from '@/generated/graphql-types';
 
 export interface HierarchyPaths {
   codePath: string;
@@ -84,6 +87,12 @@ interface GraphQLResponseError {
   message?: string;
 }
 
+interface StandardObjectTimelineResponse {
+  standardObjects?: {
+    data: StandardObject[];
+  };
+}
+
 // GraphQL 查询常量：仅保留层级路径查询（其余由 Facade 承担）
 
 const ORGANIZATION_HIERARCHY_QUERY = `
@@ -91,6 +100,43 @@ const ORGANIZATION_HIERARCHY_QUERY = `
     organizationHierarchy(code: $code, tenantId: $tenantId) {
       codePath
       namePath
+    }
+  }
+`;
+
+const STANDARD_OBJECT_TIMELINE_QUERY = `
+  query StandardObjectTimeline($objectType: StandardObjectType!, $code: String!) {
+    standardObjects(objectType: $objectType, filter: { code: $code }) {
+      data {
+        kernel {
+          code
+          displayName
+          tenantCode
+          status
+          labels
+          schemaVersion
+          dataClassification
+          retentionPolicy
+          createdAt
+          updatedAt
+        }
+        version {
+          versionCode
+          effectiveDate
+          endDate
+          isCurrent
+          payload
+          auditTrail
+          createdAt
+          updatedAt
+        }
+        links {
+          linkType
+          sourceCode
+          targetCode
+          attributes
+        }
+      }
     }
   }
 `;
@@ -107,6 +153,15 @@ const mapTimelineItem = (item: TimelineItemResponse): TimelineVersion =>
 export const fetchOrganizationVersions = async (
   organizationCode: string,
 ): Promise<FetchVersionsResult> => {
+  try {
+    const somVersions = await fetchStandardObjectTimeline(organizationCode);
+    if (somVersions.length > 0) {
+      return { versions: somVersions };
+    }
+  } catch (somError) {
+    logger.warn('standardObject timeline 查询失败，回退到 legacy 数据源:', somError);
+  }
+
   try {
     // Plan 257: 优先通过 Facade 查询
     const list = await listOrganizationVersions(organizationCode);
@@ -138,6 +193,21 @@ export const fetchOrganizationVersions = async (
       throw new Error(`GraphQL调用失败: ${typedError?.message || "未知错误"}`);
     }
   }
+};
+
+const fetchStandardObjectTimeline = async (code: string): Promise<TimelineVersion[]> => {
+  const response = await unifiedGraphQLClient.request<StandardObjectTimelineResponse>(
+    STANDARD_OBJECT_TIMELINE_QUERY,
+    {
+      objectType: StandardObjectType.ORGANIZATION_UNIT,
+      code,
+    },
+  );
+  const aggregates = response?.standardObjects?.data ?? [];
+  if (!aggregates.length) {
+    return [];
+  }
+  return standardObjectAdapter.toTimelineVersions(aggregates);
 };
 
 export const fetchHierarchyPaths = async (

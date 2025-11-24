@@ -44,7 +44,7 @@
 - **2025-11-23 最新归档**  
 - `../archive/development-plans/222-organization-verification.md` —— Phase2 验收完成，后续由 Plan 222A-D 承接。  
 - `../archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` —— HRMS 文档索引完成导读合流后转入归档。
-- `../archive/development-plans/241-frontend-framework-refactor.md` —— 统一前端骨架/Hook/selector 方案已完成并归档；活跃目录仅保留占位文件引用归档内容。***
+- `../archive/development-plans/241-frontend-framework-refactor.md` —— 统一前端骨架/Hook/selector 方案已完成并归档；如需引用请直接访问归档文件。***
 - **2025-11-22**  
   - `../archive/development-plans/270-workflow-contract-guardian-remediation.md` —— Workflow 契约守卫恢复。  
   - `../archive/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md` —— 自托管 Runner 指南停用，所有 CI 均使用 GitHub 平台 Runner。

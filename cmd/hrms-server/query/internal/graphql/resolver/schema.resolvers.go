@@ -9,6 +9,7 @@ import (
 	graphqlruntime "cube-castle/cmd/hrms-server/query/internal/graphql"
 	"cube-castle/cmd/hrms-server/query/internal/graphql/model"
 	"cube-castle/internal/organization/dto"
+	standardobject "cube-castle/internal/standardobject"
 )
 
 // Organizations is the resolver for the organizations field.
@@ -538,6 +539,48 @@ func (r *queryResolver) JobLevels(ctx context.Context, roleCode dto.JobRoleCode,
 		return nil, err
 	}
 	return convertSlice[model.JobLevel](res)
+}
+
+// StandardObjects is the resolver for the standardObjects field.
+func (r *queryResolver) StandardObjects(ctx context.Context, objectType model.StandardObjectType, filter *model.StandardObjectFilterInput, pagination *model.PaginationInput) (*model.StandardObjectConnection, error) {
+	dtoFilter, err := convertInput[model.StandardObjectFilterInput, dto.StandardObjectFilter](filter)
+	if err != nil {
+		return nil, err
+	}
+	dtoPagination, err := convertInput[model.PaginationInput, dto.PaginationInput](pagination)
+	if err != nil {
+		return nil, err
+	}
+	res, err := r.QueryResolver.StandardObjects(ctx, struct {
+		ObjectType standardobject.ObjectType
+		Filter     *dto.StandardObjectFilter
+		Pagination *dto.PaginationInput
+	}{
+		ObjectType: standardobject.ObjectType(objectType),
+		Filter:     dtoFilter,
+		Pagination: dtoPagination,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.StandardObjectConnection](res)
+}
+
+// StandardObject is the resolver for the standardObject field.
+func (r *queryResolver) StandardObject(ctx context.Context, objectType model.StandardObjectType, code string, asOfDate *dto.Date) (*model.StandardObject, error) {
+	res, err := r.QueryResolver.StandardObject(ctx, struct {
+		ObjectType standardobject.ObjectType
+		Code       string
+		AsOfDate   *string
+	}{
+		ObjectType: standardobject.ObjectType(objectType),
+		Code:       code,
+		AsOfDate:   dateToStringPtr(asOfDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModel[model.StandardObject](res)
 }
 
 // Query returns graphqlruntime.QueryResolver implementation.

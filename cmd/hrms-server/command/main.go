@@ -13,6 +13,7 @@ import (
 	"time"
 
 	authbff "cube-castle/cmd/hrms-server/command/internal/authbff"
+	standardobjectapi "cube-castle/cmd/hrms-server/command/internal/standardobjectapi"
 	outbox "cube-castle/cmd/hrms-server/command/internal/outbox"
 	publicgraphql "cube-castle/cmd/hrms-server/query/publicgraphql"
 	auth "cube-castle/internal/auth"
@@ -273,6 +274,7 @@ func main() {
 		positionHandler    *organization.PositionHandler
 		jobCatalogHandler  *organization.JobCatalogHandler
 		operationalHandler *organization.OperationalHandler
+		stdObjectHandler   *standardobjectapi.Handler
 	)
 	if !authOnlyMode {
 		commandHandlers = orgModule.NewHandlers(organization.CommandHandlerDeps{
@@ -286,6 +288,7 @@ func main() {
 		jobCatalogHandler = commandHandlers.JobCatalog
 		operationalHandler = commandHandlers.Operational
 		devToolsHandler = commandHandlers.DevTools
+		stdObjectHandler = standardobjectapi.NewHandler(stdObjects, transactionClock, commandLogger)
 	} else {
 		devToolsHandler = organization.NewDevToolsHandler(sqlDB, jwtMiddleware, commandLogger, devMode)
 	}
@@ -434,6 +437,9 @@ func main() {
 				jobCatalogHandler.SetupRoutes(r)
 			}
 			orgHandler.SetupRoutes(r)
+			if stdObjectHandler != nil {
+				stdObjectHandler.SetupRoutes(r)
+			}
 			// 设置运维管理路由 (需要认证)
 			operationalHandler.SetupRoutes(r)
 		})

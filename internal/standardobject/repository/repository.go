@@ -147,7 +147,11 @@ func (r *Repository) Upsert(ctx context.Context, aggregate standardobject.Object
 
 // Get retrieves an aggregate using the provided key.
 func (r *Repository) Get(ctx context.Context, key standardobject.ObjectKey) (standardobject.ObjectAggregate, error) {
-	asOf := r.now()
+	return r.GetAt(ctx, key, r.now())
+}
+
+// GetAt retrieves an aggregate as of the provided validity/transaction timestamp.
+func (r *Repository) GetAt(ctx context.Context, key standardobject.ObjectKey, asOf time.Time) (standardobject.ObjectAggregate, error) {
 	obj, err := r.queries.GetStandardObjectKernel(ctx, sqlc.GetStandardObjectKernelParams{
 		TenantCode: key.TenantCode,
 		ObjectType: string(key.ObjectType),

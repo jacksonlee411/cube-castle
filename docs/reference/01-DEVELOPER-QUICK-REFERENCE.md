@@ -343,6 +343,14 @@ POST   /api/v1/workforce/employees          # 创建员工（Core HR：workforce
 PATCH  /api/v1/workforce/employees/{id}     # 更新员工状态/岗位（203号计划）
 POST   /api/v1/contracts                    # 创建劳动合同（Core HR：contract v1，203号计划）
 POST   /auth/dev-token         # 生成令牌 (仅DEV模式)
+
+# Standard Object REST Port（Plan 402D 启用，只写 SOM 三表）
+POST   /api/v1/standard-objects/{objectType}                # 创建 SOM Kernel + 初始版本
+POST   /api/v1/standard-objects/{objectType}/{code}/versions # 追加版本（append-only）
+PATCH  /api/v1/standard-objects/{objectType}/{code}/status   # 生命周期切换（READY/ACTIVE/SUSPENDED/RETIRED）
+# 调用须携带 X-Tenant-ID、Authorization，与 docs/api/openapi.yaml 一致；日志写入 logs/plan402/cleanup/*（锁切换）与 logs/plan402/migration/*（validator）。
+# objectType 仅接受 ORGANIZATION_UNIT（职位 ROLE 在 402E 解禁）；code 路径参数沿用标准对象 code。
+# 失败时返回 JSON：{"success":false,"error":{"code":...,"message":...},"requestId":...}，可据此排查 Runbook。
 ```
 
 ### Standard Object 双写守则
