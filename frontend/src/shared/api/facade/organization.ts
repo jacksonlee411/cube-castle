@@ -8,6 +8,7 @@
 
 import { unifiedGraphQLClient, unifiedRESTClient } from '@/shared/api/unified-client';
 import type { OrganizationRequest, OrganizationUnit } from '@/shared/types';
+import type { StandardObject } from '@/generated/graphql-types';
 
 // 与 useOrganizationMutations 中一致的 ETag 规范化处理
 const formatIfMatchHeader = (etag?: string): string | undefined => {
@@ -70,6 +71,64 @@ export async function listOrganizationVersions(code: string): Promise<Array<Orga
   `;
   const res = await unifiedGraphQLClient.request<{ organizationVersions: OrganizationUnit[] }>(QUERY, { code });
   return res.organizationVersions ?? [];
+}
+
+export interface QueryStandardObjectTimelineInput {
+  code: string;
+  asOfValid?: string;
+}
+
+const STANDARD_OBJECT_TIMELINE_QUERY = /* GraphQL */ `
+  query FacadeStandardObjectTimeline($code: String!, $asOfDate: Date) {
+    standardObjects(
+      objectType: ORGANIZATION_UNIT
+      filter: { code: $code, asOfDate: $asOfDate }
+    ) {
+      data {
+        kernel {
+          code
+          displayName
+          tenantCode
+          status
+          labels
+          schemaVersion
+          dataClassification
+          retentionPolicy
+          createdAt
+          updatedAt
+        }
+        version {
+          versionCode
+          effectiveDate
+          endDate
+          isCurrent
+          payload
+          auditTrail
+          createdAt
+          updatedAt
+        }
+        links {
+          linkType
+          sourceCode
+          targetCode
+          attributes
+        }
+      }
+    }
+  }
+`;
+
+export async function queryStandardObjectTimeline({
+  code,
+  asOfValid,
+}: QueryStandardObjectTimelineInput): Promise<StandardObject[]> {
+  const res = await unifiedGraphQLClient.request<{
+    standardObjects?: { data: StandardObject[] };
+  }>(STANDARD_OBJECT_TIMELINE_QUERY, {
+    code,
+    asOfDate: asOfValid,
+  });
+  return res.standardObjects?.data ?? [];
 }
 
 // 命令：创建组织（遵循 REST 命令端口）

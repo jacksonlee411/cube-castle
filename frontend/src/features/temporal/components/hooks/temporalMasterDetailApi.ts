@@ -4,6 +4,7 @@ import {
   getOrganizationByCode,
   createOrganization as facadeCreateOrganization,
 } from '@/shared/api/facade/organization';
+import { queryStandardObjectTimeline } from '@/shared/api/facade/organization';
 import { unifiedGraphQLClient, unifiedRESTClient } from '@/shared/api/unified-client';
 import { env } from "@/shared/config/environment";
 import type { OrganizationRequest } from "@/shared/types/organization";
@@ -84,12 +85,6 @@ interface GraphQLResponseError {
   message?: string;
 }
 
-interface StandardObjectTimelineResponse {
-  standardObjects?: {
-    data: StandardObject[];
-  };
-}
-
 // GraphQL 查询常量：仅保留层级路径查询（其余由 Facade 承担）
 
 const ORGANIZATION_HIERARCHY_QUERY = `
@@ -97,43 +92,6 @@ const ORGANIZATION_HIERARCHY_QUERY = `
     organizationHierarchy(code: $code, tenantId: $tenantId) {
       codePath
       namePath
-    }
-  }
-`;
-
-const STANDARD_OBJECT_TIMELINE_QUERY = `
-  query StandardObjectTimeline($objectType: StandardObjectType!, $code: String!) {
-    standardObjects(objectType: $objectType, filter: { code: $code }) {
-      data {
-        kernel {
-          code
-          displayName
-          tenantCode
-          status
-          labels
-          schemaVersion
-          dataClassification
-          retentionPolicy
-          createdAt
-          updatedAt
-        }
-        version {
-          versionCode
-          effectiveDate
-          endDate
-          isCurrent
-          payload
-          auditTrail
-          createdAt
-          updatedAt
-        }
-        links {
-          linkType
-          sourceCode
-          targetCode
-          attributes
-        }
-      }
     }
   }
 `;
@@ -285,14 +243,9 @@ export const fetchOrganizationVersions = async (
 };
 
 const fetchStandardObjectTimeline = async (code: string): Promise<TimelineVersion[]> => {
-  const response = await unifiedGraphQLClient.request<StandardObjectTimelineResponse>(
-    STANDARD_OBJECT_TIMELINE_QUERY,
-    {
-      objectType: StandardObjectType.ORGANIZATION_UNIT,
-      code,
-    },
-  );
-  const aggregates = response?.standardObjects?.data ?? [];
+  const aggregates = await queryStandardObjectTimeline({
+    code,
+  });
   if (!aggregates.length) {
     return [];
   }
