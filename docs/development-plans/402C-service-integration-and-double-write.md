@@ -50,7 +50,7 @@
 
 ### C4 · 前端 / Manifest
 - 组织/职位页面通过 Manifest/Slot (`temporal:organization:*`, `temporal:position:*`) 调用 `standardObjectAdapter`，禁止散落 GraphQL/REST 客户端。
-- 运行 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts`（或等效脚本），保证 UI 字段与契约同步；输出 `logs/plan400/manifest/*.log` & `logs/plan402/ui/*.log`。
+- 运行 `scripts/generate-forms-from-openapi.js`、`scripts/generate-columns-from-graphql.js`（或等效脚本），保证 UI 字段与契约同步；输出 `logs/plan400/manifest/*.log` & `logs/plan402/ui/*.log`。
 - PBAC scope 取自 OpenAPI（Plan 252/259），通过 Manifest `requiredScopes` 控制显隐。
 
 ### C5 · 权限/事件治理
@@ -131,3 +131,11 @@
 - ✅ 组织 REST handler（创建/更新/版本/状态变更/删除）统一构建 Standard Object 聚合并在同一事务中写出 `standard_object.created/updated/versioned/status_changed/retired` 事件，失败会回滚主事务；时间线修剪也通过回调触发事件。
 - ✅ Position Service 的 Create/Replace/CreateVersion 同步写 SOM 与 outbox，事件 payload 含 `positionCode` 与岗位标签，确保职位侧也能驱动快照刷新。
 - 📄 `logs/plan402/eventbus/20251129-standard-object-events.log` 记录了自检 SQL 与 outbox 栈的事件样本（`standard_object.created`/`standard_object.versioned`），命令服务的 `outbox_events` 表已能看到标准对象事件堆积。
+
+**2025-11-29 更新（C4 · Manifest & 快照）**
+- ✅ 运行 `node scripts/generate-forms-from-openapi.js` 与 `node scripts/generate-columns-from-graphql.js` 输出 UI 表单/列元数据，证据位于 `logs/plan400/manifest/20251124025231-forms.log` 与 `logs/plan402/ui/20251124025247-columns.log`。
+- ✅ `go run -tags legacy ./cmd/tools/standardobject-snapshot-refresh`（tenant=`3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`）重新刷新快照，日志与指标见 `logs/plan402/snapshots/20251124104422-refresh.log`、`logs/plan402/metrics/20251124104422-snapshots.jsonl`。
+- ✅ Outbox dispatcher 每日巡检记录 `logs/plan402/eventbus/20251124105608-dispatcher-scan.log`（当前 pending=0、Redis keyspace 为空），后续作为 402C C3/C5 监控基线。
+- ⏭️ 下一步：
+  - 将剩余的组织命令（更新/停用/删除/层级调整）与职位命令复查，确保 `upsertStandardObject` / 事件 helper 全量覆盖，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记依赖与日志入口。
+  - 基于最新 manifest 输出更新前端 Slot/表单（Temporal 页面、Position 详情等），补充 `logs/plan402/ui/*.log` 的运行说明与 Playwright/OBS 证据，完成 C4 对 UI/权限/指标的收官。

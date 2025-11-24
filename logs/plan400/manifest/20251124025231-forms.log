@@ -1,0 +1,669 @@
+{
+  "generatedAt": "2025-11-24T02:52:31.869Z",
+  "source": "docs/api/openapi.yaml",
+  "totalForms": 11,
+  "forms": [
+    {
+      "schema": "ClosePositionAssignmentRequest",
+      "totalFields": 3,
+      "requiredCount": 2,
+      "fields": [
+        {
+          "name": "endDate",
+          "type": "string<date>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "CreateOrganizationUnitRequest",
+      "totalFields": 8,
+      "requiredCount": 4,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Organization unit name",
+          "example": "新部门"
+        },
+        {
+          "name": "unitType",
+          "type": "ref:UnitType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "parentCode",
+          "type": "string",
+          "required": true,
+          "description": "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations",
+          "example": "1000000"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "Organization description",
+          "example": "新创建的部门"
+        },
+        {
+          "name": "sortOrder",
+          "type": "integer",
+          "required": false,
+          "description": "Sorting order within same level",
+          "example": 0
+        },
+        {
+          "name": "profile",
+          "type": "object",
+          "required": false,
+          "description": "Type-specific configuration",
+          "example": {
+            "budget": 5000000,
+            "costCenterCode": "CC001"
+          }
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": "Record effective date",
+          "example": "2025-08-23"
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": false,
+          "description": "Optional reason for creation; when omitted the service records an empty reason",
+          "example": "业务扩展需要"
+        }
+      ]
+    },
+    {
+      "schema": "CreatePositionAssignmentRequest",
+      "totalFields": 10,
+      "requiredCount": 5,
+      "fields": [
+        {
+          "name": "employeeId",
+          "type": "string<uuid>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "employeeName",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "employeeNumber",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "assignmentType",
+          "type": "ref:PositionAssignmentType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "fte",
+          "type": "number<float>",
+          "required": false,
+          "description": "",
+          "example": 1
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "actingUntil",
+          "type": "string<date>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "autoRevert",
+          "type": "boolean",
+          "required": false,
+          "description": "",
+          "example": false
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "CreatePositionRequest",
+      "totalFields": 19,
+      "requiredCount": 11,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobProfileCode",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobProfileName",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyGroupCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyGroupRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobRoleCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobRoleRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobLevelCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobLevelRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "organizationCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "positionType",
+          "type": "ref:PositionType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "employmentType",
+          "type": "ref:EmploymentType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "gradeLevel",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "headcountCapacity",
+          "type": "number<float>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "reportsToPositionCode",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "CreatePositionVersionRequest",
+      "totalFields": 19,
+      "requiredCount": 11,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobProfileCode",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobProfileName",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyGroupCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyGroupRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobFamilyRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobRoleCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobRoleRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "jobLevelCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "jobLevelRecordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "organizationCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "positionType",
+          "type": "ref:PositionType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "employmentType",
+          "type": "ref:EmploymentType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "gradeLevel",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "headcountCapacity",
+          "type": "number<float>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "reportsToPositionCode",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "FillPositionRequest",
+      "totalFields": 9,
+      "requiredCount": 5,
+      "fields": [
+        {
+          "name": "employeeId",
+          "type": "string<uuid>",
+          "required": true,
+          "description": "Unique identifier of the worker being assigned."
+        },
+        {
+          "name": "employeeName",
+          "type": "string",
+          "required": true,
+          "description": "Display name of the worker being assigned."
+        },
+        {
+          "name": "employeeNumber",
+          "type": "string",
+          "required": false,
+          "description": "Optional worker number for HR reporting."
+        },
+        {
+          "name": "assignmentType",
+          "type": "ref:PositionAssignmentType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "fte",
+          "type": "number<float>",
+          "required": false,
+          "description": "Full-time equivalent allocation for this assignment.",
+          "example": 1
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": "Date when the assignment becomes active."
+        },
+        {
+          "name": "anticipatedEndDate",
+          "type": "string<date>",
+          "required": false,
+          "description": "Optional planned end date for fixed-term assignments."
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "PositionEventRequest",
+      "totalFields": 2,
+      "requiredCount": 3,
+      "fields": [
+        {
+          "name": "eventType",
+          "type": "ref:PositionEventType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "recordId",
+          "type": "string<uuid>",
+          "required": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "ReplaceOrganizationUnitRequest",
+      "totalFields": 10,
+      "requiredCount": 7,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": "技术研发部"
+        },
+        {
+          "name": "unitType",
+          "type": "ref:UnitType",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "parentCode",
+          "type": "string",
+          "required": true,
+          "description": "Parent organization code. Use '0' for root organizations, or valid 7-digit code for child organizations",
+          "example": "1000000"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "",
+          "example": "负责产品研发、技术创新和系统架构设计"
+        },
+        {
+          "name": "status",
+          "type": "ref:Status",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "sortOrder",
+          "type": "integer",
+          "required": true,
+          "description": "",
+          "example": 0
+        },
+        {
+          "name": "profile",
+          "type": "object",
+          "required": true,
+          "description": "Complete profile configuration",
+          "example": {
+            "budget": 6000000,
+            "managerPositionCode": "POS-789e0123",
+            "costCenterCode": "CC001",
+            "headCountLimit": 60,
+            "establishedDate": "2024-01-01"
+          }
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": "",
+          "example": "2025-08-23"
+        },
+        {
+          "name": "endDate",
+          "type": "string<date>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": false,
+          "description": "Optional reason for the operation; omitted values are recorded as empty",
+          "example": "组织架构全面重构"
+        }
+      ]
+    },
+    {
+      "schema": "TransferPositionRequest",
+      "totalFields": 4,
+      "requiredCount": 3,
+      "fields": [
+        {
+          "name": "targetOrganizationCode",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "reassignReports",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether to automatically re-align subordinate reporting lines after transfer.",
+          "example": true
+        }
+      ]
+    },
+    {
+      "schema": "UpdatePositionAssignmentRequest",
+      "totalFields": 5,
+      "requiredCount": 1,
+      "fields": [
+        {
+          "name": "fte",
+          "type": "number<float>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "actingUntil",
+          "type": "string<date>",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "autoRevert",
+          "type": "boolean",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": ""
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "schema": "VacatePositionRequest",
+      "totalFields": 4,
+      "requiredCount": 3,
+      "fields": [
+        {
+          "name": "assignmentId",
+          "type": "string<uuid>",
+          "required": true,
+          "description": "Identifier of the active assignment to close."
+        },
+        {
+          "name": "effectiveDate",
+          "type": "string<date>",
+          "required": true,
+          "description": "Date when the assignment should end."
+        },
+        {
+          "name": "operationReason",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": ""
+        }
+      ]
+    }
+  ]
+}

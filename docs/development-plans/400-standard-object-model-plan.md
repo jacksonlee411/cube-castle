@@ -129,7 +129,7 @@
 2. `OrganizationTemporalPage` 与 `PositionTemporalPage` 只注入对象类型、字段映射、表单 schema；页面骨架、tab、版本操作复用 `TemporalEntityLayout`。
 3. 表单配置：采用 JSON Schema + 动态组件，放置 `frontend/src/shared/forms/standard-object`，便于 workforce/contract 共享。
 4. Playwright：新增 `frontend/tests/e2e/standard-object-lifecycle.spec.ts`，收敛 selectors（`temporalEntitySelectors.*`），`logs/plan400/ui/*.log` 落盘 `[OBS]` 事件。
-5. Manifest/Schema 生成：结合 Plan 300，在 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts`、`docs/reference/schema-registry.json` 输出中引入 SOM 实体，记录证据到 `logs/plan400/manifest/*.log`。
+5. Manifest/Schema 生成：结合 Plan 300，在 `scripts/generate-forms-from-openapi.js`、`scripts/generate-columns-from-graphql.js`、`docs/reference/schema-registry.json` 输出中引入 SOM 实体，记录证据到 `logs/plan400/manifest/*.log`。
 
 ### 4.6 开发阶段（建议 4 Sprint）
 | 阶段 | 时间 | 交付 | 依赖 |
