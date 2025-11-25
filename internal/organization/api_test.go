@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	standardobject "cube-castle/internal/standardobject"
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 )
 
@@ -47,7 +48,10 @@ func TestNewCommandModule_Minimal(t *testing.T) {
 		t.Fatalf("sqlmock: %v", err)
 	}
 	defer db.Close()
-	mod, err := NewCommandModule(CommandModuleDeps{DB: db})
+	mod, err := NewCommandModule(CommandModuleDeps{
+		DB:              db,
+		StandardObjects: standardobject.NewNoopService(),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

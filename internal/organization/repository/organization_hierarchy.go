@@ -39,7 +39,7 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 	if recordID != nil {
 		err := r.db.QueryRowContext(ctx, `
 			SELECT code, name, level
-			FROM organization_units
+			FROM organization_units_v
 			WHERE tenant_id = $1 AND record_id = $2 AND status <> 'DELETED'
 			LIMIT 1
 		`, tenantID.String(), *recordID).Scan(&resolvedCode, &currentName, &currentLevel)
@@ -53,7 +53,7 @@ func (r *OrganizationRepository) recalculateSelfHierarchy(ctx context.Context, t
 		resolvedCode = code
 		err := r.db.QueryRowContext(ctx, `
 			SELECT name, level
-			FROM organization_units
+			FROM organization_units_v
 			WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
 			LIMIT 1
 		`, tenantID.String(), code).Scan(&currentName, &currentLevel)
@@ -113,7 +113,7 @@ func (r *OrganizationRepository) calculateHierarchyFields(ctx context.Context, t
 		SELECT COALESCE(NULLIF(code_path, ''), '/' || code),
 		       COALESCE(NULLIF(name_path, ''), '/' || name),
 		       level
-		FROM organization_units
+		FROM organization_units_v
 		WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
 		LIMIT 1
 	`, tenantID.String(), trimmedParent).Scan(&parentCodePath, &parentNamePath, &parentLevel)

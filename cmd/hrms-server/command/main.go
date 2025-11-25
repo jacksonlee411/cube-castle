@@ -13,14 +13,14 @@ import (
 	"time"
 
 	authbff "cube-castle/cmd/hrms-server/command/internal/authbff"
-	standardobjectapi "cube-castle/cmd/hrms-server/command/internal/standardobjectapi"
 	outbox "cube-castle/cmd/hrms-server/command/internal/outbox"
+	standardobjectapi "cube-castle/cmd/hrms-server/command/internal/standardobjectapi"
 	publicgraphql "cube-castle/cmd/hrms-server/query/publicgraphql"
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
 	health "cube-castle/internal/monitoring/health"
 	organization "cube-castle/internal/organization"
-	noadapter "cube-castle/internal/standardobject/adapter/noop"
+	standardobject "cube-castle/internal/standardobject"
 	sqlcadapter "cube-castle/internal/standardobject/adapter/sqlc"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
@@ -78,9 +78,8 @@ func main() {
 	})
 	commandLogger.Info("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
-	stdObjects := noadapter.Provide()
 	transactionClock := clockpkg.NewSystemClock()
-	commandLogger.Info("标准对象 Port 注入完成（占位实现，等待 SOM 仓储接入）")
+	var stdObjects standardobject.ObjectService
 
 	var (
 		dbClient    *database.Database
@@ -118,7 +117,11 @@ func main() {
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
 
-		stdObjects = sqlcadapter.Provide(sqlDB, transactionClock)
+		stdObjects, err = sqlcadapter.Provide(sqlDB, transactionClock)
+		if err != nil {
+			commandLogger.Errorf("[FATAL] 初始化标准对象服务失败: %v", err)
+			os.Exit(1)
+		}
 		commandLogger.Infof("✅ 标准对象服务已使用 sqlc adapter（impl=%T）", stdObjects)
 
 		redisClient = openRedis(commandLogger)
@@ -187,6 +190,10 @@ func main() {
 	)
 	if !authOnlyMode {
 		var err error
+		if stdObjects == nil {
+			commandLogger.Error("[FATAL] 标准对象服务未初始化，命令模块无法启动")
+			os.Exit(1)
+		}
 		orgModule, err = organization.NewCommandModule(organization.CommandModuleDeps{
 			DB:              sqlDB,
 			Logger:          commandLogger,
