@@ -1,11 +1,25 @@
 # 410 · 命令层 SOM 写路径彻底切换
 
 **关联计划**：Plan 400、402A~402D、Plan 203/204/206  
-**状态**：规划 - 待立项  
+**状态**：执行中 - 阶段 1（P2 Feature Flag 清理）  
 **范围**：命令服务与组织/职位模块彻底迁移到 `standard_objects*`，旧表仅保留只读视图，Feature Flag 永久移除  
 **日志要求**：`logs/plan402/migration/*.log`、`logs/plan410/command/*.log`、`logs/plan410/validator/*.log`、`logs/plan410/runbook/*.log`
 
 > 使命：在不保留任何兼容代码或 Feature Flag 的前提下，让命令服务全部以 SOM 三表为唯一事实来源，旧 `organization_units` / `positions` 表仅作为只读视图或快照源。
+
+---
+
+## 0. 进展速记（2025-11-17）
+
+- ✅ Plan 402 系列已在命令层完成 SOM 双写：`internal/organization/handler/standard_object_adapter.go` 与 `internal/organization/service/position_standard_object_adapter.go` 的 `upsertStandardObject` / `syncPositionStandardObject` 已在创建、更新、版本与事件流程中统一调用 `standardobject.ObjectService`。
+- ✅ 命令入口与模块构造现已要求显式注入 SOM Service（`cmd/hrms-server/command/main.go`、`internal/organization/api.go`）；`OrganizationHandler`、`PositionService` 也在构造时强制依赖（`internal/organization/handler/organization_base.go`、`internal/organization/service/position_service.go`），彻底移除了 `standardobject.NewNoopService()` 的自动回退。
+- ✅ `internal/standardobject/adapter/sqlc` 缺失 DB 句柄时会返回错误并阻断启动，满足“依赖缺失即失败”的约束。
+- ✅ 通过 Goose 迁移 `20251215090000_create_standard_object_views.sql` 创建了 `organization_units_v` / `positions_v` 只读视图，分别将 SOM kernel/version/audit 展平成 legacy schema 需要的主字段，供查询层与指标脚本在后续迭代中切换引用。
+- ✅ 通过补丁迁移 `20251215100000_refresh_standard_object_views.sql` 将视图中的 `created_at/updated_at` 对齐 version 记录，保持与 legacy 仓储一致的排序/审计语义。
+- ✅ 仓储层抽象出 SOM Port：`internal/organization/repository/organization_standardobject.go` 与 `.../position_standardobject.go` 新增 Upsert 能力，`OrganizationHandler`/`PositionService` 仅依赖仓储完成聚合构建与 Upsert，为 P0 仓储重写奠定统一入口。
+- ✅ 查询层开始接入视图：`internal/organization/repository/postgres_organization_details.go`、`.../postgres_organizations_list.go`、`.../organization_hierarchy*.go` 以及空岗统计入口均已切换至 `organization_units_v`，验证 SOM 视图可直接满足 GraphQL/REST 读路径。
+- ✅ 命令侧 Upsert 汇聚到仓储：`internal/organization/repository/organization_standardobject.go` 现承担组织聚合生成与 SOM Upsert，`OrganizationRepository` 外部仅调用该接口，为 P0 的“命令仓储改写”建立统一写入口。
+- ⚠️ 尚存风险：`OrganizationRepository.Create/Update/Suspend/Activate/SoftDelete` 及 timeline/层级维护仍直接写 `organization_units`（含 `generateCode`、`temporal_timeline_*` 等），与 P0“命令仓储彻底迁移到 SOM”目标不符；后续需分阶段重写这些写路径，并为 `standard_objects` 设计统一的编码冲突守卫与回滚策略。
 
 ---
 

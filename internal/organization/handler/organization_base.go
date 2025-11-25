@@ -34,7 +34,7 @@ type OrganizationHandler struct {
 
 func NewOrganizationHandler(repo *repository.OrganizationRepository, temporalService *scheduler.TemporalService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, timelineManager *repository.TemporalTimelineManager, hierarchyRepo *repository.HierarchyRepository, validator *validator.BusinessRuleValidator, stdObjects standardobject.ObjectService, clk clockpkg.Clock, outboxRepo database.OutboxRepository) *OrganizationHandler {
 	if stdObjects == nil {
-		stdObjects = standardobject.NewNoopService()
+		panic("organization handler requires a configured standard object service")
 	}
 	if clk == nil {
 		clk = clockpkg.NewSystemClock()

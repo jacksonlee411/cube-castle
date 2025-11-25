@@ -114,7 +114,7 @@ WITH parent_path AS (
     SELECT DISTINCT ON (code)
         code,
         COALESCE(code_path, '/' || code) AS code_path
-    FROM organization_units
+    FROM organization_units_v
     WHERE tenant_id = $1
       AND $3::text IS NOT NULL
       AND code = $3::text
@@ -134,7 +134,7 @@ latest_versions AS (
         deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
         COALESCE(code_path, '/' || code) AS code_path,
         COALESCE(name_path, '/' || name) AS name_path
-    FROM organization_units
+    FROM organization_units_v
     WHERE tenant_id = $1
       AND status <> 'DELETED'
       AND (
@@ -156,7 +156,7 @@ FROM latest_versions lv
 LEFT JOIN parent_path pp ON TRUE
 LEFT JOIN LATERAL (
     SELECT COUNT(*) AS child_count
-    FROM organization_units child
+    FROM organization_units_v child
     WHERE child.tenant_id = lv.tenant_id
       AND child.parent_code = lv.code
       AND child.status <> 'DELETED'

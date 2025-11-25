@@ -3,6 +3,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"cube-castle/internal/standardobject"
 	"cube-castle/internal/standardobject/repository"
@@ -14,16 +15,16 @@ type service struct {
 }
 
 // Provide constructs a sqlc-backed ObjectService when a database connection is available.
-func Provide(db *sql.DB, clk clockpkg.Clock) standardobject.ObjectService {
+func Provide(db *sql.DB, clk clockpkg.Clock) (standardobject.ObjectService, error) {
 	if db == nil {
-		return standardobject.NewNoopService()
+		return nil, fmt.Errorf("standardobject sqlc adapter requires a database handle")
 	}
 	if clk == nil {
 		clk = clockpkg.NewSystemClock()
 	}
 	return &service{
 		repo: repository.NewRepository(db, clk),
-	}
+	}, nil
 }
 
 func (s *service) Upsert(ctx context.Context, aggregate standardobject.ObjectAggregate) error {

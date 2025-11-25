@@ -118,8 +118,7 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 	}
 	stdObjects := deps.StandardObjects
 	if stdObjects == nil {
-		stdObjects = standardobject.NewNoopService()
-		logger.Warn("standardobject service not provided; falling back to noop adapter")
+		return nil, ErrMissingStandardObjectService
 	}
 	clock := deps.TransactionClock
 	if clock == nil {
@@ -224,7 +223,10 @@ func NewCommandMiddlewares(logger pkglogger.Logger) CommandMiddlewares {
 	}
 }
 
-var ErrMissingDatabase = errors.New("organization command module requires a database connection")
+var (
+	ErrMissingDatabase              = errors.New("organization command module requires a database connection")
+	ErrMissingStandardObjectService = errors.New("organization command module requires a standard object service")
+)
 
 func RecordHTTPRequest(method, path string, status int) {
 	utilspkg.RecordHTTPRequest(method, path, status)

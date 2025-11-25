@@ -58,7 +58,7 @@ func NewPositionService(positions *repository.PositionRepository, assignments *r
 		assignmentValidator = validator.NewStubValidationService()
 	}
 	if stdObjects == nil {
-		stdObjects = standardobject.NewNoopService()
+		panic("position service requires a configured standard object service")
 	}
 	if clk == nil {
 		clk = clockpkg.NewSystemClock()

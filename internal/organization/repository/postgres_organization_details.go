@@ -21,7 +21,7 @@ func (r *PostgreSQLRepository) GetOrganization(ctx context.Context, tenantID uui
                sort_order, description, profile, created_at, updated_at,
                effective_date, end_date, is_current, change_reason,
                deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason
-        FROM organization_units 
+        FROM organization_units_v 
         WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
         LIMIT 1`
 
@@ -73,7 +73,7 @@ func (r *PostgreSQLRepository) GetOrganizationAtDate(ctx context.Context, tenant
                 effective_date, end_date, is_current, change_reason,
                 deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
                 LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
-            FROM organization_units 
+            FROM organization_units_v 
             WHERE tenant_id = $1 AND code = $2 
               AND status <> 'DELETED'
         ), proj AS (
@@ -145,7 +145,7 @@ func (r *PostgreSQLRepository) GetOrganizationHistory(ctx context.Context, tenan
                 effective_date, end_date, is_current, is_temporal, change_reason,
                 deleted_at, deleted_by, deletion_reason, suspended_at, suspended_by, suspension_reason,
                 LEAD(effective_date) OVER (PARTITION BY tenant_id, code ORDER BY effective_date) AS next_effective
-            FROM organization_units 
+            FROM organization_units_v 
             WHERE tenant_id = $1 AND code = $2 
               AND status <> 'DELETED'
         ), proj AS (

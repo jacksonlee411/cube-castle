@@ -432,7 +432,7 @@ WITH org_scope AS (
     SELECT DISTINCT ON (code)
         code,
         COALESCE(code_path, '/' || code) AS code_path
-    FROM organization_units
+    FROM organization_units_v
     WHERE tenant_id = $1
       AND code = $2
       AND is_current = true

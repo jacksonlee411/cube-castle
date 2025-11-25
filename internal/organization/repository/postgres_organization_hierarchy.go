@@ -29,23 +29,23 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
                 COUNT(*) FILTER (WHERE status = 'INACTIVE' AND is_current = true)::int as inactive_count,
                 COUNT(*) FILTER (WHERE status = 'PLANNED' AND is_current = true)::int as planned_count,
                 COUNT(*) FILTER (WHERE status = 'DELETED')::int as deleted_count
-            FROM organization_units WHERE tenant_id = $1
+            FROM organization_units_v WHERE tenant_id = $1
         ),
         type_stats AS (
             SELECT unit_type, COUNT(*) as count
-            FROM organization_units 
+            FROM organization_units_v 
             WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
             GROUP BY unit_type
         ),
         status_detail_stats AS (
             SELECT status, COUNT(*) as count
-            FROM organization_units 
+            FROM organization_units_v 
             WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
             GROUP BY status
         ),
         level_stats AS (
             SELECT level, COUNT(*) as count
-            FROM organization_units 
+            FROM organization_units_v 
             WHERE tenant_id = $1 AND is_current = true AND status <> 'DELETED'
             GROUP BY level
         ),
@@ -55,7 +55,7 @@ func (r *PostgreSQLRepository) GetOrganizationStats(ctx context.Context, tenantI
                 COUNT(DISTINCT code) as unique_orgs,
                 COALESCE(MIN(effective_date), DATE '1970-01-01') as oldest_date,
                 COALESCE(MAX(effective_date), DATE '1970-01-01') as newest_date
-            FROM organization_units WHERE tenant_id = $1 AND status <> 'DELETED'
+            FROM organization_units_v WHERE tenant_id = $1 AND status <> 'DELETED'
         )
 		SELECT 
 			s.total_count, s.active_count, s.inactive_count, s.planned_count, s.deleted_count,
@@ -151,7 +151,7 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
                 level,
                 parent_code,
                 1 AS hierarchy_depth
-            FROM organization_units
+            FROM organization_units_v
             WHERE tenant_id = $1
               AND code = $2
               AND is_current = true
@@ -166,7 +166,7 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
                 o.level,
                 o.parent_code,
                 h.hierarchy_depth + 1
-            FROM organization_units o
+            FROM organization_units_v o
             INNER JOIN hierarchy_info h ON o.code = h.parent_code
             WHERE o.tenant_id = $1
               AND o.is_current = true
@@ -190,7 +190,7 @@ func (r *PostgreSQLRepository) GetOrganizationHierarchy(ctx context.Context, ten
         ),
         children_count AS (
             SELECT COUNT(*) AS count
-            FROM organization_units
+            FROM organization_units_v
             WHERE tenant_id = $1
               AND parent_code = $2
               AND is_current = true
@@ -267,7 +267,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
                 COALESCE(name_path, '/' || name) as name_path,
                 parent_code,
                 0 as depth_from_root
-            FROM organization_units 
+            FROM organization_units_v 
             WHERE tenant_id = $1 AND code = $2 AND is_current = true AND status <> 'DELETED'
             
             UNION ALL
@@ -277,7 +277,7 @@ func (r *PostgreSQLRepository) GetOrganizationSubtree(ctx context.Context, tenan
                 o.code, o.name, o.level,
                 o.hierarchy_depth, o.code_path, o.name_path, o.parent_code,
                 s.depth_from_root + 1
-            FROM organization_units o
+            FROM organization_units_v o
             INNER JOIN subtree s ON o.parent_code = s.code
             WHERE o.tenant_id = $1 AND o.is_current = true AND o.status <> 'DELETED'
               AND s.depth_from_root < $3
