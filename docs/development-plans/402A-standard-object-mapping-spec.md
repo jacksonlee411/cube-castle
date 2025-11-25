@@ -37,7 +37,7 @@
 | `level` / `hierarchy_depth` | DEC_ORG_LEVEL | `standard_object_links.attributes.{level,hierarchyDepth}` | JSONB 属性；快照刷新时引用 | Backend |
 | `sort_order` | DEC_SORT_ORDER | `standard_object_links.attributes.sortOrder` | 数值保持，为父子顺序提供稳定排序 | Backend |
 | `code_path` / `name_path` | DEC_ORG_PATH | `standard_object_links` 衍生视图 | 迁移后不再存储；改为快照/闭包计算 | DBA |
-| `profiles` | DEC 待定（Plan 403） | `standard_object_versions.payload.profiles` | JSONB 直接复制；缺少 DEC，见 §3 Hazard | Domain |
+| `profile` | DEC 待定（Plan 403） | `standard_object_versions.payload.profile` | JSONB 直接复制；缺少 DEC，见 §3 Hazard | Domain |
 | `metadata` | DEC_ORG_METADATA | `standard_object_versions.payload.metadata` | JSONB；需在 402B 前完成字段拆解 | Domain |
 | `created_at` / `created_by` | DEC_AUDIT_CREATED | `standard_objects.created_at/created_by` | 对象层记录；版本层 `auditTrail.createdAt` | Backend |
 | `updated_at` | DEC_AUDIT_UPDATED | `standard_objects.updated_at` | 与版本 `updatedAt` 同步 | Backend |
@@ -56,7 +56,7 @@
 | `standard_objects` (组织对象 kernel) | TC1 | APPEND_ONLY | 任意时刻必须存在且唯一，禁止空窗；迁移时依赖 time slicing。写路径只能追加新 kernel，纠偏需通过 Goose Down。 | 402B 在 `standard_object_schemas.time_constraint/transaction_policy` 列中登记，并在 migrator 中实现裁剪 |
 | `standard_object_versions` (组织版本) | TC1 | APPEND_ONLY | 版本区间需连续覆盖（无重叠/空窗），所有变更通过追加新版本实现；合并/回滚依赖事务日志而非覆盖写。 | 402B 交付触发器/validator；402C 命令侧启用 `pkg/temporal/constraints` |
 | `standard_object_links` `ORG_HIERARCHY` 关系 | TC2 | APPEND_ONLY | 最多一条 link，可存在空窗，用于临时解绑；事务层禁止覆盖历史记录。 | 402B 在 schema registry 中声明；validator 仅检查重叠 |
-| `payload.profiles` 等扩展 JSON 字段 | TC3 | CORRECTION_ALLOWED | 允许同一时间多条记录（例如多标签/备注），并允许针对 JSON 键值纠偏；由版本快照记录差异。 | 402B 在 schema 生成时标记；查询层通过排序处理 |
+| `payload.profile` 等扩展 JSON 字段 | TC3 | CORRECTION_ALLOWED | 允许同一时间多条记录（例如多标签/备注），并允许针对 JSON 键值纠偏；由版本快照记录差异。 | 402B 在 schema 生成时标记；查询层通过排序处理 |
 
 所有 `timeConstraint` 与 `transactionPolicy` 值需与 `docs/reference/schema-registry.json.schemas[]` 顶层字段保持一致；生成流程沿用 Plan 400/`docs/reference/standard-object-evidence-guide.md` 中的 Schema Registry 生成器（同一套脚本负责写入 JSON），禁止在其他文档重复记录。若对象未来扩展（如 person / workforce），需在新条目中声明默认值并附 OCL。巡检结果沿用 Plan 400 的 `logs/plan400/migration/time-constraint-report.log`，禁止额外创建平行日志，分析结果在本节与 `hazard-list` 中登记。
 
@@ -82,7 +82,7 @@
 
 | 项目 | 描述 | 影响 | 回收计划 |
 |------|------|------|----------|
-| `payload.profiles` | 缺少 ISO 11179 DEC ID（Plan 403 未发布） | Schema Registry 不完整 | 402B 在 `standard_object_schemas` 中补齐，参照 `docs/reference/schema-registry.json` → `knownGaps[0]` |
+| `payload.profile` | 缺少 ISO 11179 DEC ID（Plan 403 未发布） | Schema Registry 不完整 | 402B 在 `standard_object_schemas` 中补齐，参照 `docs/reference/schema-registry.json` → `knownGaps[0]` |
 | `payload.metadata` | 元数据结构因租户自定义而多态 | 无法生成 JSON Schema | 402B 需要抽象公共字段 + `metadata.*` 通配符 DEC，最迟在 402C 双写前完成 |
 | Link attributes `hierarchyDepth`, `codePath` | 当前为派生列 | 缺少 DEC/OCL 绑定 | 402B 在 Link schema 中登记 DEC，新增快照校验 |
 | `auditTrail` 结构 | 多字段复用 TEXT | 无法映射 `DEC_AUDIT_*` | 402B 设计 `auditTrail` JSON schema，并更新 `docs/reference/schema-registry.json` |

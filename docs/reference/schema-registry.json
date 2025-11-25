@@ -69,7 +69,7 @@
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": ["string", "null"], "maxLength": 1000 },
-                  "profiles": { "type": "object", "description": "JSON blob moved from organization_units.profile" },
+                  "profile": { "type": "object", "description": "JSON blob moved from organization_units.profile" },
                   "metadata": { "type": "object", "description": "Tenant-defined metadata, structure tracked by Plan 403" },
                   "unitAttributes": { "type": "object", "description": "Future extension slot" }
                 },
@@ -268,7 +268,7 @@
       ],
       "knownGaps": [
         {
-          "fieldPath": "version.payload.profiles",
+          "fieldPath": "version.payload.profile",
           "reason": "Awaiting DEC assignment; tracked in docs/development-plans/402A-standard-object-mapping-spec.md#hazard-list"
         },
         {
