@@ -28,20 +28,25 @@
 - `271-archive-integrity-guard.md`—— Plan 271，归档守卫、CI 自动化与 `lint:docs` 规则。
 - `272-runtime-artifact-cleanup.md`—— Plan 272，运行产物与 cloc 噪音压降（Stage1 logs/reports/test-results，Stage2 vendored 依赖治理）。
 - `400-standard-object-model-plan.md`—— 将组织/职位等对象抽象为统一 SOM，覆盖生命周期、契约、UI、迁移策略。
-- `402-standard-object-single-source-plan.md`—— 评估单表模式缺陷，制定 SOM 三表迁移蓝图；执行细节拆分为 402A~402E 子计划（映射/契约、schema/tooling、服务接入与双写、切换回收、收敛治理）。子计划文件：
+- `402-standard-object-single-source-plan.md`—— 评估单表模式缺陷，制定 SOM 三表迁移蓝图；执行细节拆分为 402A~402E 子计划（映射/契约、schema/tooling、服务接入与迁移、切换回收、收敛治理）。子计划文件：
   - `402A-standard-object-mapping-and-contracts.md`
   - `402A-standard-object-mapping-spec.md`
   - `402B-som-schema-and-tooling.md`
   - `402C-service-integration-and-double-write.md`
-  - `402D-cutover-and-recovery.md`
-  - `402E-convergence-and-governance.md`
+- `402D-cutover-and-recovery.md`
+- `402E-convergence-and-governance.md`
+- `410-command-som-write-path.md` —— 命令层彻底切换至 SOM 写路径（去除 legacy 表与 Feature Flag）。
+- `411-temporal-ui-som-experience.md` —— Temporal UI/Manifest/OBS 全面对齐 SOM 数据源。
+
+> 2025-11-27：402A《映射与契约准备》已通过评审并进入交付归档，依据其日志与规格可启动 402B。
 
 > 新增计划需遵循 `docs/development-plans/<id>-<slug>.md` 命名，并立即在此处补充一句描述与事实来源。
 
 ## 归档信息摘要
 - **2025-11-23 最新归档**  
-  - `../archive/development-plans/222-organization-verification.md` —— Phase2 验收完成，后续由 Plan 222A-D 承接。  
-  - `../archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` —— HRMS 文档索引完成导读合流后转入归档。
+- `../archive/development-plans/222-organization-verification.md` —— Phase2 验收完成，后续由 Plan 222A-D 承接。  
+- `../archive/development-plans/HRMS-DOCUMENTATION-INDEX.md` —— HRMS 文档索引完成导读合流后转入归档。
+- `../archive/development-plans/241-frontend-framework-refactor.md` —— 统一前端骨架/Hook/selector 方案已完成并归档；如需引用请直接访问归档文件。***
 - **2025-11-22**  
   - `../archive/development-plans/270-workflow-contract-guardian-remediation.md` —— Workflow 契约守卫恢复。  
   - `../archive/development-plans/05-CI-LOCAL-AUTOMATION-GUIDE.md` —— 自托管 Runner 指南停用，所有 CI 均使用 GitHub 平台 Runner。

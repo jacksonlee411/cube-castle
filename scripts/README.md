@@ -63,6 +63,17 @@ make test            # 运行测试
 ./scripts/dev-start-simple.sh
 ```
 
+## 🧩 Manifest & 快照生成脚本（402C/C4）
+
+402C 要求的 UI/快照证据已沉淀到两套标准脚本（均可通过 `npm` 运行）：
+
+| 目标 | 命令 | 输出 |
+|------|------|------|
+| OpenAPI 表单/字段 manifest | `npm run manifest:forms` | `logs/plan400/manifest/*-forms.log` |
+| GraphQL 列定义 manifest | `npm run manifest:columns` | `logs/plan402/ui/*-columns.log` |
+
+运行命令前请确保 `docs/api/openapi.yaml`、`docs/api/schema.graphql` 已更新；脚本自动创建日志目录并附带时间戳，日志内容需在 PR 描述中引用。快照/监控脚本沿用 `go run -tags legacy ./cmd/tools/standardobject-snapshot-refresh` 与 `psql + redis-cli` 巡检，所有输出默认写入 `logs/plan402/snapshots|metrics|eventbus`。
+
 ## 🚨 脚本使用原则
 
 ### 资源唯一性原则（最高优先级）

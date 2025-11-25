@@ -1,0 +1,9 @@
+[migrator] 2025/11/23 23:13:58 logging to logs/plan402/migration/20251123-151358-migrator.log
+[migrator] 2025/11/23 23:13:58 starting legacy export (dryRun=false)...
+[migrator] 2025/11/23 23:13:59 processed 100 records
+[migrator] 2025/11/23 23:14:00 processed 200 records
+[migrator] 2025/11/23 23:14:01 processed 300 records
+[migrator] 2025/11/23 23:14:02 processed 400 records
+[migrator] 2025/11/23 23:14:03 processed 500 records
+[migrator] 2025/11/23 23:14:03 legacy export complete (count=504)
+[migrator] 2025/11/23 23:14:03 link refresh complete

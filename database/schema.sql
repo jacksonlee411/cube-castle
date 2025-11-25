@@ -29,6 +29,18 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
+--
+-- Name: btree_gist; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
+
+--
+-- Name: EXTENSION btree_gist; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiST';
+
 
 --
 -- Name: calculate_field_changes(jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -705,6 +717,310 @@ CREATE TABLE public.organization_units_unittype_backup (
     approved_by uuid,
     is_temporal boolean
 );
+
+--
+-- Name: standard_objects; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_objects (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_type text NOT NULL,
+    code text NOT NULL,
+    tenant_code text NOT NULL,
+    display_name text NOT NULL,
+    status text DEFAULT 'DRAFT'::text NOT NULL,
+    labels jsonb DEFAULT '{}'::jsonb NOT NULL,
+    schema_version text NOT NULL,
+    data_classification text DEFAULT 'internal'::text NOT NULL,
+    retention_policy text DEFAULT 'standard'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_objects_pkey PRIMARY KEY (id),
+    CONSTRAINT standard_objects_code UNIQUE (tenant_code, object_type, code)
+);
+
+
+--
+-- Name: standard_object_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_versions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_id uuid NOT NULL,
+    version_code text NOT NULL,
+    effective_date date NOT NULL,
+    end_date date,
+    validity_range tstzrange NOT NULL,
+    transaction_range tstzrange NOT NULL,
+    is_current boolean DEFAULT false NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    audit jsonb DEFAULT '{}'::jsonb NOT NULL,
+    checksum text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_versions_pkey PRIMARY KEY (id),
+    CONSTRAINT standard_object_versions_validity CHECK ((lower(validity_range) <= upper(validity_range)) OR upper_inf(validity_range)),
+    CONSTRAINT standard_object_versions_transaction CHECK ((lower(transaction_range) <= upper(transaction_range)) OR upper_inf(transaction_range)),
+    CONSTRAINT fk_standard_object_versions_object FOREIGN KEY (object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE
+);
+
+
+--
+-- Name: standard_object_versions_version_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX standard_object_versions_version_code ON public.standard_object_versions USING btree (object_id, version_code);
+
+
+--
+-- Name: standard_object_versions_effective_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX standard_object_versions_effective_date ON public.standard_object_versions USING btree (object_id, effective_date);
+
+
+--
+-- Name: standard_object_versions_current_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX standard_object_versions_current_idx ON public.standard_object_versions USING btree (object_id) WHERE (is_current = true);
+
+
+--
+-- Name: standard_object_versions_validity_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX standard_object_versions_validity_idx ON public.standard_object_versions USING gist (object_id, validity_range);
+
+
+--
+-- Name: standard_object_versions_transaction_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX standard_object_versions_transaction_idx ON public.standard_object_versions USING gist (object_id, transaction_range);
+
+
+--
+-- Name: standard_object_versions_valid_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.standard_object_versions
+    ADD CONSTRAINT standard_object_versions_valid_excl EXCLUDE USING gist (object_id WITH =, validity_range WITH &&);
+
+
+--
+-- Name: standard_object_versions_tx_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.standard_object_versions
+    ADD CONSTRAINT standard_object_versions_tx_excl EXCLUDE USING gist (object_id WITH =, transaction_range WITH &&);
+
+
+--
+-- Name: standard_object_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_links (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    link_type text NOT NULL,
+    source_object_id uuid NOT NULL,
+    target_object_id uuid NOT NULL,
+    tenant_code text NOT NULL,
+    validity_range tstzrange NOT NULL,
+    transaction_range tstzrange NOT NULL,
+    attributes jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_by uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_links_pkey PRIMARY KEY (id),
+    CONSTRAINT standard_object_links_validity CHECK ((lower(validity_range) <= upper(validity_range)) OR upper_inf(validity_range)),
+    CONSTRAINT standard_object_links_transaction CHECK ((lower(transaction_range) <= upper(transaction_range)) OR upper_inf(transaction_range)),
+    CONSTRAINT standard_object_links_unique UNIQUE (link_type, source_object_id, target_object_id),
+    CONSTRAINT fk_standard_object_links_source FOREIGN KEY (source_object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_standard_object_links_target FOREIGN KEY (target_object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE
+);
+
+
+--
+-- Name: standard_object_links_validity_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX standard_object_links_validity_idx ON public.standard_object_links USING gist (source_object_id, validity_range);
+
+
+--
+-- Name: standard_object_links_transaction_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX standard_object_links_transaction_idx ON public.standard_object_links USING gist (source_object_id, transaction_range);
+
+
+--
+-- Name: standard_object_links_validity_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.standard_object_links
+    ADD CONSTRAINT standard_object_links_validity_excl EXCLUDE USING gist (link_type WITH =, source_object_id WITH =, target_object_id WITH =, validity_range WITH &&);
+
+
+--
+-- Name: standard_object_links_transaction_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.standard_object_links
+    ADD CONSTRAINT standard_object_links_transaction_excl EXCLUDE USING gist (link_type WITH =, source_object_id WITH =, target_object_id WITH =, transaction_range WITH &&);
+
+
+--
+-- Name: standard_object_hierarchy_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_hierarchy_snapshots (
+    snapshot_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    tenant_code text NOT NULL,
+    object_type text NOT NULL,
+    as_of_valid timestamp with time zone NOT NULL,
+    as_of_transaction timestamp with time zone NOT NULL,
+    ancestor_object_id uuid NOT NULL,
+    descendant_object_id uuid NOT NULL,
+    depth integer NOT NULL,
+    code_path text NOT NULL,
+    name_path text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    refreshed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_hierarchy_snapshots_pkey PRIMARY KEY (snapshot_id),
+    CONSTRAINT fk_standard_object_hierarchy_snapshots_ancestor FOREIGN KEY (ancestor_object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_standard_object_hierarchy_snapshots_descendant FOREIGN KEY (descendant_object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE
+);
+
+
+--
+-- Name: idx_standard_object_snapshots_tenant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_standard_object_snapshots_tenant ON public.standard_object_hierarchy_snapshots USING btree (tenant_code, object_type, as_of_valid);
+
+
+--
+-- Name: standard_object_schemas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_schemas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_type text NOT NULL,
+    schema_version text NOT NULL,
+    schema_hash text NOT NULL,
+    definition jsonb DEFAULT '{}'::jsonb NOT NULL,
+    dec_bindings jsonb DEFAULT '[]'::jsonb NOT NULL,
+    ocl_guards jsonb DEFAULT '[]'::jsonb NOT NULL,
+    glossary_url text,
+    time_constraint text DEFAULT 'TC1'::text NOT NULL,
+    transaction_policy text DEFAULT 'APPEND_ONLY'::text NOT NULL,
+    published_at timestamp with time zone DEFAULT now() NOT NULL,
+    rollback_version text,
+    maintainer text,
+    CONSTRAINT standard_object_schemas_pkey PRIMARY KEY (id),
+    CONSTRAINT standard_object_schemas_unique UNIQUE (object_type, schema_version),
+    CONSTRAINT standard_object_schemas_time_constraint CHECK ((time_constraint = ANY (ARRAY['TC1'::text, 'TC2'::text, 'TC3'::text]))),
+    CONSTRAINT standard_object_schemas_transaction_policy CHECK ((transaction_policy = ANY (ARRAY['APPEND_ONLY'::text, 'CORRECTION_ALLOWED'::text])))
+);
+
+
+--
+-- Name: standard_object_translations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_translations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_id uuid NOT NULL,
+    tenant_code text NOT NULL,
+    locale text NOT NULL,
+    display_name text,
+    description text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_translations_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_standard_object_translations_object FOREIGN KEY (object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE,
+    CONSTRAINT standard_object_translations_unique UNIQUE (object_id, locale)
+);
+
+
+--
+-- Name: standard_object_attachments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_attachments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_id uuid NOT NULL,
+    tenant_code text NOT NULL,
+    attachment_type text NOT NULL,
+    uri text NOT NULL,
+    labels jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_attachments_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_standard_object_attachments_object FOREIGN KEY (object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE
+);
+
+
+--
+-- Name: idx_standard_object_attachments_object; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_standard_object_attachments_object ON public.standard_object_attachments USING btree (object_id);
+
+
+--
+-- Name: standard_object_metadata; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_metadata (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_id uuid NOT NULL,
+    tenant_code text NOT NULL,
+    meta_key text NOT NULL,
+    meta_value jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_metadata_pkey PRIMARY KEY (id),
+    CONSTRAINT standard_object_metadata_unique UNIQUE (object_id, meta_key),
+    CONSTRAINT fk_standard_object_metadata_object FOREIGN KEY (object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE
+);
+
+
+--
+-- Name: standard_object_metrics; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.standard_object_metrics (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    object_id uuid,
+    metric_type text NOT NULL,
+    metric_value numeric NOT NULL,
+    labels jsonb DEFAULT '{}'::jsonb NOT NULL,
+    tenant_code text NOT NULL,
+    recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT standard_object_metrics_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_standard_object_metrics_object FOREIGN KEY (object_id) REFERENCES public.standard_objects(id) ON DELETE CASCADE
+);
+
+
+--
+-- Name: idx_standard_object_metrics_object; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_standard_object_metrics_object ON public.standard_object_metrics USING btree (object_id, metric_type);
+
+
+--
+-- Name: idx_standard_object_metrics_recorded; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_standard_object_metrics_recorded ON public.standard_object_metrics USING btree (recorded_at);
 
 
 --

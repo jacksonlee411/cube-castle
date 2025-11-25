@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cube-castle/internal/organization/audit"
+	"cube-castle/internal/organization/events"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/utils"
 	"cube-castle/internal/types"
@@ -15,6 +16,7 @@ import (
 )
 
 func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var req types.CreateOrganizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "INVALID_REQUEST", "请求格式无效", err)
@@ -57,7 +59,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		}
 	}
 
-	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, normalizedParent, req.Name)
+	fields, err := h.repo.ComputeHierarchyForNew(ctx, tenantID, code, normalizedParent, req.Name)
 	if err != nil {
 		errorMessage := err.Error()
 		switch {
@@ -99,9 +101,16 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		org.EffectiveDate = today
 	}
 
-	createdOrg, err := h.repo.Create(r.Context(), org)
+	tx, err := h.repo.BeginTx(ctx)
 	if err != nil {
-		requestID := middleware.GetRequestID(r.Context())
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "DATABASE_ERROR", "创建组织失败", err)
+		return
+	}
+	defer tx.Rollback()
+
+	createdOrg, err := h.repo.CreateInTransaction(ctx, tx, org)
+	if err != nil {
+		requestID := middleware.GetRequestID(ctx)
 		actorID := h.getActorID(r)
 		requestData := map[string]interface{}{
 			"code":       code,
@@ -121,11 +130,31 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
-	requestID := middleware.GetRequestID(r.Context())
 	actorID := h.getActorID(r)
+	aggregate, err := h.upsertStandardObject(ctx, createdOrg, actorID)
+	if err != nil {
+		logger.WithFields(pkglogger.Fields{
+			"error": err,
+			"code":  createdOrg.Code,
+		}).Error("同步标准对象失败")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+		return
+	}
+	if err := h.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectCreated, aggregate, "CreateOrganization"); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("enqueue标准对象事件失败")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "DATABASE_ERROR", "提交事务失败", err)
+		return
+	}
+
+	requestID := middleware.GetRequestID(ctx)
 	ipAddress := h.getIPAddress(r)
 
-	if err := h.auditLogger.LogOrganizationCreate(r.Context(), &req, createdOrg, actorID, requestID, ipAddress); err != nil {
+	if err := h.auditLogger.LogOrganizationCreate(ctx, &req, createdOrg, actorID, requestID, ipAddress); err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for organization create failed")
 	}
 
@@ -138,6 +167,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 }
 
 func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	code := chi.URLParam(r, "code")
 	if code == "" {
 		h.writeErrorResponse(w, r, http.StatusBadRequest, "MISSING_CODE", "缺少组织代码", nil)
@@ -166,7 +196,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	tenantID := h.getTenantID(r)
 
 	// 验证组织是否存在
-	existingOrg, err := h.repo.GetByCode(r.Context(), tenantID, code)
+	existingOrg, err := h.repo.GetByCode(ctx, tenantID, code)
 	if err != nil {
 		if err.Error() == "organization not found" {
 			h.writeErrorResponse(w, r, http.StatusNotFound, "ORGANIZATION_NOT_FOUND", "组织不存在", nil)
@@ -201,7 +231,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	}
 
 	if h.validator != nil && targetParent != nil {
-		validation := h.validator.ValidateTemporalParentAvailability(r.Context(), tenantID, strings.TrimSpace(*targetParent), effectiveDate)
+		validation := h.validator.ValidateTemporalParentAvailability(ctx, tenantID, strings.TrimSpace(*targetParent), effectiveDate)
 		if !validation.Valid {
 			payload := map[string]interface{}{
 				"effectiveDate": effectiveDate.Format("2006-01-02"),
@@ -220,7 +250,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		}
 	}
 
-	fields, err := h.repo.ComputeHierarchyForNew(r.Context(), tenantID, code, targetParent, req.Name)
+	fields, err := h.repo.ComputeHierarchyForNew(ctx, tenantID, code, targetParent, req.Name)
 	if err != nil {
 		errorMessage := err.Error()
 		if strings.Contains(errorMessage, "父组织不存在") {
@@ -273,7 +303,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	}
 
 	// 🚀 使用新的时态时间轴管理器 - 实现完整的时态一致性保证
-	createdVersion, err := h.timelineManager.InsertVersion(r.Context(), newVersion)
+	createdVersion, err := h.timelineManager.InsertVersion(ctx, newVersion)
 	if err != nil {
 		// 检查是否是版本冲突错误
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "already exists") {
@@ -282,7 +312,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		}
 
 		// 记录创建失败的审计日志
-		requestID := middleware.GetRequestID(r.Context())
+		requestID := middleware.GetRequestID(ctx)
 		actorID := h.getActorID(r)
 		requestData := map[string]interface{}{
 			"code":          code,
@@ -293,7 +323,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		}
 
 		if logErr := h.auditLogger.LogError(
-			r.Context(), tenantID, audit.ResourceTypeOrganization, existingOrg.RecordID,
+			ctx, tenantID, audit.ResourceTypeOrganization, existingOrg.RecordID,
 			"CreateOrganizationVersion", actorID, requestID, "VERSION_CREATE_ERROR", err.Error(), requestData,
 		); logErr != nil {
 			logger.WithFields(pkglogger.Fields{"error": logErr}).Warn("audit log for version create failure failed")
@@ -304,8 +334,21 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 	}
 
 	// 记录版本创建成功的审计日志（排除 isCurrent/isTemporal 等动态字段）
-	requestID := middleware.GetRequestID(r.Context())
+	requestID := middleware.GetRequestID(ctx)
 	actorID := h.getActorID(r)
+
+	orgForSOM := h.organizationFromTimeline(existingOrg, createdVersion, req.OperationReason)
+	aggregate, err := h.upsertStandardObject(ctx, orgForSOM, actorID)
+	if err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object upsert failed during version creation")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+		return
+	}
+	if err := h.emitStandardObjectEvent(ctx, nil, tenantID, events.EventStandardObjectVersioned, aggregate, "CreateOrganizationVersion"); err != nil {
+		logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object versioned event enqueue failed")
+		h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
+		return
+	}
 
 	// 记录审计日志 - 创建版本事件（填充变更字段）
 	createdFields := []audit.FieldChange{
@@ -342,8 +385,7 @@ func (h *OrganizationHandler) CreateOrganizationVersion(w http.ResponseWriter, r
 		},
 	}
 
-	err = h.auditLogger.LogEvent(r.Context(), event)
-	if err != nil {
+	if err := h.auditLogger.LogEvent(ctx, event); err != nil {
 		logger.WithFields(pkglogger.Fields{"error": err}).Warn("audit log for version create failed")
 		// 审计日志失败不影响业务操作，仅记录警告
 	}

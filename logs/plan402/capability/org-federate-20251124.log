@@ -1,0 +1,8 @@
+2025-11-24T18:35:00+08:00	org-handler-som-cutover
+- scope: internal/organization/handler (Create/Update/Version/Suspend/Activate/Delete)
+- verification: go test ./internal/organization/handler ./internal/standardobject/...
+- assertions:
+  * UpdateOrganization/UpdateHistoryRecord call standardobject.ObjectService within the same transaction.
+  * changeOrganizationStatusWithTimeline + handleDeactivateEvent reuse timeline snapshot to upsert SOM aggregates.
+  * CreateOrganizationEvent delete flow writes DELETED status and keeps ORG_HIERARCHY links aligned.
+- evidence: cfb6b72 (MakeVersionCode), 5791c7a (handler sync), logs/plan402/migration/20251123-151358-migrator.log (baseline run)

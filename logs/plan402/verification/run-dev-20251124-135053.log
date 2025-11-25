@@ -1,0 +1,49 @@
+🚀 启动开发环境（Docker 强制原则）...
+🔐 检查 RS256 密钥...
+🐳 拉起最小依赖 (postgres, redis)...
+docker compose -f docker-compose.dev.yml up -d postgres redis
+ Container cubecastle-postgres  Running
+ Container cubecastle-redis  Running
+⏳ 等待数据库/缓存就绪...
+  ✅ postgres 就绪
+🧭 执行数据库迁移（Goose）...
+make[1]: Entering directory '/home/shangmeilin/cube-castle'
+🧭 使用 Goose 执行数据库迁移...
+ℹ️  未设置 DATABASE_URL，使用默认: postgres://user:password@localhost:5432/cubecastle?sslmode=disable
+2025/11/24 13:50:54     Applied At                  Migration
+2025/11/24 13:50:54     =======================================
+2025/11/24 13:50:54     Sat Nov 15 23:54:35 2025 -- 20251106000000_base_schema.sql
+2025/11/24 13:50:54     Sat Nov 15 23:54:35 2025 -- 20251107090000_create_outbox_events.sql
+2025/11/24 13:50:54     Sat Nov 15 23:54:36 2025 -- 20251107123000_230_job_catalog_oper_fix.sql
+2025/11/24 13:50:54     Sat Nov 15 23:54:36 2025 -- 20251110110000_234_remove_org_unit_triggers.sql
+2025/11/24 13:50:54     Mon Nov 24 05:02:49 2025 -- 20251201090000_create_standard_objects.sql
+2025/11/24 13:50:54 goose: no migrations to run. current version: 20251201090000
+✅ Goose up 完成
+make[1]: Leaving directory '/home/shangmeilin/cube-castle'
+🐳 拉起应用服务 (rest-service, graphql-service)...
+docker compose -f docker-compose.dev.yml up -d --build rest-service
+#1 [internal] load local bake definitions
+#1 reading from stdin 434B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.65kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/alpine:latest
+#3 DONE 0.0s
+
+#4 [internal] load metadata for docker.io/library/golang:1.24-alpine
+#4 ERROR: failed to do request: Head "https://docker.m.daocloud.io/v2/library/golang/manifests/1.24-alpine?ns=docker.io": proxyconnect tcp: dial tcp 127.0.0.1:7890: connect: connection refused
+------
+ > [internal] load metadata for docker.io/library/golang:1.24-alpine:
+------
+Dockerfile:2
+--------------------
+   1 |     # 命令服务生产级Dockerfile (带健康检查)
+   2 | >>> FROM golang:1.24-alpine AS builder
+   3 |     
+   4 |     # 安装依赖和curl用于健康检查
+--------------------
+failed to solve: golang:1.24-alpine: failed to resolve source metadata for docker.io/library/golang:1.24-alpine: failed to do request: Head "https://docker.m.daocloud.io/v2/library/golang/manifests/1.24-alpine?ns=docker.io": proxyconnect tcp: dial tcp 127.0.0.1:7890: connect: connection refused
+make: *** [Makefile:210: run-dev] Error 1

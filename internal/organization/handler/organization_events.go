@@ -10,9 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/organization/events"
 	"cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	"cube-castle/internal/organization/utils"
+	standardobject "cube-castle/internal/standardobject"
+	"cube-castle/internal/types"
 	pkglogger "cube-castle/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -191,6 +194,28 @@ func (h *OrganizationHandler) CreateOrganizationEvent(w http.ResponseWriter, r *
 			return
 		}
 
+		deletedOrg := copyOrganization(currentOrg)
+		if deletedOrg != nil {
+			deletedOrg.Status = "DELETED"
+			deletedOrg.IsCurrent = false
+			if strings.TrimSpace(operationReason) != "" {
+				reason := operationReason
+				deletedOrg.ChangeReason = &reason
+			}
+			deletedOrg.EndDate = types.NewDateFromTime(deletionMoment)
+			aggregate, err := h.upsertStandardObject(r.Context(), deletedOrg, actorID)
+			if err != nil {
+				logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object sync failed for delete")
+				h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_ERROR", "同步标准对象失败", err)
+				return
+			}
+			if err := h.emitStandardObjectEvent(r.Context(), nil, tenantID, events.EventStandardObjectRetired, aggregate, "DELETE_ORGANIZATION"); err != nil {
+				logger.WithFields(pkglogger.Fields{"error": err}).Error("standard object delete event enqueue failed")
+				h.writeErrorResponse(w, r, http.StatusInternalServerError, "STANDARD_OBJECT_EVENT_ERROR", "写入标准对象事件失败", err)
+				return
+			}
+		}
+
 		if err := h.auditLogger.LogOrganizationDelete(r.Context(), tenantID, code, currentOrg, actorID, requestID, operationReason); err != nil {
 			logger.WithFields(pkglogger.Fields{"error": err}).Warn("record organization delete audit log failed")
 		}
@@ -246,17 +271,51 @@ func (h *OrganizationHandler) handleDeactivateEvent(ctx context.Context, tenantI
 
 	// 使用时间线管理器执行“单事务 软删 + 全链重算”
 	rid, _ := uuid.Parse(recordID)
-	if _, err := h.timelineManager.DeleteVersion(ctx, tenantID, rid); err != nil {
+	timeline, err := h.timelineManager.DeleteVersion(ctx, tenantID, rid)
+	if err != nil {
 		return fmt.Errorf("作废记录失败: %w", err)
 	}
 
 	// 记录审计日志 - 使用删除日志方法
-	err = h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason)
-	if err != nil {
+	if err := h.auditLogger.LogOrganizationDelete(ctx, tenantID, code, oldOrg, actorID, requestID, changeReason); err != nil {
 		h.logger.WithFields(pkglogger.Fields{"error": err, "recordId": recordID}).Warn("audit log for organization version delete failed")
 		// 审计日志失败不应该导致业务操作失败，只记录警告
 	} else {
 		h.logger.WithFields(pkglogger.Fields{"recordId": recordID}).Info("audit log recorded for organization version delete")
+	}
+
+	var effective time.Time
+	if oldOrg != nil && oldOrg.EffectiveDate != nil {
+		effective = oldOrg.EffectiveDate.Time
+	} else if oldOrg != nil {
+		effective = oldOrg.UpdatedAt
+	} else {
+		effective = time.Now()
+	}
+
+	if timeline == nil || len(*timeline) == 0 {
+		deleted := copyOrganization(oldOrg)
+		if deleted != nil {
+			deleted.Status = "DELETED"
+			deleted.IsCurrent = false
+			if strings.TrimSpace(changeReason) != "" {
+				deleted.ChangeReason = &changeReason
+			}
+			aggregate, err := h.upsertStandardObject(ctx, deleted, actorID)
+			if err != nil {
+				return fmt.Errorf("同步标准对象失败: %w", err)
+			}
+			if err := h.emitStandardObjectEvent(ctx, nil, tenantID, events.EventStandardObjectRetired, aggregate, "DEACTIVATE"); err != nil {
+				return fmt.Errorf("写入标准对象事件失败: %w", err)
+			}
+		}
+		return nil
+	}
+
+	if err := h.syncOrganizationTimeline(ctx, oldOrg, timeline, effective, changeReason, actorID, func(aggregate standardobject.ObjectAggregate) error {
+		return h.emitStandardObjectEvent(ctx, nil, tenantID, events.EventStandardObjectVersioned, aggregate, "DEACTIVATE")
+	}); err != nil {
+		return fmt.Errorf("同步标准对象失败: %w", err)
 	}
 
 	return nil

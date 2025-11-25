@@ -1,102 +1,278 @@
 {
   "version": "0.1.0",
-  "generatedAt": "2025-11-27T00:00:00Z",
+  "generatedAt": "2025-11-27T08:30:00Z",
   "schemas": [
     {
       "objectType": "ORGANIZATION_UNIT",
       "objectTypePotency": 1,
-      "schemaVersion": "0.1.0",
-      "schemaHash": "4d1ddf0e7d6c3b784ed5fbd76b95d8a5",
+      "schemaVersion": "0.2.0",
+      "schemaHash": "967663b6a1d9445dd163a5f8a6c37c2b",
       "timeConstraint": "TC1",
+      "transactionPolicy": "APPEND_ONLY",
       "glossaryUrl": "docs/reference/temporal-entity-experience-guide.md",
       "definition": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "string",
-            "description": "Business identifier inherited from organization_units.code"
-          },
-          "displayName": {
-            "type": "string",
-            "description": "Latest localized label for summary lists"
-          },
-          "payload": {
+          "kernel": {
             "type": "object",
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "profiles": {
-                "type": "object",
-                "description": "JSON blob moved from organization_units.profile"
-              },
-              "effectiveDate": {
+              "objectType": {
                 "type": "string",
-                "format": "date"
+                "enum": ["ORGANIZATION_UNIT"],
+                "description": "SOM object discriminator; aligns with internal/standardobject.ObjectType"
               },
-              "endDate": {
-                "type": ["string", "null"],
-                "format": "date"
-              }
+              "code": {
+                "type": "string",
+                "description": "Business identifier inherited from organization_units.code",
+                "pattern": "^[1-9][0-9]{6}$"
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Latest localized label used by summary lists"
+              },
+              "tenantCode": {
+                "type": "string",
+                "description": "Tenant isolation code propagated from organization_units.tenant_id"
+              },
+              "status": {
+                "type": "string",
+                "description": "LifecycleStatus value (DRAFT/READY/ACTIVE/...)"
+              },
+              "labels": {
+                "type": "object",
+                "properties": {
+                  "unitType": {
+                    "type": "string",
+                    "description": "Organization unit type DEC"
+                  }
+                },
+                "additionalProperties": { "type": "string" }
+              },
+              "schemaVersion": { "type": "string" },
+              "dataClassification": { "type": "string" },
+              "retentionPolicy": { "type": "string" },
+              "createdBy": { "type": "string" },
+              "createdAt": { "type": "string", "format": "date-time" },
+              "updatedAt": { "type": "string", "format": "date-time" }
             },
-            "required": [
-              "name",
-              "effectiveDate"
-            ]
+            "required": ["objectType", "code", "tenantCode", "displayName", "status"]
+          },
+          "version": {
+            "type": "object",
+            "properties": {
+              "versionCode": { "type": "string" },
+              "effectiveDate": { "type": "string", "format": "date" },
+              "endDate": { "type": ["string", "null"], "format": "date" },
+              "isCurrent": { "type": "boolean" },
+              "payload": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": ["string", "null"], "maxLength": 1000 },
+                  "profile": { "type": "object", "description": "JSON blob moved from organization_units.profile" },
+                  "metadata": { "type": "object", "description": "Tenant-defined metadata, structure tracked by Plan 403" },
+                  "unitAttributes": { "type": "object", "description": "Future extension slot" }
+                },
+                "required": ["name"]
+              },
+              "auditTrail": {
+                "type": "object",
+                "properties": {
+                  "createdBy": { "type": "string" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedBy": { "type": "string" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                  "deletedAt": { "type": ["string", "null"], "format": "date-time" },
+                  "deletedBy": { "type": ["string", "null"] },
+                  "deletionReason": { "type": ["string", "null"], "maxLength": 500 },
+                  "suspendedAt": { "type": ["string", "null"], "format": "date-time" },
+                  "suspendedBy": { "type": ["string", "null"] },
+                  "suspensionReason": { "type": ["string", "null"], "maxLength": 500 },
+                  "actors": { "type": "array", "items": { "type": "object" } }
+                }
+              },
+              "checksum": { "type": "string" },
+              "createdAt": { "type": "string", "format": "date-time" },
+              "updatedAt": { "type": "string", "format": "date-time" }
+            },
+            "required": ["versionCode", "effectiveDate", "payload"]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "linkType": { "type": "string" },
+                "sourceCode": { "type": "string" },
+                "targetCode": { "type": "string" },
+                "tenantCode": { "type": "string" },
+                "attributes": {
+                  "type": "object",
+                  "properties": {
+                    "level": { "type": "integer" },
+                    "hierarchyDepth": { "type": "integer" },
+                    "sortOrder": { "type": "integer" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "required": ["linkType", "sourceCode", "targetCode"]
+            }
           }
         },
-        "required": [
-          "code",
-          "displayName",
-          "payload"
-        ]
+        "required": ["kernel", "version"]
       },
       "decBindings": [
         {
-          "fieldPath": "code",
+          "fieldPath": "kernel.tenantCode",
+          "decId": "DEC_TENANT_CODE",
+          "description": "Tenant isolation identifier propagated to SOM",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "kernel.code",
           "decId": "DEC_ORG_UNIT_CODE",
           "description": "Unique tenant scoped identifier",
           "glossaryUrl": "docs/development-plans/402-standard-object-single-source-plan.md#L61"
         },
         {
-          "fieldPath": "payload.name",
+          "fieldPath": "kernel.displayName",
+          "decId": "DEC_ORG_UNIT_NAME",
+          "description": "Latest localized label for navigation and summary cards",
+          "glossaryUrl": "docs/reference/temporal-entity-experience-guide.md"
+        },
+        {
+          "fieldPath": "kernel.labels.unitType",
+          "decId": "DEC_ORG_UNIT_TYPE",
+          "description": "Organization unit classification label",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "kernel.createdBy",
+          "decId": "DEC_AUDIT_CREATED",
+          "description": "Actor responsible for creating the kernel entry",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "kernel.status",
+          "decId": "DEC_ORG_UNIT_STATUS",
+          "description": "Lifecycle state mapped to LifecycleStatus enum",
+          "glossaryUrl": "docs/development-plans/400-standard-object-model-plan.md#4.2"
+        },
+        {
+          "fieldPath": "version.payload.name",
           "decId": "DEC_ORG_UNIT_NAME",
           "description": "Customer facing name stored historically",
           "glossaryUrl": "docs/reference/temporal-entity-experience-guide.md"
         },
         {
-          "fieldPath": "payload.effectiveDate",
+          "fieldPath": "version.payload.description",
+          "decId": "DEC_ORG_UNIT_DESCRIPTION",
+          "description": "Long form description migrated to payload JSON",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "version.payload.effectiveDate",
           "decId": "DEC_TEMPORAL_EFFECTIVE_DATE",
           "description": "Date when the version becomes active",
           "glossaryUrl": "docs/development-plans/400-standard-object-model-plan.md#L90"
+        },
+        {
+          "fieldPath": "version.payload.endDate",
+          "decId": "DEC_TEMPORAL_END_DATE",
+          "description": "Nullable version end date enforcing TC1 coverage",
+          "glossaryUrl": "docs/development-plans/400-standard-object-model-plan.md#L90"
+        },
+        {
+          "fieldPath": "version.isCurrent",
+          "decId": "DEC_VERSION_STATE",
+          "description": "Boolean view derived from LifecyclePolicy",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "links[].sourceCode",
+          "decId": "DEC_ORG_PARENT_CODE",
+          "description": "Parent code stored in ORG_HIERARCHY link",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "links[].targetCode",
+          "decId": "DEC_ORG_UNIT_CODE",
+          "description": "Child code stored in ORG_HIERARCHY link",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "links[].attributes.level",
+          "decId": "DEC_ORG_LEVEL",
+          "description": "Hierarchy level metadata retained in link attributes",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "links[].attributes.sortOrder",
+          "decId": "DEC_SORT_ORDER",
+          "description": "Sort order reused by closure computation",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "links[].attributes.hierarchyDepth",
+          "decId": "DEC_ORG_LEVEL",
+          "description": "Cached depth derived from organization_units.hierarchy_depth",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "kernel.createdAt",
+          "decId": "DEC_AUDIT_CREATED",
+          "description": "Object-level creation timestamp",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "kernel.updatedAt",
+          "decId": "DEC_AUDIT_UPDATED",
+          "description": "Object-level last update timestamp",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "version.auditTrail.deletedAt",
+          "decId": "DEC_AUDIT_DELETION",
+          "description": "Version-level deletion timestamp recorded in audit trail",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "version.auditTrail.suspendedAt",
+          "decId": "DEC_AUDIT_SUSPENSION",
+          "description": "Suspension timestamp tracked per version",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
+        },
+        {
+          "fieldPath": "version.auditTrail.actors",
+          "decId": "DEC_AUDIT_ACTOR",
+          "description": "Actor tuple `{id,name,role}` retained for audit events",
+          "glossaryUrl": "docs/development-plans/402A-standard-object-mapping-spec.md#2"
         }
       ],
       "oclGuards": [
         {
           "id": "OCL_ORG_UNIT_DATE_INTERVAL",
           "type": "invariant",
-          "expression": "payload.endDate == null || payload.effectiveDate <= payload.endDate",
+          "expression": "version.payload.endDate == null || version.payload.effectiveDate <= version.payload.endDate",
           "severity": "error",
           "description": "Prevents inverted effective intervals"
         },
         {
           "id": "OCL_ORG_UNIT_LABEL_PRESENT",
           "type": "pre",
-          "expression": "labels.unitType != \"\"",
+          "expression": "kernel.labels.unitType != \"\"",
           "severity": "error",
           "description": "unitType label must exist before commands run"
         }
       ],
       "knownGaps": [
         {
-          "fieldPath": "payload.profiles",
+          "fieldPath": "version.payload.profile",
           "reason": "Awaiting DEC assignment; tracked in docs/development-plans/402A-standard-object-mapping-spec.md#hazard-list"
         },
         {
-          "fieldPath": "payload.metadata",
+          "fieldPath": "version.payload.metadata",
           "reason": "Metadata schema variability requires follow-up with Plan 403"
         }
       ],

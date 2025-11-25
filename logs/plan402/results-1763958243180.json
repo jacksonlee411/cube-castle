@@ -1,0 +1,771 @@
+{
+  "config": {
+    "configFile": "/home/shangmeilin/cube-castle/frontend/playwright.config.ts",
+    "rootDir": "/home/shangmeilin/cube-castle/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/home/shangmeilin/cube-castle/logs/plan402/results-1763958243180.json"
+        }
+      ],
+      [
+        "html",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/shangmeilin/cube-castle/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/shangmeilin/cube-castle/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/home/shangmeilin/cube-castle/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/shangmeilin/cube-castle/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 4,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "position-observability.spec.ts",
+      "file": "position-observability.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Position Observability (Plan 240D)",
+          "file": "position-observability.spec.ts",
+          "line": 22,
+          "column": 6,
+          "specs": [
+            {
+              "title": "collects [OBS] logs and writes to plan240/D",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 800,
+                      "error": {
+                        "message": "Error: 无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev",
+                        "stack": "Error: 无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev\n    at setupAuth (/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts:30:11)\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:24:5",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts",
+                          "column": 11,
+                          "line": 30
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mauth-setup.ts:30\n\n  28 |\n  29 |   if (!token) {\n> 30 |     throw new Error('无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev');\n     |           ^\n  31 |   }\n  32 |\n  33 |   // 先导航到基础 URL 以便 localStorage 写入正确域"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts",
+                            "column": 11,
+                            "line": 30
+                          },
+                          "message": "Error: 无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev\n\n   at auth-setup.ts:30\n\n  28 |\n  29 |   if (!token) {\n> 30 |     throw new Error('无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev');\n     |           ^\n  31 |   }\n  32 |\n  33 |   // 先导航到基础 URL 以便 localStorage 写入正确域\n    at setupAuth (/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts:30:11)\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:24:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [
+                        {
+                          "text": "⚠️  调用 /auth/dev-token 失败: Failed to parse URL from /auth/dev-token\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:05.680Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts",
+                        "column": 11,
+                        "line": 30
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "808cb99579383bcd78b5-72f31f2954cae93fd730",
+              "file": "position-observability.spec.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "collects [OBS] logs and writes to plan240/D",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 2490,
+                      "error": {
+                        "message": "Error: 无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev",
+                        "stack": "Error: 无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev\n    at setupAuth (/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts:30:11)\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:24:5",
+                        "location": {
+                          "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts",
+                          "column": 11,
+                          "line": 30
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mauth-setup.ts:30\n\n  28 |\n  29 |   if (!token) {\n> 30 |     throw new Error('无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev');\n     |           ^\n  31 |   }\n  32 |\n  33 |   // 先导航到基础 URL 以便 localStorage 写入正确域"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts",
+                            "column": 11,
+                            "line": 30
+                          },
+                          "message": "Error: 无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev\n\n   at auth-setup.ts:30\n\n  28 |\n  29 |   if (!token) {\n> 30 |     throw new Error('无法获取 RS256 开发令牌，请确认命令服务已启动并执行 make run-dev');\n     |           ^\n  31 |   }\n  32 |\n  33 |   // 先导航到基础 URL 以便 localStorage 写入正确域\n    at setupAuth (/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts:30:11)\n    at /home/shangmeilin/cube-castle/frontend/tests/e2e/position-observability.spec.ts:24:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [
+                        {
+                          "text": "⚠️  调用 /auth/dev-token 失败: Failed to parse URL from /auth/dev-token\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:05.707Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/shangmeilin/cube-castle/frontend/test-results/position-observability-Pos-8ee07-ogs-and-writes-to-plan240-D-firefox/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/auth-setup.ts",
+                        "column": 11,
+                        "line": 30
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "808cb99579383bcd78b5-b37df5feca81666687f9",
+              "file": "position-observability.spec.ts",
+              "line": 27,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "temporal-management-integration.spec.ts",
+      "file": "temporal-management-integration.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "时态管理系统集成测试",
+          "file": "temporal-management-integration.spec.ts",
+          "line": 242,
+          "column": 6,
+          "specs": [
+            {
+              "title": "GraphQL 版本列表契约校验",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 747,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:05.618Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-1b960a8d9b43a4efbc1d",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 311,
+              "column": 3
+            },
+            {
+              "title": "GraphQL asOf 查询支持指定时间点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 206,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:07.006Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-deb3670ed4dbe7ace52e",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 327,
+              "column": 3
+            },
+            {
+              "title": "命令服务拒绝未契约的 /temporal 路径",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 742,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:05.645Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-c149fc9c891af0ddefb8",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 342,
+              "column": 3
+            },
+            {
+              "title": "命令服务 /versions 缺少必填字段时返回验证错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 150,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:06.999Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-2a059f1e1978b7126b62",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 351,
+              "column": 3
+            },
+            {
+              "title": "GraphQL 版本列表契约校验",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2203,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:08.100Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-df484ba60bfbce8d1863",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 311,
+              "column": 3
+            },
+            {
+              "title": "GraphQL asOf 查询支持指定时间点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 502,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:11.030Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-85406c5a79236187d555",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 327,
+              "column": 3
+            },
+            {
+              "title": "命令服务拒绝未契约的 /temporal 路径",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 2086,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ 发现活跃前端服务：http://localhost:3000\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:08.195Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-094dbd3dc734707c5f68",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 342,
+              "column": 3
+            },
+            {
+              "title": "命令服务 /versions 缺少必填字段时返回验证错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 500,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-24T04:24:11.440Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bb11b5f7b271589e8ae8-870aef17dc54f74c4a71",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 351,
+              "column": 3
+            }
+          ],
+          "suites": [
+            {
+              "title": "UI 场景 (需认证)",
+              "file": "temporal-management-integration.spec.ts",
+              "line": 280,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "组织列表可导航至组织详情页面",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": -1,
+                          "parallelIndex": -1,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:24:04.451Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-7b17999be8fe58c08617",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 283,
+                  "column": 5
+                },
+                {
+                  "title": "组织详情页面展示关键时态组件",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": -1,
+                          "parallelIndex": -1,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:24:04.452Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-853a03ac943a204b434e",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 301,
+                  "column": 5
+                },
+                {
+                  "title": "组织列表可导航至组织详情页面",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [
+                        {
+                          "workerIndex": -1,
+                          "parallelIndex": -1,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:24:07.148Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-62b3f5b6c678b656cc10",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 283,
+                  "column": 5
+                },
+                {
+                  "title": "组织详情页面展示关键时态组件",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 120000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mock 模式下跳过 UI 场景",
+                          "location": {
+                            "file": "/home/shangmeilin/cube-castle/frontend/tests/e2e/temporal-management-integration.spec.ts",
+                            "line": 281,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [
+                        {
+                          "workerIndex": -1,
+                          "parallelIndex": -1,
+                          "status": "skipped",
+                          "duration": 0,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-24T04:24:07.148Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "bb11b5f7b271589e8ae8-96e8ed31b25017d12d7d",
+                  "file": "temporal-management-integration.spec.ts",
+                  "line": 301,
+                  "column": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-11-24T04:24:03.198Z",
+    "duration": 9649.555,
+    "expected": 8,
+    "skipped": 4,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

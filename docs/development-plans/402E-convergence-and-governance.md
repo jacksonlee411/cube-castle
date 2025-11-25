@@ -20,21 +20,20 @@
 
 ## 2. 工作项
 
--### E1 · 数据与代码清理
-- 删除/归档旧表及触发器（必要时提供 Goose Down 脚本），保留只读视图以兼容历史查询；清理任何 residual `effective_from/effective_to` 字段。
-- 清理 `internal/organization` 等目录下不再使用的仓储/DTO，并确保所有生产代码仅调用 `internal/standardobject` Port，且读取/写入均使用 `validity_range/transaction_range` API。
-- 更新 `database/migrations`，附执行日志 `logs/plan402/cleanup/*.log`。
+### E1 · 数据与代码清理
+- 运行 `database/scripts/plan402/drop-legacy-write-paths.sql`（记录至 `logs/plan402/cleanup/<ts>-write-lock.log`）锁死旧写路径，再执行 Goose 迁移 `database/migrations/2025XXXXXX_plan402e_drop_legacy_tables.sql` 清理 `organization_units`、旧触发器与 residual `effective_from/effective_to` 列。402E 需新增 `database/scripts/plan402/restore-legacy-views.sql`（来源：`organization_units` 现有视图定义）用于快速恢复旧视图/索引，执行顺序写入 Runbook。若 Goose 迁移失败，立即 `goose -dir database/migrations postgres down 1` 并运行恢复脚本，回滚过程必须写入 `logs/plan402/rollback/<ts>-legacy-restore.log`。
+- 移除 `internal/organization/**` 及 `pkg/organization/**` 中的仓储/DTO，统一改为依赖 `internal/standardobject` Port；同步在 `scripts/quality/architecture-validator.js` 中实现新的 `legacyOrgUnits` 规则（扫描 `cmd/`, `internal/`, `pkg/`, `frontend/`），禁止出现 `organization_units` 直接引用。规则需要输出 `logs/plan402/cleanup/<ts>-validator.log` 并在 `.github/workflows/agents-compliance.yml` 中注册 Required check。
+- 更新所有相关脚本/迁移时，执行日志需落盘到 `logs/plan402/cleanup/*.log`，并在 README 中登记命令、责任人和回滚入口，保证与 AGENTS.md“高危操作必须声明命令+影响+回滚”一致。脚本列表（含 drop、restore、Goose up/down）应记录在 `docs/reference/standard-object-evidence-guide.md` 的附录中，确保唯一事实来源。
 
 ### E2 · 文档与索引
-- 更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、Plan 400/401、Plan 403 等文档，声明 SOM 为唯一事实来源。
-- 在 `docs/development-plans/00-README.md`、`docs/reference/standard-object-evidence-guide.md` 等索引中添加最新链接。
-- 将 Plan 402 主文档与子计划按规范归档到 `docs/archive/development-plans/`，保留验收标准与证据索引。
-- 发布《能力契约与视点维护指南》，并在 `scripts/quality/capability-contract-check.js` 或架构验证器中纳入检查。
+- 更新 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、Plan 400/401、Plan 403 等文档，明确“`docs/reference/standard-object-evidence-guide.md` + schema registry”是 SOM 唯一事实来源，新内容仅在这些文件内追加章节，不再创建平行手册。
+- 在 `docs/development-plans/00-README.md`、`docs/reference/standard-object-evidence-guide.md` 中添加 402E 归档链接；Plan 402 主文档与子计划完成后整体迁移到 `docs/archive/development-plans/`，在索引中保留验收标准与日志引用。
+- 《能力契约与视点维护指南》以附录形式并入 `docs/reference/standard-object-evidence-guide.md`，并在 `scripts/quality/architecture-validator.js` 中新增 `capabilityContracts` 规则校验（复用现有脚本，避免第二事实来源）。
 
 ### E3 · 监控 / OBS / 接入指南
-- 为 SOM 相关操作配置指标与告警，将日志采集纳入 Plan 272 的运行产物治理脚本；指标需包含 `transaction_lag`、双时态回放耗时、TC1/TC2 违规计数。
-- 编写《SOM 接入指南》，说明如何使用 Schema Registry、Port、Manifest/Slot、能力契约，并给出双时态（valid/transaction）参数使用规范与回滚/日志要求。
-- 在 `scripts/quality/` 中新增守卫（如验证仓库不再引用旧表、Schema hash 校验、capability contract 检查、`timeConstraint`/`transaction_range` 监控脚本），确保 TC1/TC2 违规和事务时间倒退能被 CI 阻断。
+- 将 SOM 相关指标（`transaction_lag`、双时态回放耗时、TC1/TC2 违规）纳入 Plan 272 的 `scripts/quality/plan272-artifact-guard.js` 产物清单，配置告警并在 `logs/plan402/metrics/<ts>-som-metrics.log` 留存采样。
+- 《SOM 接入指南》在 `docs/reference/standard-object-evidence-guide.md` 中新增章节，覆盖 Schema Registry、Port、Manifest/Slot、能力契约与回滚/日志要求，并指向现有 `docs/api/openapi.yaml`/`docs/api/schema.graphql` 作为契约源。
+- 在 `scripts/quality/` 目录新增 `schema-hash-guard.js` 与 `time-constraint-guard.js`（402E 交付项）：前者对 `docs/reference/schema-registry.json`、`docs/api/openapi.yaml`、`docs/api/schema.graphql` 计算 canonical hash，与 `logs/plan400/schema/hash-baseline.log` 比较，确保未登记的 Schema 偏差不会进入主干；后者读取 `database/migrations/*standard_object*.sql` 与 `logs/plan400/migration/time-constraint-report.log`，校验 `standard_object_schemas.time_constraint/transaction_policy` 与 `pkg/temporal/constraints` 声明一致，并在发现 `transaction_range` 倒退时退出非零。两个脚本都需输出各自日志（`logs/plan402/metrics/<ts>-schema-hash.log`、`logs/plan402/metrics/<ts>-time-constraint.log`）并加入 `.github/workflows/agents-compliance.yml` Required checks。
 
 ---
 
@@ -49,10 +48,10 @@
 
 ## 4. 验收标准
 
-1. 生产代码中不再存在对 `organization_units` 的直接引用（除只读视图或归档），CI 守卫能够检测该情况。
-2. 文档索引与开发者速查全部指向 SOM，并在 `docs/development-plans/00-README.md` 登记。
-3. 监控/OBS 指标上线，Plan 272 的运行产物治理脚本记录最新产物（含 `transaction_lag`、TC 漂移、双时态回放指标）。
-4. 质量守卫（capability contract、schema hash、Time Constraint、`transaction_range`、旧表引用检测等）可阻止回退到旧实现。
+1. `node scripts/quality/architecture-validator.js --rule legacyOrgUnits` 与 `node scripts/quality/schema-hash-guard.js` 在 CI Required checks 中必须通过；若存在 `organization_units` 直接引用，脚本会输出 `logs/plan402/cleanup/<ts>-validator.log` 并阻断合并；若 Schema hash 与 `logs/plan400/schema/hash-baseline.log` 不一致，则 `logs/plan402/metrics/<ts>-schema-hash.log` 给出差异详情。
+2. 文档索引（`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`docs/development-plans/00-README.md`、`docs/reference/standard-object-evidence-guide.md`）同步更新并链接至 SOM SSoT；归档后的 402 文档位于 `docs/archive/development-plans/`，PR 需附 `git show docs/archive/development-plans/402E-convergence-and-governance.md` 证据。
+3. Plan 272 守卫通过 `node scripts/quality/plan272-artifact-guard.js` 产出 `logs/plan402/metrics/<ts>-som-metrics.log`，内含 `transaction_lag`、TC 漂移、双时态回放指标；告警配置截图或链接需附在 PR 验证部分。
+4. `make security && node scripts/quality/time-constraint-guard.js` 与 `node scripts/quality/architecture-validator.js --rule capabilityContracts` 均无告警，且 `logs/plan402/capability/<ts>.log` 记录最新维护结果（含守卫命令/Responsible/回收计划），证明回退到旧实现会被 CI 阻止。
 
 ---
 

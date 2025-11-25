@@ -60,6 +60,18 @@ type RateLimitStats struct {
 func NewRateLimitMiddleware(config *RateLimitConfig, baseLogger pkglogger.Logger) *RateLimitMiddleware {
 	if config == nil {
 		config = DefaultRateLimitConfig
+	} else {
+		cfg := *config
+		if cfg.CleanupInterval <= 0 {
+			cfg.CleanupInterval = DefaultRateLimitConfig.CleanupInterval
+		}
+		if cfg.RequestsPerMinute <= 0 {
+			cfg.RequestsPerMinute = DefaultRateLimitConfig.RequestsPerMinute
+		}
+		if cfg.BurstSize <= 0 {
+			cfg.BurstSize = DefaultRateLimitConfig.BurstSize
+		}
+		config = &cfg
 	}
 
 	rlm := &RateLimitMiddleware{
@@ -265,7 +277,11 @@ func (rlm *RateLimitMiddleware) updateStats(allowed bool) {
 
 // cleanupRoutine 清理过期客户端
 func (rlm *RateLimitMiddleware) cleanupRoutine() {
-	ticker := time.NewTicker(rlm.config.CleanupInterval)
+	interval := rlm.config.CleanupInterval
+	if interval <= 0 {
+		interval = DefaultRateLimitConfig.CleanupInterval
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for range ticker.C {

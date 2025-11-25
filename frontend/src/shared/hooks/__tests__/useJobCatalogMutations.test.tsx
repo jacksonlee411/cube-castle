@@ -17,12 +17,13 @@ import { JobCatalogStatus } from '@/generated/graphql-types'
 const mocks = vi.hoisted(() => ({
   requestMock: vi.fn(),
   loggerMock: {
+    info: vi.fn(),
     mutation: vi.fn(),
     error: vi.fn(),
   },
 }))
 
-vi.mock('@/shared/api', () => ({
+vi.mock('@/shared/api/unified-client', () => ({
   unifiedRESTClient: {
     request: mocks.requestMock,
   },
@@ -54,6 +55,7 @@ const createWrapper = (client: QueryClient) => {
 
 beforeEach(() => {
   mocks.requestMock.mockReset()
+  mocks.loggerMock.info.mockClear()
   mocks.loggerMock.mutation.mockClear()
   mocks.loggerMock.error.mockClear()
 })
@@ -227,13 +229,9 @@ describe('useJobCatalogMutations REST integration', () => {
     const queryClient = createClient()
     try {
       const wrapper = createWrapper(queryClient)
-      mocks.requestMock.mockResolvedValue({
-        success: false,
-        error: {
-          message: '编码重复',
-          code: 'VALIDATION_ERROR',
-          details: { field: 'code' },
-        },
+      mocks.requestMock.mockRejectedValue({
+        message: '编码重复',
+        code: 'VALIDATION_ERROR',
         requestId: 'req-1',
       })
 

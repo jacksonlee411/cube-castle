@@ -164,11 +164,11 @@
 ### 阶段 B · 数据层改造（1-2 Sprint）
 - 详见 [402B · SOM Schema 与工具链](./402B-som-schema-and-tooling.md)。负责创建 `standard_objects*` 迁移、sqlc 仓储、migrator/validator/snapshot-refresh 工具，以及 Schema Registry/扩展表与日志样例。
 
-### 阶段 C · 服务接入与双写（1-2 Sprint）
-- 详见 [402C · 服务接入与双写](./402C-service-integration-and-double-write.md)。主要任务包括命令/查询服务接入、Feature Flag、双写/校验、outbox/快照、Manifest/Slot 与能力契约巡检。
+### 阶段 C · 服务接入与迁移（1-2 Sprint）
+- 详见 [402C · 服务接入与迁移](./402C-service-integration-and-double-write.md)。主要任务包括命令/查询服务全面接入 SOM、运行 `standardobject-migrator`/`standardobject-validator` 完成一次性迁移、对接 outbox/快照、Manifest/Slot 与能力契约巡检，并将旧表切换为只读。
 
 ### 阶段 D · 切换与回收（1 Sprint）
-- 详见 [402D · 切换与回收](./402D-cutover-and-recovery.md)。该阶段执行最终迁移、关闭旧表写入、完成前端/查询适配、跑门禁与回滚演练，并生成切换 Runbook。
+- 详见 [402D · 切换与回收](./402D-cutover-and-recovery.md)。该阶段聚焦上线验收：跑门禁与回滚演练、沉淀 Runbook、完成日志/监控/文档收尾，并开始拆除旧代码/索引。
 
 ### 阶段 E · 收敛与治理（可选）
 - 详见 [402E · 收敛与治理](./402E-convergence-and-governance.md)。集中处理旧表/代码清理、文档/索引更新、监控/OBS 完善与未来模块接入指南。
@@ -182,12 +182,12 @@
 | 子计划 | 范围与任务 | 关键交付物 / 依赖 |
 |--------|------------|-------------------|
 | [**402A – SOM 映射与契约准备**](./402A-standard-object-mapping-and-contracts.md) | 1) 完成 `organization_units` → SOM 三表字段映射（含 DEC/OCL 记录）；2) 设计兼容视图/Port；3) 补齐 OpenAPI/GraphQL 契约与权限 scope。 | 映射规格、API diff、Port/视图设计。依赖：Plan 400 契约、Plan 201 sqlc 规范。 |
-| [**402B – SOM Schema & 工具链**](./402B-som-schema-and-tooling.md) | 1) 创建 `standard_objects*` 迁移；2) 更新 `sqlc.yaml` 与仓储；3) 实作 migrator/validator/snapshot-refresh 工具；4) 建立日志规范。 | 迁移脚本、sqlc 生成物、迁移/校验工具与日志。依赖：402A、Atlas/Goose、Plan 215/255。 |
-| [**402C – 服务接入与双写**](./402C-service-integration-and-double-write.md) | 1) 命令/查询服务注入 Port 并保留 Feature Flag；2) 构建双写 + 自动校验；3) 对接 outbox、快照、Manifest/Slot。 | Go/TS 改造 diff、Flag/双写/校验日志。依赖：402B、Plan 401、Plan 252/259。 |
-| [**402D – 切换与回收**](./402D-cutover-and-recovery.md) | 1) 执行一次性迁移并关闭旧写入；2) 更新前端/查询；3) 跑门禁与回滚演练；4) 输出 Runbook。 | 切换报告、回滚脚本、测试日志。依赖：402C、Plan 222/255。 |
+| [**402B – SOM Schema & 工具链**](./402B-som-schema-and-tooling.md) | 1) 创建 `standard_objects*` 迁移；2) 更新 `configs/sqlc/sqlc.yaml` 与仓储；3) 实作 migrator/validator/snapshot-refresh 工具；4) 建立日志规范。 | 迁移脚本、sqlc 生成物、迁移/校验工具与日志。依赖：402A、Atlas/Goose、Plan 215/255。 |
+| [**402C – 服务接入与迁移**](./402C-service-integration-and-double-write.md) | 1) 命令/查询服务仅通过 SOM Port 读写；2) 运行 migrator/validator 完成一次性迁移并将旧表转为只读；3) 对接 outbox、快照、Manifest/Slot。 | Go/TS 改造 diff、迁移/校验日志、`logs/plan402/capability/*.log`。依赖：402B、Plan 401、Plan 252/259。 |
+| [**402D – 切换与回收**](./402D-cutover-and-recovery.md) | 1) 在 SOM 路径上完成门禁/回滚演练；2) 交付 Runbook、监控与 OBS 证据；3) 清理遗留代码/表。 | 切换报告、回滚脚本、测试日志。依赖：402C、Plan 222/255。 |
 | [**402E – 收敛与治理**](./402E-convergence-and-governance.md)（可选） | 1) 清理旧表/代码；2) 更新文档索引；3) 完善监控/OBS；4) 输出 SOM 接入指南。 | 清理脚本、文档更新、OBS/监控布置。依赖：402D、Plan 400/401、Plan 215。 |
 
-> 行动顺序：402A（立项确认）→ 402B（schema/tooling）→ 402C（接入双写）→ 402D（切换验收）→ 402E（善后治理）。在发布日期前，任一子计划未完成不得进入下一子计划，以确保“资源唯一性”。
+> 行动顺序：402A（立项确认）→ 402B（schema/tooling）→ 402C（接入 + 一次性迁移）→ 402D（切换验收）→ 402E（善后治理）。在发布日期前，任一子计划未完成不得进入下一子计划，以确保“资源唯一性”。
 
 ---
 
@@ -201,7 +201,7 @@
 | 风险 | 影响 | 缓解 |
 |------|------|------|
 | sqlc/Atlas 引入节奏过慢 | 阻塞迁移脚本生成 | 阶段 A 前置完成 `make sqlc-generate` pipeline 校验，与 Plan 201 负责人协同 |
-| 双写期间数据不一致 | 影响生产准确性 | 建立校验脚本对比 `organization_units` 与 SOM 版本，异常触发 feature flag 回滚 |
+| 迁移数据不一致 | 影响生产准确性 | 使用 `standardobject-migrator` + `standardobject-validator` 的日志与脚本对比 `organization_units` 与 SOM 版本，异常直接阻断（不再依赖 Feature Flag）；必要时回滚至迁移前快照 |
 | 前端适配延误 | UI/测试无法按期收敛 | 阶段 B 同步提供 adapter API，使前端只做映射，不重新实现字段逻辑 |
 | 回滚路径不清晰 | 影响上线决策 | 在阶段 B 即编写 Goose Down 与数据清理脚本，实测后才允许合入 |
 

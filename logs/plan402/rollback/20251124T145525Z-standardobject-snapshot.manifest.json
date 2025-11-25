@@ -1,0 +1,16 @@
+{
+  "planId": 402,
+  "generatedAt": "20251124T145525Z",
+  "archive": "logs/plan402/rollback/20251124T145525Z-standardobject-snapshot.tar.gz",
+  "sha256": "248b2d23e6cfd2315c39264ba4fe122b45ecb188a797e6620282457cfac88b02",
+  "counts": {
+    "standard_objects": 509,
+    "standard_object_versions": 509,
+    "standard_object_links": 76
+  },
+  "files": [
+    "standard_objects.csv",
+    "standard_object_versions.csv",
+    "standard_object_links.csv"
+  ]
+}

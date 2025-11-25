@@ -14,9 +14,11 @@ import (
 	orgmiddleware "cube-castle/internal/organization/middleware"
 	"cube-castle/internal/organization/repository"
 	validator "cube-castle/internal/organization/validator"
+	"cube-castle/internal/standardobject"
 	"cube-castle/internal/types"
 	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/google/uuid"
 )
 
@@ -44,14 +46,22 @@ type PositionService struct {
 	positionValidator   validator.PositionValidationService
 	assignmentValidator validator.AssignmentValidationService
 	outboxRepo          database.OutboxRepository
+	standardObjects     standardobject.ObjectService
+	clock               clockpkg.Clock
 }
 
-func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, outboxRepo database.OutboxRepository) *PositionService {
+func NewPositionService(positions *repository.PositionRepository, assignments *repository.PositionAssignmentRepository, jobCatalog *repository.JobCatalogRepository, orgRepo *repository.OrganizationRepository, positionValidator validator.PositionValidationService, assignmentValidator validator.AssignmentValidationService, auditLogger *audit.AuditLogger, baseLogger pkglogger.Logger, outboxRepo database.OutboxRepository, stdObjects standardobject.ObjectService, clk clockpkg.Clock) *PositionService {
 	if positionValidator == nil {
 		positionValidator = validator.NewStubValidationService()
 	}
 	if assignmentValidator == nil {
 		assignmentValidator = validator.NewStubValidationService()
+	}
+	if stdObjects == nil {
+		stdObjects = standardobject.NewNoopService()
+	}
+	if clk == nil {
+		clk = clockpkg.NewSystemClock()
 	}
 
 	return &PositionService{
@@ -64,6 +74,8 @@ func NewPositionService(positions *repository.PositionRepository, assignments *r
 		positionValidator:   positionValidator,
 		assignmentValidator: assignmentValidator,
 		outboxRepo:          outboxRepo,
+		standardObjects:     stdObjects,
+		clock:               clk,
 	}
 }
 
@@ -263,6 +275,14 @@ func (s *PositionService) CreatePosition(ctx context.Context, tenantID uuid.UUID
 		return nil, err
 	}
 
+	aggregate, err := s.syncPositionStandardObject(ctx, entity, operator)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectCreated, aggregate, "CreatePosition"); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -332,6 +352,14 @@ func (s *PositionService) ReplacePosition(ctx context.Context, tenantID uuid.UUI
 	}
 
 	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "ReplacePosition", updateEntity, nil); err != nil {
+		return nil, err
+	}
+
+	aggregate, err := s.syncPositionStandardObject(ctx, updateEntity, operator)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectUpdated, aggregate, "ReplacePosition"); err != nil {
 		return nil, err
 	}
 
@@ -458,6 +486,14 @@ func (s *PositionService) CreatePositionVersion(ctx context.Context, tenantID uu
 	}
 
 	if err := s.publishPositionEvent(ctx, tx, tenantID, events.EventPositionUpdated, "CreatePositionVersion", entity, nil); err != nil {
+		return nil, err
+	}
+
+	aggregate, err := s.syncPositionStandardObject(ctx, entity, operator)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.emitStandardObjectEvent(ctx, tx, tenantID, events.EventStandardObjectVersioned, aggregate, "CreatePositionVersion"); err != nil {
 		return nil, err
 	}
 
@@ -1788,6 +1824,21 @@ func (s *PositionService) saveOutboxEvent(ctx context.Context, tx *sql.Tx, outbo
 		return err
 	}
 	return nil
+}
+
+func (s *PositionService) emitStandardObjectEvent(ctx context.Context, tx *sql.Tx, tenantID uuid.UUID, eventType string, aggregate standardobject.ObjectAggregate, operation string) error {
+	if s.outboxRepo == nil || aggregate.Kernel.Code == "" {
+		return nil
+	}
+	eventCtx := s.newEventContext(ctx, tenantID, operation)
+	attrs := map[string]interface{}{
+		"positionCode": aggregate.Kernel.Code,
+	}
+	outboxEvent, err := events.NewStandardObjectEvent(eventType, eventCtx, aggregate, attrs)
+	if err != nil {
+		return err
+	}
+	return s.saveOutboxEvent(ctx, tx, outboxEvent)
 }
 
 func (s *PositionService) newEventContext(ctx context.Context, tenantID uuid.UUID, operation string) events.Context {

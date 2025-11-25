@@ -21,6 +21,8 @@
     "compliance:fix": "eslint -c eslint.config.architecture.mjs 'frontend/src/**/*.{ts,tsx}' --fix",
     "test:compliance": "npm run compliance:check && echo '✅ API合规性检查通过'",
     "build:analyze": "tsc -b && vite build",
+    "manifest:forms": "node scripts/generate-forms-from-openapi.js",
+    "manifest:columns": "node scripts/generate-columns-from-graphql.js",
     "fields:add": "node scripts/fields/add.js",
     "guard:fields": "node scripts/quality/preflight-field-standard.js"
   },

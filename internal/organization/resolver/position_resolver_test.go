@@ -263,7 +263,7 @@ func TestResolver_Positions_ForwardsParameters(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	result, err := resolver.Positions(context.Background(), struct {
 		Filter     *dto.PositionFilterInput
@@ -299,7 +299,7 @@ func TestResolver_Positions_PermissionDenied(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: false}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	_, err := resolver.Positions(context.Background(), struct {
 		Filter     *dto.PositionFilterInput
@@ -363,7 +363,7 @@ func TestResolver_PositionAssignments_ForwardsParameters(t *testing.T) {
 	}
 
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	result, err := resolver.PositionAssignments(context.Background(), struct {
 		PositionCode string
@@ -426,7 +426,7 @@ func TestResolver_PositionAssignmentAudit_ForwardsParameters(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	code := "P3000001"
 	_, err := resolver.PositionAssignmentAudit(context.Background(), struct {
@@ -492,7 +492,7 @@ func TestResolver_VacantPositions_ForwardsParameters(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	_, err := resolver.VacantPositions(context.Background(), struct {
 		Filter     *dto.VacantPositionFilterInput
@@ -536,7 +536,7 @@ func TestResolver_VacantPositions_ForwardsAsOfDate(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	_, err := resolver.VacantPositions(context.Background(), struct {
 		Filter     *dto.VacantPositionFilterInput
@@ -585,7 +585,7 @@ func TestResolver_PositionTransfers_ForwardsParameters(t *testing.T) {
 	}
 
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	_, err := resolver.PositionTransfers(context.Background(), struct {
 		PositionCode     *string
@@ -623,7 +623,7 @@ func TestResolver_PositionHeadcountStats_CustomIncludeSubordinates(t *testing.T)
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	falseVal := false
 	_, err := resolver.PositionHeadcountStats(context.Background(), struct {
@@ -649,7 +649,7 @@ func TestResolver_PositionHeadcountStats_UsesTenantFromContext(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	ctx := auth.SetUserContext(context.Background(), &auth.Claims{
 		UserID:   "tenant-tester",
@@ -682,7 +682,7 @@ func TestResolver_Position_ForwardsAsOfDate(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	_, err := resolver.Position(context.Background(), struct {
 		Code     string
@@ -708,7 +708,7 @@ func TestResolver_PositionTimeline_ForwardsDateRange(t *testing.T) {
 		},
 	}
 	perm := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), perm)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), perm)
 
 	_, err := resolver.PositionTimeline(context.Background(), struct {
 		Code      string
@@ -737,7 +737,7 @@ func TestResolver_PositionVersions_ForwardsParameters(t *testing.T) {
 	}
 
 	checker := &stubPermissionChecker{allow: true}
-	resolver := NewResolver(repo, newTestLogger(), checker)
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), checker)
 
 	result, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string
@@ -778,7 +778,7 @@ func TestResolver_PositionVersions_IncludeDeletedFlag(t *testing.T) {
 		},
 	}
 
-	resolver := NewResolver(repo, newTestLogger(), &stubPermissionChecker{allow: true})
+	resolver := NewResolver(repo, fakeStandardObjectStore{}, newTestLogger(), &stubPermissionChecker{allow: true})
 
 	_, err := resolver.PositionVersions(context.Background(), struct {
 		Code           string

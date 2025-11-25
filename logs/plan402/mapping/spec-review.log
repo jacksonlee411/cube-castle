@@ -1,0 +1,14 @@
+2025-11-27T09:00:00Z | Plan 402A spec review
+Participants: Arch Team (Y. Chen), Data Gov (L. Rao), Backend (M. Guo)
+Agenda:
+  1. 映射矩阵与 DEC/OCL 核对（Schema Registry v0.2.0）。
+  2. Feature Flag / Port 注入与回滚策略确认。
+  3. 契约与日志产出（OpenAPI/GraphQL + logs/plan402/mapping/*）。
+Decision: ✅ 通过（可启动 402B）；要求：
+  - 保持 `STANDARD_OBJECTS_ENABLED` 默认关闭，未绑定仓储时返回 ErrAdapterNotConfigured。
+  - 402B 启动前复核 `knownGaps`（profiles/metadata）并跟进 Plan 403。
+  - DEC/OCL/Time Constraint 巡检产出需附带 `logs/plan400/migration/time-constraint-report.log` / `logs/plan400/audit/transaction-range-report.log`。
+Evidence Links:
+  - docs/development-plans/402A-standard-object-mapping-spec.md (v0.1 验收稿)
+  - docs/reference/schema-registry.json (objectType=ORGANIZATION_UNIT)
+  - logs/plan402/mapping/api-contract.log, dec-gap.log, naming-check.log

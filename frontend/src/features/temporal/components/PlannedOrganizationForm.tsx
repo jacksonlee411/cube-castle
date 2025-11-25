@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from 'react';
-import { Modal, useModalModel } from '@workday/canvas-kit-react/modal';
-import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button';
-import { TextInput } from '@workday/canvas-kit-react/text-input';
-import { TextArea } from '@workday/canvas-kit-react/text-area';
-import { FormField } from '@workday/canvas-kit-react/form-field';
-import { Flex } from '@workday/canvas-kit-react/layout';
-import { TemporalDatePicker } from './TemporalDatePicker';
-import { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter';
+import React, { useState, useCallback } from 'react'
+import { Modal, useModalModel } from '@workday/canvas-kit-react/modal'
+import { PrimaryButton, SecondaryButton } from '@workday/canvas-kit-react/button'
+import { TextInput } from '@workday/canvas-kit-react/text-input'
+import { TextArea } from '@workday/canvas-kit-react/text-area'
+import { FormField } from '@workday/canvas-kit-react/form-field'
+import { Flex } from '@workday/canvas-kit-react/layout'
+import { TemporalDatePicker } from './TemporalDatePicker'
+import { validateTemporalDate } from '@/shared/utils/temporal-validation-adapter'
+import { getOrganizationFieldMeta } from '../manifest/organizationManifest'
+import type { OrganizationField } from '../manifest/organizationManifest'
 
 // 定义组织类型 - 从FormFields中复制过来
 export type UnitType = 'DEPARTMENT' | 'ORGANIZATION_UNIT' | 'PROJECT_TEAM';
@@ -174,7 +176,13 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
     onClose();
   };
 
-  const minDate = validateTemporalDate.getTodayString();
+  const minDate = validateTemporalDate.getTodayString()
+
+  const renderFieldHint = (field: OrganizationField, error?: string) => {
+    const meta = getOrganizationFieldMeta(field)
+    const message = error ?? meta?.description
+    return message ? <FormField.Hint>{message}</FormField.Hint> : null
+  }
 
   return (
     <Modal model={model}>
@@ -197,25 +205,23 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
             )}
 
             <FormField
-              isRequired
-              error={errors.name ? "error" : undefined}
+              isRequired={getOrganizationFieldMeta('name')?.required}
+              error={errors.name ? 'error' : undefined}
             >
-              <FormField.Label>组织名称</FormField.Label>
+              <FormField.Label>{getOrganizationFieldMeta('name')?.label}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextInput}
                   value={formData.name}
-                  onChange={(e) => handleFieldChange('name', e.target.value)}
-                  placeholder="请输入组织名称"
+                  onChange={e => handleFieldChange('name', e.target.value)}
+                  placeholder={getOrganizationFieldMeta('name')?.placeholder}
                 />
-                {errors.name && (
-                  <FormField.Hint>{errors.name}</FormField.Hint>
-                )}
+                {renderFieldHint('name', errors.name)}
               </FormField.Field>
             </FormField>
 
-            <FormField>
-              <FormField.Label>组织类型 *</FormField.Label>
+            <FormField isRequired={getOrganizationFieldMeta('unitType')?.required}>
+              <FormField.Label>{getOrganizationFieldMeta('unitType')?.label}</FormField.Label>
               <FormField.Field>
                 <select
                   value={formData.unitType}
@@ -226,57 +232,56 @@ export const PlannedOrganizationForm: React.FC<PlannedOrganizationFormProps> = (
                   <option value="ORGANIZATION_UNIT">组织单位</option>
                   <option value="PROJECT_TEAM">项目团队</option>
                 </select>
+                {renderFieldHint('unitType', errors.unitType)}
               </FormField.Field>
             </FormField>
 
             <FormField>
-              <FormField.Label>组织描述</FormField.Label>
+              <FormField.Label>{getOrganizationFieldMeta('description')?.label}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
                   value={formData.description}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
-                  placeholder="请输入组织描述"
+                  placeholder={getOrganizationFieldMeta('description')?.placeholder}
                   rows={3}
                 />
-                <FormField.Hint>可选，描述组织的职能和目的</FormField.Hint>
+                {renderFieldHint('description', errors.description)}
               </FormField.Field>
             </FormField>
 
             <TemporalDatePicker
-              label="生效日期"
+              label={getOrganizationFieldMeta('effectiveDate')?.label ?? '生效日期'}
               value={formData.effectiveDate}
               onChange={(value) => handleFieldChange('effectiveDate', value)}
               error={errors.effectiveDate}
-              required
+              required={getOrganizationFieldMeta('effectiveDate')?.required}
               minDate={minDate}
-              helperText="计划组织必须设置未来的生效日期"
+              helperText={errors.effectiveDate ?? getOrganizationFieldMeta('effectiveDate')?.description}
             />
 
             <TemporalDatePicker
-              label="结束日期"
+              label={getOrganizationFieldMeta('endDate')?.label ?? '结束日期'}
               value={formData.endDate}
               onChange={(value) => handleFieldChange('endDate', value)}
               error={errors.endDate}
               minDate={formData.effectiveDate || minDate}
-              helperText="可选，设置组织的计划结束时间"
+              helperText={errors.endDate ?? getOrganizationFieldMeta('endDate')?.description}
             />
 
             <FormField
-              error={errors.changeReason ? "error" : undefined}
+              error={errors.changeReason ? 'error' : undefined}
             >
-              <FormField.Label>变更原因（可选）</FormField.Label>
+              <FormField.Label>{getOrganizationFieldMeta('changeReason')?.label ?? '变更原因'}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
                   value={formData.changeReason}
                   onChange={(e) => handleFieldChange('changeReason', e.target.value)}
-                  placeholder="例如：业务扩展需要、组织架构调整、新项目启动等"
+                  placeholder={getOrganizationFieldMeta('changeReason')?.placeholder}
                   rows={3}
                 />
-                <FormField.Hint>
-                  {errors.changeReason || '请说明创建此计划组织的原因（可留空）'}
-                </FormField.Hint>
+                {renderFieldHint('changeReason', errors.changeReason)}
               </FormField.Field>
             </FormField>
 

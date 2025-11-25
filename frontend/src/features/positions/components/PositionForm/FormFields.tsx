@@ -7,6 +7,8 @@ import { colors, space } from '@workday/canvas-kit-react/tokens'
 import { Text } from '@workday/canvas-kit-react/text'
 import { SimpleStack } from '../layout/SimpleStack'
 import type { PositionFormErrors, PositionFormState, SelectOption } from './types'
+import { getPositionFieldMeta } from '@/features/positions/manifest/positionFormManifest'
+import type { PositionFormField } from '@/features/positions/manifest/positionFormManifest'
 
 const POSITION_TYPES: SelectOption[] = [
   { label: '正式职位 (REGULAR)', value: 'REGULAR' },
@@ -52,6 +54,15 @@ const renderFieldHint = (error?: string, helperText?: string) => {
   const hint = error ?? helperText
   return hint ? <FormField.Hint>{hint}</FormField.Hint> : null
 }
+
+const manifestLabel = (field: PositionFormField, fallback: string) =>
+  getPositionFieldMeta(field)?.label ?? fallback
+const manifestPlaceholder = (field: PositionFormField, fallback?: string) =>
+  getPositionFieldMeta(field)?.placeholder ?? fallback
+const manifestDescription = (field: PositionFormField, fallback?: string) =>
+  getPositionFieldMeta(field)?.description ?? fallback
+const manifestRequired = (field: PositionFormField, fallback = false) =>
+  getPositionFieldMeta(field)?.required ?? fallback
 
 interface TextInputFieldProps {
   label: string
@@ -200,48 +211,53 @@ const renderTextInputs = (
 ) => (
   <>
     <TextInputField
-      label="职位名称"
+      label={manifestLabel('title', '职位名称')}
       value={state.title}
       onChange={onChange('title')}
-      placeholder="请输入职位名称"
-      isRequired
+      placeholder={manifestPlaceholder('title', '请输入职位名称')}
+      isRequired={manifestRequired('title', true)}
+      helperText={manifestDescription('title')}
       error={errors.title}
     />
 
     <Flex gap={space.m} cs={responsiveRowStyle}>
       <TextInputField
-        label="职类编码"
+        label={manifestLabel('jobFamilyGroupCode', '职类编码')}
         value={state.jobFamilyGroupCode}
         onChange={onChange('jobFamilyGroupCode')}
-        placeholder="例如：PROF"
-        isRequired
+        placeholder={manifestPlaceholder('jobFamilyGroupCode', '例如：PROF')}
+        isRequired={manifestRequired('jobFamilyGroupCode', true)}
+        helperText={manifestDescription('jobFamilyGroupCode')}
         error={errors.jobFamilyGroupCode}
       />
       <TextInputField
-        label="职种编码"
+        label={manifestLabel('jobFamilyCode', '职种编码')}
         value={state.jobFamilyCode}
         onChange={onChange('jobFamilyCode')}
-        placeholder="例如：PROF-IT"
-        isRequired
+        placeholder={manifestPlaceholder('jobFamilyCode', '例如：PROF-IT')}
+        isRequired={manifestRequired('jobFamilyCode', true)}
+        helperText={manifestDescription('jobFamilyCode')}
         error={errors.jobFamilyCode}
       />
     </Flex>
 
     <Flex gap={space.m} cs={responsiveRowStyle}>
       <TextInputField
-        label="职务编码"
+        label={manifestLabel('jobRoleCode', '职务编码')}
         value={state.jobRoleCode}
         onChange={onChange('jobRoleCode')}
-        placeholder="例如：PROF-IT-BKND"
-        isRequired
+        placeholder={manifestPlaceholder('jobRoleCode', '例如：PROF-IT-BKND')}
+        isRequired={manifestRequired('jobRoleCode', true)}
+        helperText={manifestDescription('jobRoleCode')}
         error={errors.jobRoleCode}
       />
       <TextInputField
-        label="职级编码"
+        label={manifestLabel('jobLevelCode', '职级编码')}
         value={state.jobLevelCode}
         onChange={onChange('jobLevelCode')}
-        placeholder="例如：P5"
-        isRequired
+        placeholder={manifestPlaceholder('jobLevelCode', '例如：P5')}
+        isRequired={manifestRequired('jobLevelCode', true)}
+        helperText={manifestDescription('jobLevelCode')}
         error={errors.jobLevelCode}
       />
     </Flex>
@@ -274,56 +290,66 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
     {catalogAvailable ? (
       <>
         <TextInputField
-          label="职位名称"
+          label={manifestLabel('title', '职位名称')}
           value={state.title}
           onChange={onChange('title')}
-          placeholder="请输入职位名称"
-          isRequired
+          placeholder={manifestPlaceholder('title', '请输入职位名称')}
+          isRequired={manifestRequired('title', true)}
+          helperText={manifestDescription('title')}
           error={errors.title}
         />
 
         <Flex gap={space.m} cs={responsiveRowStyle}>
           <SelectField
-            label="职类"
+            label={manifestLabel('jobFamilyGroupCode', '职类编码')}
             value={state.jobFamilyGroupCode}
             onChange={onJobFamilyGroupChange}
             options={jobFamilyGroupOptions}
             error={errors.jobFamilyGroupCode}
-            isRequired
+            isRequired={manifestRequired('jobFamilyGroupCode', true)}
             disabled={catalogLoading}
+            helperText={manifestDescription('jobFamilyGroupCode')}
           />
           <SelectField
-            label="职种"
+            label={manifestLabel('jobFamilyCode', '职种编码')}
             value={state.jobFamilyCode}
             onChange={onJobFamilyChange}
             options={jobFamilyOptions}
             error={errors.jobFamilyCode}
-            isRequired
+            isRequired={manifestRequired('jobFamilyCode', true)}
             disabled={catalogLoading || !state.jobFamilyGroupCode}
-            helperText={!state.jobFamilyGroupCode ? '请先选择职类' : undefined}
+            helperText={
+              !state.jobFamilyGroupCode
+                ? '请先选择职类'
+                : manifestDescription('jobFamilyCode')
+            }
           />
         </Flex>
 
         <Flex gap={space.m} cs={responsiveRowStyle}>
           <SelectField
-            label="职务"
+            label={manifestLabel('jobRoleCode', '职务编码')}
             value={state.jobRoleCode}
             onChange={onJobRoleChange}
             options={jobRoleOptions}
             error={errors.jobRoleCode}
-            isRequired
+            isRequired={manifestRequired('jobRoleCode', true)}
             disabled={catalogLoading || !state.jobFamilyCode}
-            helperText={!state.jobFamilyCode ? '请先选择职种' : undefined}
+            helperText={
+              !state.jobFamilyCode ? '请先选择职种' : manifestDescription('jobRoleCode')
+            }
           />
           <SelectField
-            label="职级"
+            label={manifestLabel('jobLevelCode', '职级编码')}
             value={state.jobLevelCode}
             onChange={onJobLevelChange}
             options={jobLevelOptions}
             error={errors.jobLevelCode}
-            isRequired
+            isRequired={manifestRequired('jobLevelCode', true)}
             disabled={catalogLoading || !state.jobRoleCode}
-            helperText={!state.jobRoleCode ? '请先选择职务' : undefined}
+            helperText={
+              !state.jobRoleCode ? '请先选择职务' : manifestDescription('jobLevelCode')
+            }
           />
         </Flex>
       </>
@@ -333,18 +359,20 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
 
     <Flex gap={space.m} cs={responsiveRowStyle}>
       <TextInputField
-        label="所属组织编码"
+        label={manifestLabel('organizationCode', '所属组织编码')}
         value={state.organizationCode}
         onChange={onChange('organizationCode')}
-        placeholder="7 位数字"
-        isRequired
+        placeholder={manifestPlaceholder('organizationCode', '7 位数字')}
+        isRequired={manifestRequired('organizationCode', true)}
+        helperText={manifestDescription('organizationCode')}
         error={errors.organizationCode}
       />
       <TextInputField
-        label="汇报职位编码（可选）"
+        label={manifestLabel('reportsToPositionCode', '汇报职位编码（可选）')}
         value={state.reportsToPositionCode}
         onChange={onChange('reportsToPositionCode')}
-        placeholder="例如：P1000001"
+        placeholder={manifestPlaceholder('reportsToPositionCode', '例如：P1000001')}
+        helperText={manifestDescription('reportsToPositionCode')}
         error={errors.reportsToPositionCode}
       />
     </Flex>
@@ -352,29 +380,32 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
     <Flex gap={space.m} cs={responsiveRowStyle}>
       <Box flex={1}>
         <SelectField
-          label="职位类型"
+          label={manifestLabel('positionType', '职位类型')}
           value={state.positionType}
           onChange={onChange('positionType') as React.ChangeEventHandler<HTMLSelectElement>}
           options={POSITION_TYPES}
           error={errors.positionType}
-          isRequired
+          isRequired={manifestRequired('positionType', true)}
+          helperText={manifestDescription('positionType')}
         />
       </Box>
       <Box flex={1}>
         <SelectField
-          label="雇佣方式"
+          label={manifestLabel('employmentType', '雇佣方式')}
           value={state.employmentType}
           onChange={onChange('employmentType') as React.ChangeEventHandler<HTMLSelectElement>}
           options={EMPLOYMENT_TYPES}
           error={errors.employmentType}
-          isRequired
+          isRequired={manifestRequired('employmentType', true)}
+          helperText={manifestDescription('employmentType')}
         />
       </Box>
       <TextInputField
-        label="职级等级（可选）"
+        label={manifestLabel('gradeLevel', '职级等级（可选）')}
         value={state.gradeLevel}
         onChange={onChange('gradeLevel')}
-        placeholder="例如：L3"
+        placeholder={manifestPlaceholder('gradeLevel', '例如：L3')}
+        helperText={manifestDescription('gradeLevel')}
         error={errors.gradeLevel}
       />
     </Flex>
@@ -382,29 +413,40 @@ export const PositionFormFields: React.FC<PositionFormFieldsProps> = ({
     <Flex gap={space.m} cs={responsiveRowStyle}>
       <TextInputField
         type="number"
-        label="编制容量 (FTE)"
+        label={manifestLabel('headcountCapacity', '编制容量 (FTE)')}
         value={state.headcountCapacity}
         onChange={onChange('headcountCapacity')}
-        placeholder="例如：1 或 2.5"
-        isRequired
+        placeholder={manifestPlaceholder('headcountCapacity', '例如：1 或 2.5')}
+        isRequired={manifestRequired('headcountCapacity', true)}
+        helperText={manifestDescription('headcountCapacity')}
         error={errors.headcountCapacity}
       />
       <TextInputField
         type="date"
-        label={isVersion ? '版本生效日期' : '生效日期'}
+        label={
+          isVersion
+            ? `版本${manifestLabel('effectiveDate', '生效日期')}`
+            : manifestLabel('effectiveDate', '生效日期')
+        }
         value={state.effectiveDate}
         onChange={onChange('effectiveDate')}
-        isRequired
+        isRequired={manifestRequired('effectiveDate', true)}
+        helperText={manifestDescription('effectiveDate')}
         error={errors.effectiveDate}
       />
     </Flex>
 
     <TextAreaField
-      label="操作原因"
+      label={manifestLabel('operationReason', '操作原因')}
       value={state.operationReason}
       onChange={onChange('operationReason') as React.ChangeEventHandler<HTMLTextAreaElement>}
-      placeholder={isVersion ? '请说明创建新版本的原因' : '请说明此次操作的原因'}
-      isRequired
+      placeholder={
+        isVersion
+          ? '请说明创建新版本的原因'
+          : manifestPlaceholder('operationReason', '请说明此次操作的原因')
+      }
+      isRequired={manifestRequired('operationReason', true)}
+      helperText={manifestDescription('operationReason')}
       error={errors.operationReason}
       rows={3}
     />

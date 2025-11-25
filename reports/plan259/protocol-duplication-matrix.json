@@ -1,11 +1,11 @@
 {
-  "timestamp": "20251116_185523",
+  "timestamp": "20251123_153247",
   "whitelist": [
     "/.well-known/jwks.json",
     "/api/v1/operational/**",
     "/auth/**"
   ],
-  "failThreshold": 1,
+  "failThreshold": 0,
   "restGetPathsAll": [
     "/.well-known/jwks.json",
     "/.well-known/oidc",
@@ -47,6 +47,8 @@
     "positionTransfers",
     "positionVersions",
     "positions",
+    "standardObject",
+    "standardObjects",
     "vacantPositions"
   ],
   "heuristicDuplicateMapping": {},

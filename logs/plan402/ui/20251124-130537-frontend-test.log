@@ -1,0 +1,65 @@
+
+> frontend@0.0.0 test
+> vitest
+
+
+ RUN  v3.2.4 /home/shangmeilin/cube-castle/frontend
+
+ ✓ src/features/positions/__tests__/PositionHeadcountDashboard.test.tsx (2 tests) 328ms
+ ✓ src/features/positions/__tests__/PositionDashboard.test.tsx (6 tests) 330ms
+ ✓ src/layout/__tests__/NavigationItem.test.tsx (4 tests) 352ms
+ ❯ src/features/positions/__tests__/PositionDetailView.test.tsx (7 tests | 7 failed) 92ms
+   × PositionDetailView > renders detail layout并可打开版本历史页签 70ms
+     → No QueryClient set, use QueryClientProvider to set one
+   × PositionDetailView > toggles includeDeleted flag when开关切换 4ms
+     → No QueryClient set, use QueryClientProvider to set one
+   × PositionDetailView > navigates to overview when版本表点击行 4ms
+     → No QueryClient set, use QueryClientProvider to set one
+   × PositionDetailView > shows提示 when职位编码缺失 2ms
+     → No QueryClient set, use QueryClientProvider to set one
+   × PositionDetailView > validates职位编码格式 4ms
+     → No QueryClient set, use QueryClientProvider to set one
+   × PositionDetailView > Mock 模式下隐藏写操作 2ms
+     → No QueryClient set, use QueryClientProvider to set one
+   × PositionDetailView > Mock 模式下创建页面仅展示指引 2ms
+     → No QueryClient set, use QueryClientProvider to set one
+ ✓ src/features/job-catalog/__tests__/jobCatalogPermissions.test.tsx (5 tests) 1906ms
+ ✓ src/features/job-catalog/__tests__/jobCatalogPages.test.tsx (6 tests) 2444ms
+ ✓ src/features/monitoring/__tests__/MonitoringDashboard.test.tsx (2 tests) 285ms
+ ✓ src/features/temporal/components/__tests__/ParentOrganizationSelector.test.tsx (3 tests) 277ms
+ ✓ src/layout/__tests__/Sidebar.test.tsx (3 tests) 253ms
+ ✓ src/shared/hooks/__tests__/useTemporalEntityDetail.test.tsx (3 tests) 150ms
+ ✓ src/components/__tests__/AppShell.test.tsx (2 tests) 146ms
+ ✓ tests/components/OrganizationTree.test.tsx (1 test) 174ms
+ ✓ src/features/temporal/components/__tests__/SuspendActivateButtons.test.tsx (2 tests) 138ms
+ ✓ src/features/positions/components/transfer/__tests__/PositionTransferDialog.test.tsx (2 tests) 125ms
+ ✓ tests/contract/schema-validation.test.ts (13 tests | 1 skipped) 134ms
+ ✓ tests/components/OrganizationBreadcrumb.test.tsx (2 tests) 121ms
+ ✓ src/features/temporal/components/inlineNewVersionForm/__tests__/FormActions.test.tsx (2 tests) 97ms
+ ✓ src/components/__tests__/canvas-integration.test.tsx (4 tests) 65ms
+ ✓ src/components/__tests__/OrganizationDashboard.test.tsx (2 tests) 59ms
+ ✓ src/shared/auth/__tests__/useAuth.test.tsx (1 test) 65ms
+ ✓ src/shared/utils/__tests__/temporal-validation-adapter.test.ts (6 tests) 23ms
+ ✓ src/features/temporal/pages/__tests__/TemporalEntityPage.position.loader.test.tsx (1 test) 43ms
+ ✓ src/shared/hooks/__tests__/useMessages.test.ts (3 tests) 36ms
+ ✓ tests/pages/OrganizationTemporalPage.test.tsx (1 test) 60ms
+ ✓ src/shared/components/__tests__/RequireScopes.test.tsx (2 tests) 41ms
+ ✓ src/shared/api/__tests__/monitoring.test.ts (4 tests) 18ms
+ ✓ src/features/positions/components/PositionForm/__tests__/validation.test.ts (5 tests) 6ms
+ ✓ tests/contract/field-naming-validation.test.ts (9 tests) 23ms
+ ✓ src/shared/utils/__tests__/logger.test.ts (4 tests) 8ms
+ ✓ src/shared/hooks/__tests__/useEnterpriseOrganizations.test.ts (12 tests) 21ms
+ ✓ src/shared/api/__tests__/type-guards.test.ts (24 tests) 26ms
+ ✓ src/shared/api/__tests__/graphql-enterprise-adapter.test.ts (4 tests) 9ms
+ ✓ src/shared/api/__tests__/authManager.test.ts (4 tests) 5ms
+ ✓ src/shared/api/__tests__/queryClient.test.ts (4 tests) 10ms
+ ✓ src/features/positions/components/PositionForm/__tests__/payload.test.ts (4 tests) 4ms
+ ✓ tests/contract/envelope-format-validation.test.ts (11 tests) 7ms
+ ✓ src/shared/utils/__tests__/organization-helpers.test.ts (8 tests) 5ms
+ ✓ src/shared/api/__tests__/invalidation.test.ts (2 tests) 9ms
+
+ Test Files  2 failed | 37 passed (39)
+      Tests  7 failed | 172 passed | 1 skipped (180)
+   Start at  13:05:37
+   Duration  10.33s (transform 3.11s, setup 5.91s, collect 12.82s, tests 7.89s, environment 26.84s, prepare 6.27s)
+

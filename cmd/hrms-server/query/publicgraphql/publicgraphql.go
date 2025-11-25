@@ -13,15 +13,14 @@ import (
 	graphqlresolver "cube-castle/cmd/hrms-server/query/internal/graphql/resolver"
 	"cube-castle/internal/auth"
 	"cube-castle/internal/config"
-	// schemaLoader "cube-castle/internal/graphql"
 	"cube-castle/internal/middleware"
 	organization "cube-castle/internal/organization"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"database/sql"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	// "github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -48,7 +47,8 @@ func BuildHandlers(sqlDB *sql.DB, repo organization.QueryRepositoryInterface, as
 	graphqlPerm := auth.NewGraphQLPermissionMiddleware(jwtMiddleware, permissionChecker, authLogger, devMode)
 
 	// Resolver wiring
-	qr := organization.NewQueryResolver(repo, assignments, logger, graphqlPerm)
+	stdStore := organization.NewStandardObjectStore(sqlDB, clockpkg.NewSystemClock())
+	qr := organization.NewQueryResolver(repo, assignments, stdStore, logger, graphqlPerm)
 	gqlResolver := graphqlresolver.New(qr)
 	executableSchema := graphqlruntime.NewExecutableSchema(graphqlruntime.Config{
 		Resolvers: gqlResolver,

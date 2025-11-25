@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, afterEach, afterAll, describe, expect, it, vi, type Mock } from 'vitest'
 import type { PositionDetailResult, PositionRecord } from '@/shared/types/positions'
 import { PositionDetailView, type PositionDetailViewProps } from '../PositionDetailView'
@@ -178,11 +179,26 @@ const baseProps: PositionDetailViewProps = {
   navigateToDetail,
 }
 
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+
+let queryClient: QueryClient
+
 const renderComponent = (props: Partial<PositionDetailViewProps> = {}) =>
-  render(<PositionDetailView {...baseProps} {...props} />)
+  render(
+    <QueryClientProvider client={queryClient}>
+      <PositionDetailView {...baseProps} {...props} />
+    </QueryClientProvider>,
+  )
 
 describe('PositionDetailView', () => {
   beforeEach(() => {
+    queryClient = createQueryClient()
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
     mockedUsePositionDetail.mockReset()
     mockedUsePositionDetail.mockImplementation((_code: string | undefined, _options?: unknown) => ({
@@ -198,6 +214,7 @@ describe('PositionDetailView', () => {
   })
 
   afterEach(() => {
+    queryClient.clear()
     vi.stubEnv('VITE_POSITIONS_MOCK_MODE', 'false')
   })
 

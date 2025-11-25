@@ -1,0 +1,49 @@
+
+> frontend@0.0.0 test:e2e
+> playwright test
+
+SyntaxError: /home/shangmeilin/cube-castle/frontend/tests/e2e/architecture-e2e.spec.ts: Unexpected token (18:68)
+
+  16 |       try {
+  17 |         const base = (window as any).process?.env?.PW_BASE_URL || '';
+> 18 |         const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/api/v1/health`);
+     |                                                                     ^
+  19 |         return { status: response.status, ok: response.ok };
+  20 |       } catch (error) {
+  21 |         return { error: error.message };
+
+   at architecture-e2e.spec.ts:18
+
+  16 |       try {
+  17 |         const base = (window as any).process?.env?.PW_BASE_URL || '';
+> 18 |         const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/api/v1/health`);
+     |                                                                    ^
+  19 |         return { status: response.status, ok: response.ok };
+  20 |       } catch (error) {
+  21 |         return { error: error.message };
+
+SyntaxError: /home/shangmeilin/cube-castle/frontend/tests/e2e/business-flow-e2e.spec.ts: Unexpected token (392:66)
+
+  390 |     await page.evaluate(async () => {
+  391 |       const base = (window as any).process?.env?.PW_BASE_URL || '';
+> 392 |       const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/graphql`, {
+      |                                                                   ^
+  393 |         method: 'POST',
+  394 |         headers: { 'Content-Type': 'application/json' },
+  395 |         body: JSON.stringify({
+
+   at business-flow-e2e.spec.ts:392
+
+  390 |     await page.evaluate(async () => {
+  391 |       const base = (window as any).process?.env?.PW_BASE_URL || '';
+> 392 |       const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/graphql`, {
+      |                                                                  ^
+  393 |         method: 'POST',
+  394 |         headers: { 'Content-Type': 'application/json' },
+  395 |         body: JSON.stringify({
+
+[1A[2K
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m

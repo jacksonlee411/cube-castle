@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"cube-castle/internal/organization/dto"
+	standardobject "cube-castle/internal/standardobject"
 	pkglogger "cube-castle/pkg/logger"
 	sharedconfig "cube-castle/shared/config"
 	"github.com/google/uuid"
@@ -42,7 +44,7 @@ func TestResolver_Assignments_ForwardsParameters(t *testing.T) {
 	repo := &stubRepository{}
 	perm := &stubPermissionChecker{allow: true}
 	facade := &stubAssignmentFacade{}
-	res := NewResolverWithAssignments(repo, facade, pkglogger.NewNoopLogger(), perm)
+	res := NewResolverWithAssignments(repo, facade, fakeStandardObjectStore{}, pkglogger.NewNoopLogger(), perm)
 
 	positionCode := "P1001"
 	filter := &dto.PositionAssignmentFilterInput{IncludeHistorical: false}
@@ -89,7 +91,7 @@ func TestResolver_AssignmentHistory_UsesFacade(t *testing.T) {
 	repo := &stubRepository{}
 	perm := &stubPermissionChecker{allow: true}
 	facade := &stubAssignmentFacade{}
-	res := NewResolverWithAssignments(repo, facade, pkglogger.NewNoopLogger(), perm)
+	res := NewResolverWithAssignments(repo, facade, fakeStandardObjectStore{}, pkglogger.NewNoopLogger(), perm)
 
 	facade.historyFn = func(_ context.Context, _ uuid.UUID, code string, _ *dto.PositionAssignmentFilterInput, _ *dto.PaginationInput, _ []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error) {
 		if code != "P1002" {
@@ -114,7 +116,7 @@ func TestResolver_AssignmentHistory_UsesFacade(t *testing.T) {
 func TestResolver_AssignmentStats_RequiresIdentifiers(t *testing.T) {
 	repo := &stubRepository{}
 	perm := &stubPermissionChecker{allow: true}
-	res := NewResolverWithAssignments(repo, nil, pkglogger.NewNoopLogger(), perm)
+	res := NewResolverWithAssignments(repo, nil, fakeStandardObjectStore{}, pkglogger.NewNoopLogger(), perm)
 
 	_, err := res.AssignmentStats(context.Background(), struct {
 		OrganizationCode *string
@@ -129,7 +131,7 @@ func TestResolver_AssignmentStats_ForwardsParameters(t *testing.T) {
 	repo := &stubRepository{}
 	perm := &stubPermissionChecker{allow: true}
 	facade := &stubAssignmentFacade{}
-	res := NewResolverWithAssignments(repo, facade, pkglogger.NewNoopLogger(), perm)
+	res := NewResolverWithAssignments(repo, facade, fakeStandardObjectStore{}, pkglogger.NewNoopLogger(), perm)
 
 	positionCode := "P2001"
 	orgCode := "DEPT01"
@@ -153,4 +155,10 @@ func TestResolver_AssignmentStats_ForwardsParameters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+}
+
+type fakeStandardObjectStore struct{}
+
+func (fakeStandardObjectStore) Get(context.Context, standardobject.ObjectKey, time.Time) (standardobject.ObjectAggregate, error) {
+	return standardobject.ObjectAggregate{}, standardobject.ErrNotFound
 }

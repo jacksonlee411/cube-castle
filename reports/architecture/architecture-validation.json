@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-11-23T10:17:22.036Z",
+  "timestamp": "2025-11-25T03:54:34.169Z",
   "summary": {
-    "totalFiles": 420,
-    "passedFiles": 420,
+    "totalFiles": 233,
+    "passedFiles": 233,
     "failedFiles": 0,
     "totalViolations": 0,
     "violationsByType": {

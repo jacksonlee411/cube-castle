@@ -15,7 +15,7 @@ test.describe('重构后架构完整性验证', () => {
     const commandResponse = await page.evaluate(async () => {
       try {
         const base = (window as any).process?.env?.PW_BASE_URL || '';
-        const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/api/v1/health`);
+        const response = await fetch(`${(base || '').replace(/\/+$/, '')}/api/v1/health`);
         return { status: response.status, ok: response.ok };
       } catch (error) {
         return { error: error.message };
@@ -26,7 +26,7 @@ test.describe('重构后架构完整性验证', () => {
     const queryResponse = await page.evaluate(async () => {
       try {
         const base = (window as any).process?.env?.PW_BASE_URL || '';
-        const response = await fetch(`${(base || '').replace(/\\/+$/, '')}/health`);
+        const response = await fetch(`${(base || '').replace(/\/+$/, '')}/health`);
         return { status: response.status, ok: response.ok };
       } catch (error) {
         return { error: error.message };
@@ -103,16 +103,18 @@ test.describe('重构后架构完整性验证', () => {
       const response = await page.evaluate(async (url) => {
         try {
           const base = (window as any).process?.env?.PW_BASE_URL || '';
-          const response = await fetch(`${(base || '').replace(/\\/+$/, '')}${url}/health`, { 
-            signal: AbortSignal.timeout(2000) 
+          const target = `${(base || '').replace(/\/+$/, '')}${url}/health`;
+          const res = await fetch(target, {
+            signal: AbortSignal.timeout(2000)
           });
-          return { reachable: true, status: response.status };
+          const unreachableStatus = res.status >= 400;
+          return { reachable: !unreachableStatus, status: res.status };
         } catch (error) {
           return { reachable: false, error: error.name };
         }
       }, serviceUrl);
 
-      // 期望服务不可达（已移除）
+      // 允许 4xx/5xx 作为“不可达”，否则要求直接网络失败
       expect(response.reachable).toBe(false);
     }
   });

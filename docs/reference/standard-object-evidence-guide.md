@@ -23,7 +23,7 @@
 ### 生成/校验流程
 
 1. 执行 `make sqlc-generate`、`atlas migrate diff`、`make db-migrate-all` 以确保 Schema 表结构与生成脚本同步。
-2. 运行 `node scripts/generate-schema-registry.js`（命令名称以 Plan 400/300 实际脚本为准，可与 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts` 同步）生成 `docs/reference/schema-registry.json`。
+2. 运行 `node scripts/generate-schema-registry.js`（命令名称以 Plan 400/300 实际脚本为准，可与 `scripts/generate-forms-from-openapi.js`、`scripts/generate-columns-from-graphql.js` 同步）生成 `docs/reference/schema-registry.json`。
 3. 运行 `node scripts/quality/architecture-validator.js --rule capabilityContracts`（或默认规则）以触发 `logs/plan400/schema/<timestamp>-dec-ocl.log`：
 
 ```json
@@ -48,7 +48,8 @@
 | `logs/plan400/schema/` | Schema Registry 巡检、DEC/OCL/TimeConstraint/TransactionPolicy 缺口、`docs/reference/schema-registry.json` 哈希 | `node scripts/quality/architecture-validator.js --rule capabilityContracts` 或 `npm run quality:preflight` | architecture-validator（capabilityContracts 规则） |
 | `logs/plan400/snapshots/` | `cmd/tools/standardobject-snapshot-refresh` 运行结果、行数/耗时/快照版本 | Plan 400/401 交付的 `cmd/tools/standardobject-snapshot-refresh`（或等效 Job） | 手工审阅 + Plan 401 守卫 |
 | `logs/plan400/ui/` | Playwright `standard-object-*` 规格日志、`[OBS] standardObject.*` 事件截图说明 | `npm run test:e2e -- --grep standard-object` | `frontend/tests/e2e` + OBS 回放 |
-| `logs/plan400/manifest/` | OpenAPI/GraphQL 生成器输出（forms/columns manifest）、差异摘要 | `node scripts/generate-forms-from-openapi.ts`、`node scripts/generate-columns-from-graphql.ts` | Manifest diff 守卫 |
+| `logs/plan400/manifest/` | OpenAPI/GraphQL 生成器输出（forms/columns manifest）、差异摘要 | `npm run manifest:forms`、`npm run manifest:columns`（底层调用 `scripts/generate-forms-from-openapi.js` / `scripts/generate-columns-from-graphql.js`） | Manifest diff 守卫 |
+| `logs/plan402/ui/` | GraphQL columns manifest（`*-columns.log`）与 Temporal/Position Slot、OBS/Playwright 运行说明（`temporal:organization:*`、`temporal:position:*` 页面） | `npm run manifest:columns` 生成列元数据 + `PW_OBS=1 VITE_OBS_ENABLED=true npx playwright test --grep standard-object` 采集 UI/OBS 证据 | Manifest 输出 + `frontend/tests/e2e/standard-object-*` 守卫 |
 | `logs/plan400/audit/` | 双时态审计：`transaction-range-report.log`、撤销/补录事件、`transaction_lag` 指标 | `cmd/tools/standardobject-validator --report transaction`、回滚/补录脚本 | Plan 400 §4.1.2 守卫、审计脚本 |
 | `logs/plan402/mapping/` | 402A 映射规格评审、DEC/OCL/Time Constraint 巡检、契约同步日志 | `node scripts/quality/contract-checker.js`、`node scripts/quality/architecture-validator.js`、`pkg/temporal/constraints` 检查脚本、手工评审记录 | 402A 守卫、`docs/reference/schema-registry.json` gap 校验 |
 | `logs/plan402/migration/` | migrator/validator 运行日志、`time-constraint-report.log`、`transaction-gap.log` | `cmd/tools/standardobject-migrator`、`cmd/tools/standardobject-validator` | 402B/402C 守卫 |
@@ -95,8 +96,8 @@ node scripts/quality/architecture-validator.js --rule capabilityContracts
 
 # 生成 Schema Registry 与前端表单/列
 node scripts/generate-schema-registry.js
-node scripts/generate-forms-from-openapi.ts
-node scripts/generate-columns-from-graphql.ts
+npm run manifest:forms
+npm run manifest:columns
 
 # 刷新快照（Plan 400/401 交付后使用）
 go run cmd/tools/standardobject-snapshot-refresh/main.go  # 或团队约定的等效命令

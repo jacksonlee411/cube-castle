@@ -1,0 +1,694 @@
+
+> frontend@0.0.0 test:e2e
+> playwright test
+
+
+Running 234 tests using 2 workers
+°°°°°°°°✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+××✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×F✅ 认证设置已注入 localStorage
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 认证设置已注入 localStorage
+F✅ 发现活跃前端服务：http://localhost:3000
+·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·°✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·×✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 命令端拒绝GET查询
+✅ 命令端正确拒绝GET查询请求 (HTTP 401)
+·测试: 命令端拒绝单个组织查询
+✅ 命令端正确拒绝单个组织查询请求 (HTTP 401)
+·测试: 命令端支持POST创建
+❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"CREATE_ERROR","message":"创建操作失败","details":{"operation":"CREATE","retryable":false}},"timestamp":"2025-11-24T07:06:28Z","requestId":"f2dbebee-a54b-4f1f-9e05-d796ef0788e4"}
+
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 命令端支持POST创建
+❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"CREATE_ERROR","message":"创建操作失败","details":{"operation":"CREATE","retryable":false}},"timestamp":"2025-11-24T07:06:29Z","requestId":"0e25bcdb-89fd-430a-9644-69bccbf14613"}
+
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+××🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 命令端支持POST创建
+❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"CREATE_ERROR","message":"创建操作失败","details":{"operation":"CREATE","retryable":false}},"timestamp":"2025-11-24T07:06:30Z","requestId":"361c8353-b4f5-4710-a5e7-c03552e18884"}
+
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝POST命令
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×✅ 认证设置已注入 localStorage
+🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝POST命令
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝POST命令
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝PUT更新
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝PUT更新
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝PUT更新
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝DELETE删除
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝DELETE删除
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝DELETE删除
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端支持GraphQL查询
+✅ 查询端正确支持GraphQL查询
+📊 查询到 5 个组织
+·测试: 查询端支持单个组织GraphQL查询
+📋 使用组织代码: 1000000
+✅ 查询端正确支持单个组织GraphQL查询
+·测试: 查询端支持组织统计查询
+✅ 查询端正确支持组织统计GraphQL查询
+📊 统计信息: 总计504个组织
+·测试: CQRS端到端操作流程
+📝 步骤1: 通过命令端创建组织
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS端到端操作流程
+📝 步骤1: 通过命令端创建组织
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS端到端操作流程
+📝 步骤1: 通过命令端创建组织
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS架构健康检查
+✅ 命令端健康状态正常
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS架构健康检查
+✅ 命令端健康状态正常
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS架构健康检查
+✅ 命令端健康状态正常
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F✅ 发现活跃前端服务：http://localhost:3000
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 发现活跃前端服务：http://localhost:3000
+✅ 认证设置已注入 localStorage
+F·🚀 开始前端CQRS协议遵循测试
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 使用前端基址: http://localhost:3000
+✅ 认证设置已注入 localStorage
+测试: 前端使用GraphQL查询
+✅ 认证设置已注入 localStorage
+·🚀 开始前端CQRS协议遵循测试
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 使用前端基址: http://localhost:3000
+测试: 分析前端网络请求协议使用情况
+✅ 认证设置已注入 localStorage
+✅ 检测到 1 个GraphQL查询请求
+✅ 确认没有使用REST GET查询请求
+✅ GraphQL查询内容正确
+·测试: 前端使用REST API执行命令
+✅ 认证设置已注入 localStorage
+ℹ️ 本次测试未触发命令操作，这是正常的
+🏁 前端CQRS协议遵循测试完成
+📊 测试结果总结:
+  ✅ 前端正确使用GraphQL进行查询
+  ✅ 前端正确使用REST API进行命令
+  ✅ 没有违反CQRS协议的请求
+  ✅ 网络请求模式符合架构设计
+·°°°✅ 发现活跃前端服务：http://localhost:3000
+📊 网络请求分析结果:
+  GraphQL查询: 1 个
+  REST GET: 0 个
+  REST POST: 0 个
+  REST PUT: 0 个
+  REST DELETE: 0 个
+✅ 前端CQRS协议使用正确
+·测试: 前端处理CQRS服务错误
+✅ 认证设置已注入 localStorage
+✅ 前端错误处理测试完成
+✅ 无网络错误，CQRS服务正常运行
+🏁 前端CQRS协议遵循测试完成
+📊 测试结果总结:
+  ✅ 前端正确使用GraphQL进行查询
+  ✅ 前端正确使用REST API进行命令
+  ✅ 没有违反CQRS协议的请求
+  ✅ 网络请求模式符合架构设计
+·✅ 发现活跃前端服务：http://localhost:3000
+·✅ 发现活跃前端服务：http://localhost:3000
+·××F·✅ 认证设置已注入 localStorage
+···✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+
+F✅ 认证设置已注入 localStorage
+简化后API响应时间: 229ms
+×✅ 认证设置已注入 localStorage
+简化后API响应时间: 218ms
+×✅ 认证设置已注入 localStorage
+简化后API响应时间: 395ms
+FF✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+成功率: 0.00%
+平均响应时间: 123.20ms
+×前端资源总大小: 4500.06KB
+×✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+成功率: 0.00%
+平均响应时间: 169.60ms
+×前端资源总大小: 4528.89KB
+×✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+成功率: 0.00%
+平均响应时间: 157.00ms
+F前端资源总大小: 4519.60KB
+✅ 认证设置已注入 localStorage
+F✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+·×✅ 认证设置已注入 localStorage
+
+🧪 [Step 1] 创建职位测试 - E2E-1763968104056-3guyis6ms
+×°°°°°°✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+
+🧪 [Step 1] 创建职位测试 - E2E-1763968106608-4otp9cxm3
+F×°°°°°°✅ 认证设置已注入 localStorage
+✅ 必填字段校验返回状态 422
+·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+
+🧪 [Step 1] 创建职位测试 - E2E-1763968109305-steeias08
+✅ 不存在职位校验通过
+F°°°°°°°°·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+××✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×F✅ 认证设置已注入 localStorage
+F°✅ 认证设置已注入 localStorage
+··✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×·✅ 认证设置已注入 localStorage
+测试浏览器: chromium
+✅ 认证设置已注入 localStorage
+·×✅ 认证设置已注入 localStorage
+页面加载时间: 1071ms
+内存使用: 26.32MB
+API响应时间: 36ms
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+F✅ 发现活跃前端服务：http://localhost:3000
+×✅ 发现活跃前端服务：http://localhost:3000
+×✅ 发现活跃前端服务：http://localhost:3000
+F·✅ 发现活跃前端服务：http://localhost:3000
+·✅ 发现活跃前端服务：http://localhost:3000
+×·开始测试服务器连接...
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 使用前端基址: http://localhost:3000
+页面加载成功
+当前URL: http://localhost:3000/
+页面标题: Cube Castle - 人力资源管理系统
+✅ 发现活跃前端服务：http://localhost:3000
+×测试完成成功
+·✅ 认证设置已注入 localStorage
+✅ 发现活跃前端服务：http://localhost:3000
+F·×××F××F××F××F×
+×F××F×·F××××FF××××FF××××FF××××FF×××F××F✅ 认证设置已注入 localStorage
+·°°✅ 发现活跃前端服务：http://localhost:3000
+⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）
+·✅ 发现活跃前端服务：http://localhost:3000
+⚠️ Playwright E2E 将在 Mock 模式下运行（后端服务不可用）
+···✅ 认证设置已注入 localStorage
+✅ P1 问题已修复：页面成功加载，不再超时
+✅ 认证设置有效：RequireAuth 通过验证
+·°°°°°°°°✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+××✅ 认证设置已注入 localStorage
+F✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+×F✅ 发现活跃前端服务：http://localhost:3000
+✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·°✅ 发现活跃前端服务：http://localhost:3000
+✅ 认证设置已注入 localStorage
+F·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+×·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+×
+·🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 命令端拒绝GET查询
+✅ 命令端正确拒绝GET查询请求 (HTTP 401)
+·测试: 命令端拒绝单个组织查询
+✅ 命令端正确拒绝单个组织查询请求 (HTTP 401)
+·测试: 命令端支持POST创建
+❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"CREATE_ERROR","message":"创建操作失败","details":{"operation":"CREATE","retryable":false}},"timestamp":"2025-11-24T07:17:35Z","requestId":"06dcb444-0c63-4895-813a-8f42f7484ba6"}
+
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 命令端支持POST创建
+❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"CREATE_ERROR","message":"创建操作失败","details":{"operation":"CREATE","retryable":false}},"timestamp":"2025-11-24T07:17:37Z","requestId":"4fd4bc90-3d8a-41e3-a7b5-4e9fb8db69d1"}
+
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 命令端支持POST创建
+❌ 创建组织失败，状态码: [33m500[39m 响应: {"success":false,"error":{"code":"CREATE_ERROR","message":"创建操作失败","details":{"operation":"CREATE","retryable":false}},"timestamp":"2025-11-24T07:17:38Z","requestId":"781ab3e4-3316-4ea5-b7a3-d0a969fa06fa"}
+
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F✅ 认证设置已注入 localStorage
+🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝POST命令
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝POST命令
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝POST命令
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝PUT更新
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝PUT更新
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝PUT更新
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝DELETE删除
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝DELETE删除
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端拒绝DELETE删除
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: 查询端支持GraphQL查询
+✅ 查询端正确支持GraphQL查询
+📊 查询到 5 个组织
+·测试: 查询端支持单个组织GraphQL查询
+📋 使用组织代码: 1000000
+✅ 查询端正确支持单个组织GraphQL查询
+·测试: 查询端支持组织统计查询
+✅ 查询端正确支持组织统计GraphQL查询
+📊 统计信息: 总计504个组织
+·测试: CQRS端到端操作流程
+📝 步骤1: 通过命令端创建组织
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS端到端操作流程
+📝 步骤1: 通过命令端创建组织
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS端到端操作流程
+📝 步骤1: 通过命令端创建组织
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS架构健康检查
+✅ 命令端健康状态正常
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS架构健康检查
+✅ 命令端健康状态正常
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+×🚀 开始CQRS架构协议分离测试
+✅ 已加载认证令牌用于CQRS验证
+测试: CQRS架构健康检查
+✅ 命令端健康状态正常
+🏁 CQRS协议分离测试完成
+📊 测试结果总结:
+  ✅ 命令端正确拒绝查询操作
+  ✅ 查询端正确拒绝命令操作
+  ✅ 协议分离严格执行
+  ✅ CQRS架构符合设计规范
+F✅ 发现活跃前端服务：http://localhost:3000
+✅ 认证设置已注入 localStorage
+·F✅ 认证设置已注入 localStorage
+✅ 发现活跃前端服务：http://localhost:3000
+·🚀 开始前端CQRS协议遵循测试
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 使用前端基址: http://localhost:3000
+测试: 前端使用GraphQL查询
+✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·✅ 检测到 1 个GraphQL查询请求
+✅ 确认没有使用REST GET查询请求
+✅ GraphQL查询内容正确
+·测试: 前端使用REST API执行命令
+✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+·🚀 开始前端CQRS协议遵循测试
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 使用前端基址: http://localhost:3000
+测试: 分析前端网络请求协议使用情况
+✅ 认证设置已注入 localStorage
+ℹ️ 本次测试未触发命令操作，这是正常的
+🏁 前端CQRS协议遵循测试完成
+📊 测试结果总结:
+  ✅ 前端正确使用GraphQL进行查询
+  ✅ 前端正确使用REST API进行命令
+  ✅ 没有违反CQRS协议的请求
+  ✅ 网络请求模式符合架构设计
+·°°°✅ 发现活跃前端服务：http://localhost:3000
+📊 网络请求分析结果:
+  GraphQL查询: 1 个
+  REST GET: 0 个
+  REST POST: 0 个
+  REST PUT: 0 个
+  REST DELETE: 0 个
+✅ 前端CQRS协议使用正确
+·测试: 前端处理CQRS服务错误
+✅ 认证设置已注入 localStorage
+🚫 GraphQL错误: 304 - http://localhost:3000/src/shared/api/graphql-enterprise-adapter.ts
+✅ 前端错误处理测试完成
+🏁 前端CQRS协议遵循测试完成
+📊 测试结果总结:
+  ✅ 前端正确使用GraphQL进行查询
+  ✅ 前端正确使用REST API进行命令
+  ✅ 没有违反CQRS协议的请求
+  ✅ 网络请求模式符合架构设计
+·✅ 发现活跃前端服务：http://localhost:3000
+·✅ 发现活跃前端服务：http://localhost:3000
+·××····F✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+××✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+F✅ 认证设置已注入 localStorage
+简化后API响应时间: 160ms
+×F✅ 认证设置已注入 localStorage
+简化后API响应时间: 124ms
+✅ 认证设置已注入 localStorage
+×前端资源总大小: 4049.99KB
+×✅ 认证设置已注入 localStorage
+简化后API响应时间: 165ms
+F✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+前端资源总大小: 4050.83KB
+成功率: 0.00%
+平均响应时间: 160.20ms
+××✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+前端资源总大小: 4050.83KB
+成功率: 0.00%
+平均响应时间: 179.80ms
+F×✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×成功率: 0.00%
+平均响应时间: 162.00ms
+F✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+×·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+
+🧪 [Step 1] 创建职位测试 - E2E-1763968815398-cbjj1fdby
+×°°°°°°F✅ 认证设置已注入 localStorage
+
+🧪 [Step 1] 创建职位测试 - E2E-1763968819776-nwgl78r9r
+✅ 认证设置已注入 localStorage
+✅ 必填字段校验返回状态 422
+·×°°°°°°✅ 认证设置已注入 localStorage
+✅ 不存在职位校验通过
+·
+°°✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+
+🧪 [Step 1] 创建职位测试 - E2E-1763968826417-abqoc4lkx
+F°°°°°°×✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+××✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+FF°✅ 认证设置已注入 localStorage
+·✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+×✅ 认证设置已注入 localStorage
+F·✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+测试浏览器: firefox
+··✅ 认证设置已注入 localStorage
+✅ 认证设置已注入 localStorage
+页面加载时间: 1248ms
+API响应时间: 46ms
+·✅ 发现活跃前端服务：http://localhost:3000
+×✅ 发现活跃前端服务：http://localhost:3000
+×✅ 发现活跃前端服务：http://localhost:3000
+F✅ 发现活跃前端服务：http://localhost:3000
+·✅ 发现活跃前端服务：http://localhost:3000
+·×·开始测试服务器连接...
+✅ 发现活跃前端服务：http://localhost:3000
+✅ 使用前端基址: http://localhost:3000
+✅ 发现活跃前端服务：http://localhost:3000
+×✅ 发现活跃前端服务：http://localhost:3000
+F页面加载成功
+当前URL: http://localhost:3000/login?redirect=%2Forganizations
+页面标题: Cube Castle - 人力资源管理系统
+测试完成成功
+·✅ 认证设置已注入 localStorage
+·×××F××F××F××F××F××

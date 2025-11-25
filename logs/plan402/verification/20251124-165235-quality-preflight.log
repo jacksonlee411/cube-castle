@@ -1,0 +1,60 @@
+
+> cube-castle-api-compliance@1.0.0 quality:preflight
+> node scripts/quality/document-sync.js && npm run guard:selectors-246 && npm --prefix frontend run lint && npm run guard:fields && npm run guard:plan272 && node scripts/quality/architecture-validator.js --scope frontend --rule cqrs,ports,forbidden && npm run lint:docs
+
+[34m📝 📝 Cube Castle - 文档自动同步系统[0m
+[34m📝 同步模式: 检查模式[0m
+[34m📝 运行模式: DRY RUN[0m
+[34m📝 🔄 开始文档同步检查...[0m
+[34m📝 检查同步对: API规范版本同步[0m
+[32m✅ 同步对检查通过: API规范版本同步[0m
+[34m📝 检查同步对: 依赖版本同步[0m
+[32m✅ 同步对检查通过: 依赖版本同步[0m
+[34m📝 检查同步对: presence: temporal guide appendix index exists[0m
+[32m✅ 同步对检查通过: presence: temporal guide appendix index exists[0m
+[34m📝 检查同步对: presence: AGENTS links temporal guide[0m
+[32m✅ 同步对检查通过: presence: AGENTS links temporal guide[0m
+[34m📝 检查同步对: presence: plan 241 references appendix A[0m
+[32m✅ 同步对检查通过: presence: plan 241 references appendix A[0m
+[34m📝 📊 文档同步统计报告:[0m
+[34m📝    📝 同步对总数: 5 个[0m
+[34m📝    ✅ 同步成功: 5 个[0m
+[34m📝    📊 成功率: 100.0%[0m
+[32m✅ 🎉 文档同步检查通过，一致性良好[0m
+[34m📝 📂 详细报告: reports/document-sync/document-sync-report.json[0m
+
+> cube-castle-api-compliance@1.0.0 guard:selectors-246
+> node scripts/quality/selector-guard-246.js
+
+[34mℹ️  Plan 246 selector guard summary[0m
+   Baseline total: 125  |  Current total: 8
+   jsx-attr-data-testid: 50 -> 5 ([32m-45[0m)
+   locator-attr-eq: 2 -> 0 ([32m-2[0m)
+   locator-attr-prefix: 1 -> 0 ([32m-1[0m)
+   getByTestId-literal: 72 -> 3 ([32m-69[0m)
+   getByTestId-template-head: 0 -> 0 ([32m0[0m)
+[32m✅ Plan 246 selector guard passed (no new legacy selector usages).[0m
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+/home/shangmeilin/cube-castle/frontend/src/features/temporal/components/hooks/temporalMasterDetailApi.ts
+  7:1  warning  '@/shared/api/unified-client' import is restricted from being used by a pattern. 🔎 Facade 采纳（Plan 257）：业务代码建议改用 @/shared/api/facade/*（当前为报告模式）。  no-restricted-imports
+
+✖ 1 problem (0 errors, 1 warning)
+
+
+> cube-castle-api-compliance@1.0.0 guard:fields
+> node scripts/quality/preflight-field-standard.js
+
+✅ Migration add/drop symmetry OK
+✅ bcId validation OK (suggested patches)
+
+> cube-castle-api-compliance@1.0.0 guard:plan272
+> node scripts/quality/plan272-artifact-guard.js
+
+❌ Plan 272 artifact guard 检测到以下问题：
+  - [ARTIFACT] logs/plan254/results-1763966636477.json (1078KB) 仍以 .json 明文存在，请归档到 archive/runtime-artifacts 或将其压缩为 .tar.zst。
+📄 报告: reports/plan272/plan272-artifact-guard-20251124T085244Z.txt
+🗂️  日志: logs/plan272/guard/plan272-guard-20251124T085244Z.log

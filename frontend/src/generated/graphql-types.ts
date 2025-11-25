@@ -358,9 +358,9 @@ export type Organization = {
   parentCode: Scalars["String"]["output"];
   /** @deprecated 使用 codePath/namePath 作为唯一事实来源，path 将在后续版本移除 */
   path?: Maybe<Scalars["String"]["output"]>;
-  profile?: Maybe<Scalars["String"]["output"]>;
+  profile?: Maybe<Scalars["JSON"]["output"]>;
   recordId: Scalars["String"]["output"];
-  sortOrder?: Maybe<Scalars["Int"]["output"]>;
+  sortOrder: Scalars["Int"]["output"];
   status: Status;
   suspendedAt?: Maybe<Scalars["String"]["output"]>;
   suspendedBy?: Maybe<Scalars["String"]["output"]>;
@@ -419,6 +419,9 @@ export type OrganizationHierarchy = {
   name: Scalars["String"]["output"];
   namePath: Scalars["String"]["output"];
   parentChain: Array<Scalars["String"]["output"]>;
+  parentCode?: Maybe<Scalars["String"]["output"]>;
+  status?: Maybe<Status>;
+  unitType?: Maybe<UnitType>;
 };
 
 /** Comprehensive organization statistics with temporal breakdown. */
@@ -729,7 +732,7 @@ export type Query = {
   /**
    * List current assignments with optional filters for a single position.
    *
-   * Permissions Required: position:read
+   * Permissions Required: position:assignments:read
    */
   assignments: PositionAssignmentConnection;
   /**
@@ -836,7 +839,7 @@ export type Query = {
   /**
    * Get paginated assignment records for a position.
    *
-   * Permissions Required: position:read
+   * Permissions Required: position:assignments:read
    */
   positionAssignments: PositionAssignmentConnection;
   /**
@@ -869,6 +872,18 @@ export type Query = {
    * Permissions Required: position:read
    */
   positions: PositionConnection;
+  /**
+   * Fetch single Standard Object aggregate by business code.
+   *
+   * Permissions Required: standard-object:read
+   */
+  standardObject?: Maybe<StandardObject>;
+  /**
+   * Retrieve Standard Objects via SOM Port. Feature Flag controlled (402A output only).
+   *
+   * Permissions Required: standard-object:read
+   */
+  standardObjects: StandardObjectConnection;
   /**
    * Get vacant positions with optional filters.
    *
@@ -1013,7 +1028,7 @@ export type QueryOrganizationSubtreeArgs = {
   code: Scalars["String"]["input"];
   includeInactive?: InputMaybe<Scalars["Boolean"]["input"]>;
   maxDepth?: InputMaybe<Scalars["Int"]["input"]>;
-  tenantId: Scalars["String"]["input"];
+  tenantId?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /**
@@ -1117,6 +1132,26 @@ export type QueryPositionsArgs = {
  * Root Query type providing all organization management query operations.
  * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
  */
+export type QueryStandardObjectArgs = {
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+  code: Scalars["String"]["input"];
+  objectType: StandardObjectType;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
+export type QueryStandardObjectsArgs = {
+  filter?: InputMaybe<StandardObjectFilterInput>;
+  objectType: StandardObjectType;
+  pagination?: InputMaybe<PaginationInput>;
+};
+
+/**
+ * Root Query type providing all organization management query operations.
+ * All queries require appropriate OAuth 2.0 permissions and support multi-tenant isolation.
+ */
 export type QueryVacantPositionsArgs = {
   filter?: InputMaybe<VacantPositionFilterInput>;
   pagination?: InputMaybe<PaginationInput>;
@@ -1157,6 +1192,88 @@ export enum SortOrder {
   ASC = "ASC",
   DESC = "DESC",
 }
+
+export type StandardObject = {
+  __typename: "StandardObject";
+  kernel: StandardObjectKernel;
+  links?: Maybe<Array<StandardObjectLink>>;
+  version: StandardObjectVersion;
+};
+
+export type StandardObjectAudit = {
+  __typename: "StandardObjectAudit";
+  createdAt?: Maybe<Scalars["DateTime"]["output"]>;
+  createdBy?: Maybe<Scalars["String"]["output"]>;
+  deletedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  deletedBy?: Maybe<Scalars["String"]["output"]>;
+  deletionReason?: Maybe<Scalars["String"]["output"]>;
+  suspendedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  suspendedBy?: Maybe<Scalars["String"]["output"]>;
+  suspensionReason?: Maybe<Scalars["String"]["output"]>;
+  updatedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  updatedBy?: Maybe<Scalars["String"]["output"]>;
+};
+
+export type StandardObjectConnection = {
+  __typename: "StandardObjectConnection";
+  data: Array<StandardObject>;
+  pagination: PaginationInfo;
+};
+
+/** 过滤条件（契约阶段仅暴露 code/status/asOfDate）。 */
+export type StandardObjectFilterInput = {
+  asOfDate?: InputMaybe<Scalars["Date"]["input"]>;
+  code?: InputMaybe<Scalars["String"]["input"]>;
+  status?: InputMaybe<Status>;
+};
+
+export type StandardObjectKernel = {
+  __typename: "StandardObjectKernel";
+  code: Scalars["String"]["output"];
+  createdAt?: Maybe<Scalars["DateTime"]["output"]>;
+  createdBy?: Maybe<Scalars["String"]["output"]>;
+  dataClassification?: Maybe<Scalars["String"]["output"]>;
+  displayName: Scalars["String"]["output"];
+  labels?: Maybe<Scalars["JSON"]["output"]>;
+  objectType: StandardObjectType;
+  retentionPolicy?: Maybe<Scalars["String"]["output"]>;
+  schemaVersion?: Maybe<Scalars["String"]["output"]>;
+  status: Status;
+  tenantCode: Scalars["String"]["output"];
+  updatedAt?: Maybe<Scalars["DateTime"]["output"]>;
+};
+
+export type StandardObjectLink = {
+  __typename: "StandardObjectLink";
+  attributes?: Maybe<Scalars["JSON"]["output"]>;
+  linkType: StandardObjectLinkType;
+  sourceCode: Scalars["String"]["output"];
+  targetCode: Scalars["String"]["output"];
+};
+
+/** Link 类型（Plan 400 定义）。当前仅支持 ORG_HIERARCHY。 */
+export enum StandardObjectLinkType {
+  ORG_HIERARCHY = "ORG_HIERARCHY",
+}
+
+/** Standard Object 类型枚举。402A 契约阶段开放 ORGANIZATION_UNIT，POSITION_ROLE 保留供后续扩展。 */
+export enum StandardObjectType {
+  ORGANIZATION_UNIT = "ORGANIZATION_UNIT",
+  POSITION_ROLE = "POSITION_ROLE",
+}
+
+export type StandardObjectVersion = {
+  __typename: "StandardObjectVersion";
+  auditTrail?: Maybe<StandardObjectAudit>;
+  checksum?: Maybe<Scalars["String"]["output"]>;
+  createdAt?: Maybe<Scalars["DateTime"]["output"]>;
+  effectiveDate: Scalars["Date"]["output"];
+  endDate?: Maybe<Scalars["Date"]["output"]>;
+  isCurrent: Scalars["Boolean"]["output"];
+  payload: Scalars["JSON"]["output"];
+  updatedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  versionCode: Scalars["String"]["output"];
+};
 
 /**
  * TemporalEntityStatus（组织特化，ADR-008 一维业务状态模型）。Plan 244 要求 REST/GraphQL/前端均复用该命名，与
@@ -1358,6 +1475,97 @@ export type OrganizationVersionsQuery = {
   }>;
 };
 
+export type GetOrganizationSubtreeQueryVariables = Exact<{
+  code: Scalars["String"]["input"];
+  maxDepth?: InputMaybe<Scalars["Int"]["input"]>;
+}>;
+
+export type GetOrganizationSubtreeQuery = {
+  __typename: "Query";
+  organizationSubtree: Array<{
+    __typename: "OrganizationHierarchy";
+    code: string;
+    name: string;
+    unitType?: UnitType | null;
+    status?: Status | null;
+    level: number;
+    parentCode?: string | null;
+    codePath: string;
+    namePath: string;
+    parentChain: Array<string>;
+    childrenCount: number;
+    hierarchyDepth: number;
+    children: Array<{
+      __typename: "OrganizationHierarchy";
+      code: string;
+      name: string;
+      unitType?: UnitType | null;
+      status?: Status | null;
+      level: number;
+      parentCode?: string | null;
+      codePath: string;
+      namePath: string;
+      parentChain: Array<string>;
+      childrenCount: number;
+      hierarchyDepth: number;
+    }>;
+  }>;
+};
+
+export type GetRootOrganizationsQueryVariables = Exact<{
+  filter?: InputMaybe<OrganizationFilter>;
+}>;
+
+export type GetRootOrganizationsQuery = {
+  __typename: "Query";
+  organizations: {
+    __typename: "OrganizationConnection";
+    data: Array<{
+      __typename: "Organization";
+      code: string;
+      name: string;
+      unitType: UnitType;
+      status: Status;
+      level: number;
+      parentCode: string;
+      codePath: string;
+      namePath: string;
+      hierarchyDepth: number;
+    }>;
+  };
+};
+
+export type GetValidParentOrganizationsQueryVariables = Exact<{
+  asOfDate: Scalars["String"]["input"];
+  currentCode: Scalars["String"]["input"];
+  pageSize?: InputMaybe<Scalars["Int"]["input"]>;
+}>;
+
+export type GetValidParentOrganizationsQuery = {
+  __typename: "Query";
+  organizations: {
+    __typename: "OrganizationConnection";
+    data: Array<{
+      __typename: "Organization";
+      code: string;
+      name: string;
+      unitType: UnitType;
+      parentCode: string;
+      level: number;
+      effectiveDate: string;
+      endDate?: string | null;
+      isFuture: boolean;
+      childrenCount: number;
+    }>;
+    pagination: {
+      __typename: "PaginationInfo";
+      total: number;
+      page: number;
+      pageSize: number;
+    };
+  };
+};
+
 export type EnterpriseOrganizationsQueryVariables = Exact<{
   filter?: InputMaybe<OrganizationFilter>;
   pagination?: InputMaybe<PaginationInput>;
@@ -1381,9 +1589,9 @@ export type EnterpriseOrganizationsQuery = {
       codePath: string;
       namePath: string;
       path?: string | null;
-      sortOrder?: number | null;
+      sortOrder: number;
       description?: string | null;
-      profile?: string | null;
+      profile?: Record<string, unknown> | null;
       effectiveDate: string;
       endDate?: string | null;
       createdAt: string;
@@ -1467,9 +1675,9 @@ export type TemporalEntityOrganizationDetailQuery = {
     codePath: string;
     namePath: string;
     path?: string | null;
-    sortOrder?: number | null;
+    sortOrder: number;
     description?: string | null;
-    profile?: string | null;
+    profile?: Record<string, unknown> | null;
     effectiveDate: string;
     endDate?: string | null;
     createdAt: string;

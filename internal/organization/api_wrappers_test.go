@@ -1,12 +1,14 @@
 package organization
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
 
 	auth "cube-castle/internal/auth"
 	"cube-castle/internal/organization/repository"
+	standardobject "cube-castle/internal/standardobject"
 	"cube-castle/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -27,7 +29,7 @@ func TestWrapper_Constructors_NoPanic(t *testing.T) {
 		t.Fatalf("NewQueryRepository returned nil")
 	}
 	// NewQueryResolver with and without assignments
-	res := NewQueryResolver(repo, nil, logger.NewNoopLogger(), nil)
+	res := NewQueryResolver(repo, nil, fakeStandardObjectStore{}, logger.NewNoopLogger(), nil)
 	if res == nil {
 		t.Fatalf("NewQueryResolver returned nil")
 	}
@@ -41,4 +43,10 @@ func TestWrapper_Constructors_NoPanic(t *testing.T) {
 		t.Fatalf("unexpected default audit history config: %#v", cfg)
 	}
 	_ = repository.AuditHistoryConfig{} // keep import
+}
+
+type fakeStandardObjectStore struct{}
+
+func (fakeStandardObjectStore) Get(context.Context, standardobject.ObjectKey, time.Time) (standardobject.ObjectAggregate, error) {
+	return standardobject.ObjectAggregate{}, standardobject.ErrNotFound
 }

@@ -23,6 +23,7 @@ import (
 	organization "cube-castle/internal/organization"
 	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -236,7 +237,8 @@ func (a *Application) buildServer(repo *organization.QueryRepository, assignment
 		"audience":  jwtConfig.Audience,
 	}).Info("🔐 JWT认证初始化完成")
 
-	gqlResolver := organization.NewQueryResolver(repo, assignmentFacade, a.logger, graphqlMiddleware)
+	stdStore := organization.NewStandardObjectStore(a.db, clockpkg.NewSystemClock())
+	gqlResolver := organization.NewQueryResolver(repo, assignmentFacade, stdStore, a.logger, graphqlMiddleware)
 	gqlgenResolver := graphqlresolver.New(gqlResolver)
 	executableSchema := graphqlruntime.NewExecutableSchema(graphqlruntime.Config{
 		Resolvers: gqlgenResolver,

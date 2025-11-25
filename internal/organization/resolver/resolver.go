@@ -2,11 +2,14 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"cube-castle/internal/auth"
 	"cube-castle/internal/organization/dto"
+	standardobject "cube-castle/internal/standardobject"
 	pkglogger "cube-castle/pkg/logger"
 	sharedconfig "cube-castle/shared/config"
 	"github.com/google/uuid"
@@ -51,13 +54,14 @@ type PermissionChecker interface {
 }
 
 type Resolver struct {
-	repo         QueryRepository
-	logger       pkglogger.Logger
-	permissions  PermissionChecker
-	assignFacade AssignmentProvider
+	repo            QueryRepository
+	logger          pkglogger.Logger
+	permissions     PermissionChecker
+	assignFacade    AssignmentProvider
+	standardObjects StandardObjectStore
 }
 
-func NewResolver(repo QueryRepository, logger pkglogger.Logger, permissions PermissionChecker) *Resolver {
+func NewResolver(repo QueryRepository, store StandardObjectStore, logger pkglogger.Logger, permissions PermissionChecker) *Resolver {
 	if logger == nil {
 		logger = pkglogger.NewNoopLogger()
 	}
@@ -66,12 +70,13 @@ func NewResolver(repo QueryRepository, logger pkglogger.Logger, permissions Perm
 		logger: logger.WithFields(pkglogger.Fields{
 			"component": "query-resolver",
 		}),
-		permissions: permissions,
+		permissions:     permissions,
+		standardObjects: store,
 	}
 }
 
-func NewResolverWithAssignments(repo QueryRepository, assignments AssignmentProvider, logger pkglogger.Logger, permissions PermissionChecker) *Resolver {
-	res := NewResolver(repo, logger, permissions)
+func NewResolverWithAssignments(repo QueryRepository, assignments AssignmentProvider, store StandardObjectStore, logger pkglogger.Logger, permissions PermissionChecker) *Resolver {
+	res := NewResolver(repo, store, logger, permissions)
 	res.assignFacade = assignments
 	return res
 }
@@ -728,6 +733,218 @@ func (r *Resolver) JobLevels(ctx context.Context, args struct {
 	log.WithFields(pkglogger.Fields{"includeInactive": includeInactive, "asOfDate": args.AsOfDate}).Info("查询职级")
 
 	return r.repo.GetJobLevels(ctx, sharedconfig.DefaultTenantID, args.RoleCode, includeInactive, args.AsOfDate)
+}
+
+// StandardObjects returns SOM aggregates filtered by code.
+func (r *Resolver) StandardObjects(ctx context.Context, args struct {
+	ObjectType standardobject.ObjectType
+	Filter     *dto.StandardObjectFilter
+	Pagination *dto.PaginationInput
+}) (*dto.StandardObjectConnection, error) {
+	log := r.loggerFor("standardObjects", "list", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+		"type":     string(args.ObjectType),
+	})
+	if err := r.authorize(ctx, "standardObjects", log); err != nil {
+		return nil, err
+	}
+	if r.standardObjects == nil {
+		return nil, fmt.Errorf("STANDARD_OBJECTS_DISABLED")
+	}
+	code := ""
+	if args.Filter != nil && args.Filter.Code != nil {
+		code = strings.TrimSpace(*args.Filter.Code)
+	}
+	if code == "" {
+		return nil, fmt.Errorf("STANDARD_OBJECT_FILTER_REQUIRED")
+	}
+	asOf := time.Now().UTC()
+	if args.Filter != nil && args.Filter.AsOfDate != nil {
+		parsed, err := parseAsOfDate(string(*args.Filter.AsOfDate))
+		if err != nil {
+			return nil, err
+		}
+		asOf = parsed
+	}
+	key := standardobject.ObjectKey{
+		ObjectType: args.ObjectType,
+		Code:       code,
+		TenantCode: sharedconfig.DefaultTenantID.String(),
+	}
+	aggregate, err := r.standardObjects.Get(ctx, key, asOf)
+	if err != nil {
+		if errors.Is(err, standardobject.ErrNotFound) {
+			return &dto.StandardObjectConnection{
+				DataField:       []dto.StandardObject{},
+				PaginationField: singlePageInfo(0),
+			}, nil
+		}
+		return nil, err
+	}
+	dtoAggregate := convertAggregateToDTO(aggregate)
+	result := &dto.StandardObjectConnection{
+		DataField:       []dto.StandardObject{dtoAggregate},
+		PaginationField: singlePageInfo(1),
+	}
+	return result, nil
+}
+
+// StandardObject returns a single SOM aggregate with optional as-of date.
+func (r *Resolver) StandardObject(ctx context.Context, args struct {
+	ObjectType standardobject.ObjectType
+	Code       string
+	AsOfDate   *string
+}) (*dto.StandardObject, error) {
+	log := r.loggerFor("standardObject", "get", pkglogger.Fields{
+		"tenantId": sharedconfig.DefaultTenantID.String(),
+		"type":     string(args.ObjectType),
+		"code":     args.Code,
+	})
+	if err := r.authorize(ctx, "standardObject", log); err != nil {
+		return nil, err
+	}
+	if r.standardObjects == nil {
+		return nil, fmt.Errorf("STANDARD_OBJECTS_DISABLED")
+	}
+	key := standardobject.ObjectKey{
+		ObjectType: args.ObjectType,
+		Code:       strings.TrimSpace(args.Code),
+		TenantCode: sharedconfig.DefaultTenantID.String(),
+	}
+	asOf := time.Now().UTC()
+	if args.AsOfDate != nil && strings.TrimSpace(*args.AsOfDate) != "" {
+		parsed, err := parseAsOfDate(*args.AsOfDate)
+		if err != nil {
+			return nil, err
+		}
+		asOf = parsed
+	}
+	aggregate, err := r.standardObjects.Get(ctx, key, asOf)
+	if err != nil {
+		if errors.Is(err, standardobject.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	dtoAggregate := convertAggregateToDTO(aggregate)
+	return &dtoAggregate, nil
+}
+
+func singlePageInfo(count int) dto.PaginationInfo {
+	size := count
+	if size <= 0 {
+		size = 1
+	}
+	return dto.PaginationInfo{
+		TotalField:       count,
+		PageField:        1,
+		PageSizeField:    size,
+		HasNextField:     false,
+		HasPreviousField: false,
+	}
+}
+
+func parseAsOfDate(input string) (time.Time, error) {
+	value := strings.TrimSpace(input)
+	if value == "" {
+		return time.Now().UTC(), nil
+	}
+	ts, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("INVALID_AS_OF_DATE")
+	}
+	return ts.UTC(), nil
+}
+
+func convertAggregateToDTO(agg standardobject.ObjectAggregate) dto.StandardObject {
+	kernel := agg.Kernel
+	version := agg.Version
+
+	dtoKernel := dto.StandardObjectKernel{
+		ObjectTypeField:         string(kernel.ObjectType),
+		CodeField:               kernel.Code,
+		DisplayNameField:        kernel.DisplayName,
+		TenantCodeField:         kernel.TenantCode,
+		StatusField:             string(kernel.Status),
+		LabelsField:             kernel.Labels,
+		SchemaVersionField:      optionalString(kernel.SchemaVersion),
+		DataClassificationField: optionalString(kernel.DataClassification),
+		RetentionPolicyField:    optionalString(kernel.RetentionPolicy),
+		CreatedByField:          optionalString(kernel.CreatedBy),
+		CreatedAtField:          formatTimestamp(kernel.CreatedAt),
+		UpdatedAtField:          formatTimestamp(kernel.UpdatedAt),
+	}
+
+	dtoVersion := dto.StandardObjectVersion{
+		VersionCodeField:   version.VersionCode,
+		EffectiveDateField: formatDate(version.EffectiveDate),
+		EndDateField:       optionalDate(version.EndDate),
+		IsCurrentField:     version.IsCurrent,
+		PayloadField:       version.Payload,
+		AuditTrailField: func() map[string]any {
+			if version.AuditTrail == nil {
+				return map[string]any{}
+			}
+			return version.AuditTrail
+		}(),
+		ChecksumField:  optionalString(version.Checksum),
+		CreatedAtField: optionalTimestamp(version.CreatedAt),
+		UpdatedAtField: optionalTimestamp(version.UpdatedAt),
+	}
+
+	dtoLinks := make([]dto.StandardObjectLink, 0, len(agg.Links))
+	for _, link := range agg.Links {
+		dtoLinks = append(dtoLinks, dto.StandardObjectLink{
+			LinkTypeField:   link.LinkType,
+			SourceCodeField: link.SourceCode,
+			TargetCodeField: link.TargetCode,
+			AttributesField: link.Attributes,
+		})
+	}
+
+	return dto.StandardObject{
+		KernelField:  dtoKernel,
+		VersionField: dtoVersion,
+		LinksField:   dtoLinks,
+	}
+}
+
+func formatTimestamp(ts time.Time) string {
+	if ts.IsZero() {
+		return ""
+	}
+	return ts.UTC().Format(time.RFC3339)
+}
+
+func optionalTimestamp(ts time.Time) *string {
+	if ts.IsZero() {
+		return nil
+	}
+	formatted := formatTimestamp(ts)
+	return &formatted
+}
+
+func formatDate(ts time.Time) string {
+	if ts.IsZero() {
+		return ""
+	}
+	return ts.UTC().Format("2006-01-02")
+}
+
+func optionalDate(ts *time.Time) *string {
+	if ts == nil {
+		return nil
+	}
+	formatted := formatDate(*ts)
+	return &formatted
+}
+
+func optionalString(value string) *string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // 审计历史查询 - v4.6.0 基于record_id

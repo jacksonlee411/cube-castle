@@ -1,0 +1,17 @@
+INSERT 0 0
+UPDATE 1
+🟡 Plan 402D · legacy 写锁已关闭（enforce_legacy_lock=false）
+ legacy_lock_enabled |          updated_at           
+---------------------+-------------------------------
+ f                   | 2025-11-24 14:55:46.453196+00
+(1 row)
+
+DO
+DO
+✳️ Legacy table privileges after rollback:
+     table_name     | role_name | can_insert | can_update | can_delete 
+--------------------+-----------+------------+------------+------------
+ organization_units | user      | t          | t          | t
+ positions          | user      | t          | t          | t
+(2 rows)
+

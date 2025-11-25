@@ -1,0 +1,2 @@
+[snapshot-refresh] 2025/11/24 10:44:22 logging to logs/plan402/snapshots/20251124104422-refresh.log
+[snapshot-refresh] 2025/11/24 10:44:23 snapshot refresh complete tenant=3b99930c-4dc6-4cc9-8e4d-7d960a931cb9 objectType=ORGANIZATION_UNIT rows=504 roots=431 transaction_lag=345.75853ms duration=343.232714ms metrics=logs/plan402/metrics/20251124104422-snapshots.jsonl

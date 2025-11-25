@@ -15,6 +15,13 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import type { OrganizationStatus } from '@/shared/types';
 import { OrganizationStatusEnum } from '@/shared/types/contract_gen';
 import ParentOrganizationSelector from './ParentOrganizationSelector';
+import type { OrganizationField } from '../manifest/organizationManifest';
+import {
+  organizationFieldHelperText,
+  organizationFieldLabel,
+  organizationFieldPlaceholder,
+  organizationFieldRequired,
+} from '../manifest/helpers';
 
 // 添加映射函数
 const mapLifecycleStatusToOrganizationStatus = (lifecycleStatus: string): OrganizationStatus => {
@@ -113,6 +120,11 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
     if (!message) {
       setSuggestedEffectiveDate(undefined);
     }
+  };
+
+  const manifestHint = (field: OrganizationField, error?: string) => {
+    const text = organizationFieldHelperText(field, error);
+    return text.length ? text : undefined;
   };
 
   interface TemporalParentUnavailableDetail {
@@ -314,20 +326,20 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
             <Heading size="small" marginBottom="s">基本信息</Heading>
             
             <FormField
-              isRequired
+              isRequired={organizationFieldRequired('name', true)}
               error={errors.name ? "error" : undefined}
             >
-              <FormField.Label>组织名称</FormField.Label>
+              <FormField.Label>{organizationFieldLabel('name', '组织名称')}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextInput}
                   value={formData.name}
                   onChange={handleInputChange('name')}
-                  placeholder="请输入组织名称"
+                  placeholder={organizationFieldPlaceholder('name', '请输入组织名称')}
                   disabled={isSubmitting}
                 />
-                {errors.name && (
-                  <FormField.Hint>{errors.name}</FormField.Hint>
+                {manifestHint('name', errors.name) && (
+                  <FormField.Hint>{manifestHint('name', errors.name)}</FormField.Hint>
                 )}
               </FormField.Field>
             </FormField>
@@ -370,8 +382,8 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
               )}
             </Box>
 
-            <FormField isRequired>
-              <FormField.Label>组织类型</FormField.Label>
+            <FormField isRequired={organizationFieldRequired('unitType', true)}>
+              <FormField.Label>{organizationFieldLabel('unitType', '组织类型')}</FormField.Label>
               <FormField.Field>
                 <select
                   value={formData.unitType}
@@ -386,6 +398,9 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
                   ))}
                 </select>
               </FormField.Field>
+              {manifestHint('unitType') && (
+                <FormField.Hint>{manifestHint('unitType')}</FormField.Hint>
+              )}
             </FormField>
 
             <FormField>
@@ -402,16 +417,19 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
             </FormField>
 
             <FormField>
-              <FormField.Label>描述信息</FormField.Label>
+              <FormField.Label>{organizationFieldLabel('description', '描述信息')}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
                   value={formData.description}
                   onChange={handleInputChange('description')}
-                  placeholder="请输入组织描述信息"
+                  placeholder={organizationFieldPlaceholder('description', '请输入组织描述信息')}
                   disabled={isSubmitting}
                   rows={3}
                 />
+                {manifestHint('description') && (
+                  <FormField.Hint>{manifestHint('description')}</FormField.Hint>
+                )}
               </FormField.Field>
             </FormField>
           </Box>
@@ -421,10 +439,10 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
             <Heading size="small" marginBottom="s">时态信息</Heading>
 
             <FormField
-              isRequired
+              isRequired={organizationFieldRequired('effectiveDate', true)}
               error={errors.effectiveDate ? "error" : undefined}
             >
-              <FormField.Label>生效日期</FormField.Label>
+              <FormField.Label>{organizationFieldLabel('effectiveDate', '生效日期')}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextInput}
@@ -433,8 +451,8 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
                   onChange={handleInputChange('effectiveDate')}
                   disabled={isSubmitting}
                 />
-                {errors.effectiveDate && (
-                  <FormField.Hint>{errors.effectiveDate}</FormField.Hint>
+                {manifestHint('effectiveDate', errors.effectiveDate) && (
+                  <FormField.Hint>{manifestHint('effectiveDate', errors.effectiveDate)}</FormField.Hint>
                 )}
               </FormField.Field>
             </FormField>
@@ -460,18 +478,18 @@ export const TemporalEditForm: React.FC<TemporalEditFormProps> = ({
             <FormField
               error={errors.changeReason ? "error" : undefined}
             >
-              <FormField.Label>变更原因（可选）</FormField.Label>
+              <FormField.Label>{organizationFieldLabel('changeReason', '变更原因')}</FormField.Label>
               <FormField.Field>
                 <FormField.Input
                   as={TextArea}
                   value={formData.changeReason}
                   onChange={handleInputChange('changeReason')}
-                  placeholder="请说明此次变更的原因（可留空）"
+                  placeholder={organizationFieldPlaceholder('changeReason', '请说明此次变更的原因')}
                   disabled={isSubmitting}
                   rows={2}
                 />
-                {errors.changeReason && (
-                  <FormField.Hint>{errors.changeReason}</FormField.Hint>
+                {manifestHint('changeReason', errors.changeReason) && (
+                  <FormField.Hint>{manifestHint('changeReason', errors.changeReason)}</FormField.Hint>
                 )}
               </FormField.Field>
             </FormField>

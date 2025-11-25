@@ -1,0 +1,6 @@
+[INFO] 2025-11-24T04:35:51.583Z - [OBS] position.hydrate.start JSHandle@object
+[INFO] 2025-11-24T04:35:51.633Z - [OBS] position.graphql.error JSHandle@object
+[INFO] 2025-11-24T04:35:51.721Z - [OBS] position.hydrate.done JSHandle@object
+[INFO] 2025-11-24T04:35:51.808Z - [OBS] position.tab.change JSHandle@object
+[INFO] 2025-11-24T04:35:51.937Z - [OBS] position.tab.change JSHandle@object
+[INFO] 2025-11-24T04:35:52.100Z - [OBS] position.version.select JSHandle@object

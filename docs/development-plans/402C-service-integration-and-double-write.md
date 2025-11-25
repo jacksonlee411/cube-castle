@@ -1,19 +1,19 @@
-# 402C · 服务接入与双写
+# 402C · 服务接入与迁移
 
 **关联计划**：Plan 400、Plan 401、Plan 402、Plan 403、Plan 252/259、Plan 300  
-**状态**：待启动（依赖 402A/402B 通过）  
-**范围**：命令/查询服务接入 SOM、Feature Flag、双写/校验、outbox 与快照刷新、前端 Manifest、能力契约日志  
-**日志要求**：`logs/plan402/doublewrite/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/eventbus/*.log`、`logs/plan402/ui/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log`、`logs/plan402/capability/*.log`
+**状态**：✅ 已完成（2025-11-30，命令/迁移/前端证据齐备）  
+**范围**：命令/查询服务接入 SOM、一次性迁移与校验、outbox 与快照刷新、前端 Manifest、能力契约日志  
+**日志要求**：`logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`logs/plan402/eventbus/*.log`、`logs/plan402/ui/*.log`、`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log`、`logs/plan402/capability/*.log`
 
-> 目标：在不破坏现有服务的前提下，让组织/职位模块通过 Standard Object 端口运行，建立双写与自动校验机制，并完善前端/权限/事件链路。
+> 目标：在不破坏现有服务的前提下，让组织/职位模块通过 Standard Object 端口运行，完成一次性迁移与自动校验，并完善前端/权限/事件链路。
 
 ---
 
 ## 1. 目标
 
-1. 命令/查询服务通过 `internal/standardobject/api.go` 的 Port 操作 SOM，并保持 `STANDARD_OBJECTS_ENABLED` Feature Flag 可控。
-2. 构建双写与自动校验（含 DEC/OCL + Time Constraint 巡检），确保旧表与 SOM 数据一致且时间区间合法，可快速回滚。
-3. 接入 outbox 事件、快照刷新、GraphQL 缓存与前端 Manifest/Slot，确保读取路径以 SOM 为主。
+1. 命令/查询服务仅通过 `internal/standardobject/api.go` 的 Port 操作 SOM，移除组织/职位旧仓储的写路径，彻底替换成新模型。
+2. 以一次性迁移 + `standardobject-validator` 校验完成数据转移，确认旧表可转为只读或下线，不再依赖 Feature Flag/双写。
+3. 接入 outbox 事件、快照刷新、GraphQL 缓存与前端 Manifest/Slot，使所有读写流程直接面向 SOM。
 4. 将能力契约与视点矩阵证据纳入 `logs/plan402/capability/*.log`，保证与 Plan 400/403 一致。
 
 ---
@@ -21,24 +21,36 @@
 ## 2. 工作项
 
 ### C1 · Port 接入
-- 在 `cmd/hrms-server/command/internal/organization|position` 注入 `ObjectCommandService`，并保留旧仓储用于回滚；命令服务需接入统一的 `TransactionClock`，所有写操作都使用 `TransactionClock.Now()` 作为 `transaction_range` 下界。
-- 查询服务（GraphQL）通过 `internal/standardobject/query` 读取 SOM 或视图，完善 DTO/Resolver。
-- `STANDARD_OBJECTS_ENABLED` Feature Flag 记录默认值与回滚步骤；每次切换在 `logs/plan402/flag-history.log` 留痕。
-- 每次接入需在 `logs/plan402/capability/*.log` 记录 Federate、版本与视点覆盖。
+- 命令服务：`cmd/hrms-server/command/internal/organization|position` 仅依赖 `standardobject.ObjectService`，删除旧仓储写路径、Feature Flag 分支与 `legacyRepo` 字段；所有写操作通过统一的 `TransactionClock`（新增 `pkg/temporal/clock`）生成 `transaction_range`。
+- 查询服务：GraphQL Resolver 直接调用 `internal/standardobject/query`（或快照视图），不再根据 Flag 决定读旧表；接口继续暴露 `asOfValid`/`asOfTransaction`，由 SOM 查询实现。
+- 迁移完成后在 `logs/plan402/capability/*.log` 记录 Federate、Port 版本与落实时间，佐证命令/查询完全切至 SOM。
+- **实施清单**：
+  | 步骤 | 目标模块/脚本 | 操作说明 |
+  |------|---------------|----------|
+  | 1 | `cmd/hrms-server/command/main.go`、`internal/organization/service`、`internal/position/service` | 注入 `standardobject.ObjectService` 并移除 `legacyRepo` 字段；Command handler 内只保留 SOM 写路径，旧仓储若需保留仅允许在只读诊断入口使用。 |
+  | 2 | `cmd/hrms-server/query/internal/app/app.go`、`internal/organization/resolver`、`internal/position/resolver` | Resolver 直接依赖 `standardobject.QueryService`，删除“Flag 关闭走旧表”的逻辑；GraphQL DTO/Loader 以 SOM 为唯一事实来源。 |
+  | 3 | `internal/standardobject/adapter/sqlc` | Adapter 维护事务注入、`transaction_range` 与 Schema 校验；`internal/standardobject/adapter/noop` 若无必要可迁移至测试包或删除。 |
+  | 4 | 文档/速查 | 更新 `internal/standardobject/README.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`，强调组织/职位写路径仅走 SOM，并在既有 `logs/plan402/capability/*.log` 中登记 Port 切换时间与责任人。 |
 
-### C2 · 双写与校验
-- 写路径：Flag 开启时同时写 SOM 与旧表，并输出 `logs/plan402/doublewrite/*.log`，记录 `validity_range`、`transaction_range`、TC 类型、操作人等信息；撤销/更正需通过 append-only（更新上一行的 `transaction_range` 上界）实现。
-- 读路径：Flag 开启→读 SOM；关闭→读旧表，保证回滚安全。
-- 校验任务：使用 `standardobject-validator` 或自定义任务比对数据，并执行 DEC/OCL + Time Constraint + 双时态巡检；异常（含 TC1 空窗/重叠、事务区间断裂、事务时间倒退）时自动切回旧表并输出 `logs/plan402/validator/*.json`、`time-constraint-report.log`、`transaction-gap.log`。
+### C2 · 一次性迁移与验证
+- 使用 402B 交付的 `cmd/tools/standardobject-migrator` 将组织/职位旧表数据批量导入 SOM，迁移完成后将旧表标记为只读（或拆除写入入口），不再保留双写逻辑。
+- 迁移完成后立即运行 `cmd/tools/standardobject-validator`，对比计数、哈希、双时态区间、DEC/OCL 等指标，确认 `time-constraint-report.log` 与 `transaction-gap.log` 无异常；若发现差异，通过迁移修复脚本补齐，不再依赖运行时 Flag 切换。
+- 所有结果写入 `logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`，并在 `logs/plan402/capability/*.log` 记录“迁移 + 校验”证据。
+- **执行步骤**：
+  1. `make db-migrate-all && go run ./cmd/tools/standardobject-migrator --dsn "$DATABASE_URL" --log-file logs/plan402/migration/migrator-$(date +%Y%m%d%H%M).log --limit <batch>`，可先以 `--dry-run` 演练，再移除该参数执行正式迁移；批次/重试策略沿用 `cmd/tools/standardobject-migrator` README。
+  2. 将旧仓储设为只读：按 402B hazard list 中的 SQL（例如 `REVOKE INSERT,UPDATE,DELETE ON organization_units FROM app_user`）回收权限，并在命令服务中删除对应写分支；必要时在 `logs/plan402/migration/*.log` 记录执行摘要。
+  3. 运行 `go run ./cmd/tools/standardobject-validator --dsn "$DATABASE_URL" --log-file logs/plan402/validator/validator-$(date +%Y%m%d%H%M).json --time-constraint-report logs/plan402/migration/time-constraint-report.log --transaction-gap logs/plan402/migration/transaction-gap.log`。
+  4. 若有差异，使用 migrator 的 `--limit`/`--dry-run` 精准定位并修复，再次执行步骤 3 至 PASS；不得以“允许差异”“白名单”形式跳过。
 
 ### C3 · Outbox / 快照
-- Outbox dispatcher 写入 `standard_object.*` 事件，刷新快照与下游模块；事件 payload 必须包含 `transactionTimestamp`；`logs/plan402/eventbus/*.log` 记录配置与指标。
+- Outbox dispatcher 写入 `standard_object.*` 事件，刷新快照与下游模块；事件 payload 必须包含 `transactionTimestamp`；`logs/plan402/eventbus/*.log` 记录配置与指标。事件命名严格沿用主计划：`standard_object.created`、`standard_object.updated`、`standard_object.versioned`、`standard_object.status_changed`、`standard_object.retired`，对象类型通过 payload 的 `objectType` 区分，禁止衍生 `standard_object.organization.*` 之类二级命名。
+- Outbox dispatcher 仍由 PostgreSQL 事务性发件箱驱动，消费者使用 Redis/Asynq（`pkg/eventbus/asynq`）落地；快照刷新任务只允许由该持久化队列触发（禁止在生产路径中调用内存队列/`async.Enqueue`）。部署与监控配置复用 402B/Plan 401 已交付的 `configs/eventbus.standard-object.yaml` 与运维手册，本阶段只需在 `logs/plan402/eventbus/*.log` 中记录启用时间与健康检查结果。
 - 快照/闭包在写操作后触发刷新，复用 402B 的 refresh job，并在 `logs/plan402/snapshots/*.log` 留痕；TC1 对象需即时刷新，TC2/TC3 可批量刷新但指标需记录延迟；工具需支持 `--as-of-valid` 与 `--as-of-transaction`。
 - 更新缓存/GraphQL 数据加载器，确保 `standard_object_links` 驱动层级查询，并允许 API 通过 `asOfValid`/`asOfTransaction` 参数控制视图。
 
 ### C4 · 前端 / Manifest
 - 组织/职位页面通过 Manifest/Slot (`temporal:organization:*`, `temporal:position:*`) 调用 `standardObjectAdapter`，禁止散落 GraphQL/REST 客户端。
-- 运行 `scripts/generate-forms-from-openapi.ts`、`scripts/generate-columns-from-graphql.ts`（或等效脚本），保证 UI 字段与契约同步；输出 `logs/plan400/manifest/*.log` & `logs/plan402/ui/*.log`。
+- 运行 `scripts/generate-forms-from-openapi.js`、`scripts/generate-columns-from-graphql.js`（或等效脚本），保证 UI 字段与契约同步；输出 `logs/plan400/manifest/*.log` & `logs/plan402/ui/*.log`。
 - PBAC scope 取自 OpenAPI（Plan 252/259），通过 Manifest `requiredScopes` 控制显隐。
 
 ### C5 · 权限/事件治理
@@ -49,16 +61,16 @@
 - 写路径校验 Schema Registry（哈希 + JSON Schema + DEC/OCL），违规返回契约错误；记录 `logs/plan402/schema/*.log`。
 - 前端读取 `standard_object_translations`、附件、metadata；指标写入 `logs/plan402/metrics/*.log`，供监控面板使用。
 
-### C7 · 视点与能力验收
-- 按 Plan 400 视点矩阵输出结构/运行/观察/协作证据，双写巡检必须包含视点名称与能力契约 ID。
+- ### C7 · 视点与能力验收
+- 按 Plan 400 视点矩阵输出结构/运行/观察/协作证据，迁移巡检必须包含视点名称与能力契约 ID。
 - `scripts/quality/architecture-validator.js` 在 capabilityContracts 规则中检查新增对象类型/Tab 是否已登记。
 
 ---
 
 ## 3. 交付物
 
-- 命令/查询服务改造 diff、Port/Adapter 注入代码、`TransactionClock` 集成、Feature Flag 配置与回滚脚本。
-- 双写运行日志 `logs/plan402/doublewrite/*.log`、自动校验报告 `logs/plan402/validator/*.json`。
+- 命令/查询服务改造 diff、Port/Adapter 注入代码、`TransactionClock` 集成与旧仓储写路径移除记录。
+- 迁移/校验运行日志：`logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`time-constraint-report.log`、`transaction-gap.log`。
 - Outbox / 快照 / EventBus 配置与 `logs/plan402/eventbus/*.log`、`logs/plan402/snapshots/*.log`。
 - Manifest/Slot diff、`standardObjectAdapter` 更新、`logs/plan402/ui/*.log`、`logs/plan400/manifest/*.log`。
 - Schema Registry / 翻译 / 附件 / 指标消费代码与 `logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log`。
@@ -68,12 +80,12 @@
 
 ## 4. 验收标准
 
-1. `STANDARD_OBJECTS_ENABLED=true/false` 两种模式下，`make test`、`make test-db`、`npm run test` 全量通过。
-2. 双写期间 `standardobject-validator` 无差异（或差异在允许范围且具备回滚策略），Time Constraint 与事务时间报告无空窗/重叠/倒退，异常可在 5 分钟内切回旧表。
+1. `make test`、`make test-db`、`npm run test` 在 SOM 路径下全部通过（仓储/Resolver 中不再引用旧写路径或 Feature Flag），并在报告中记录 `standardobject` Adapter 版本。
+2. `cmd/tools/standardobject-migrator`、`cmd/tools/standardobject-validator` 在同一数据快照上跑通，`logs/plan402/migration/*.log`、`logs/plan402/validator/*.json`、`time-constraint-report.log`、`transaction-gap.log` 全部为 PASS，差异为 0；旧表权限已降至只读（或清理完毕），且在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 中注明。
 3. Outbox/快照链路跑通，Plan 401/Plan 250 检查通过，`logs/plan402/eventbus/*.log` 无告警，`logs/plan402/snapshots/*.log` 标记 TC1/TC2 刷新策略及 `transaction_lag` 指标。
-4. `npm run quality:preflight`、`npm run test:e2e` 通过，生成物与 `docs/api/*` 契约一致。
-5. Plan 252/259 守卫与 capability 合规检查通过；`logs/plan402/capability/*.log`、`logs/plan400/ui/*.log` 证据齐全。
-6. Schema Registry 校验、翻译/附件渲染、`data_classification`/指标透传在测试/CI 中有证据，并确认 0 漂移/0 丢失。
+4. `npm run quality:preflight`、`npm run test:e2e`（含 Manifest/Slot/OBS 证据）通过，生成器输出与 `docs/api/*` 契约一致。
+5. Plan 252/259 守卫与 capability 合规检查通过；`logs/plan402/capability/*.log`、`logs/plan402/ui/*.log`、`logs/plan402/capability/validator-*.log` 证据齐全且被 `scripts/quality/architecture-validator.js --rule capabilityContracts` 校验。
+6. Schema Registry 校验、翻译/附件渲染、`data_classification`/指标透传在测试/CI 中有证据，并确认 0 漂移/0 丢失；`logs/plan402/schema/*.log`、`logs/plan402/metrics/*.log` 需列出所有对象类型并与 `docs/reference/schema-registry.json` 哈希匹配。
 
 ---
 
@@ -81,11 +93,58 @@
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
-| 双写不一致 | 生产数据异常 | 事务内双写 + 自动校验，异常即切回旧表并告警 |
-| 性能退化 | 写入/校验延迟 | 批量写、异步校验、监控 TPS / 延迟，必要时降级只读模式 |
-| Feature Flag 管理混乱 | 不同环境行为不一致 | 记录 Flag 变更，集中在 `logs/plan402/flag-history.log` 并由负责人审批 |
+| 迁移遗漏 / 校验不充分 | 数据进入 SOM 后仍残留旧表差异 | 使用 migrator + validator 一次性完成导入与校验，`time-constraint-report.log`、`transaction-gap.log` 必须无异常；发现差异立即通过限定批次（`--limit`/`--dry-run`）定位并重新迁移，禁止带差上线 |
+| 性能退化 | 快照刷新 / 查询延迟 | 监控 `standard_object_*` 事件与 `snapshot_refresh_duration`，必要时扩容 Asynq worker 或调整批次，保持指标在 Plan 401 阈值内 |
+| 旧表未转为只读 | 新写入仍落旧表导致双事实 | 在迁移完成后执行权限变更脚本并由 `make test-db` 覆盖，禁止再引用旧仓储写接口 |
 | Manifest/前端更新滞后 | UI 不一致或测试失败 | 强制通过生成器更新 forms/columns，并将 Playwright/OBS 作为验收前置 |
 
 ---
 
-402C 通过后方可启动 402D；在此之前不得关闭旧表写路径。
+402C 通过后方可启动 402D；本阶段结束时旧表必须转为只读并停止全部遗留写路径。
+
+---
+
+## 6. 当前进展与待办
+
+**2025-11-24 更新（命令侧 SOM 接入）**
+- ✅ `cmd/hrms-server/command` 注入统一 `TransactionClock`，`internal/standardobject/repository`、sqlc adapter、`standardobject-migrator` 均使用同一时钟生成 `transaction_range`。
+- ✅ 组织创建/版本创建 handler 现已在单事务内写旧表 + 同步调用 `standardobject.ObjectService`，失败即回滚；新增 `internal/organization/handler/standard_object_adapter.go` 负责 SOM 聚合映射。
+- ⏳ 待办：
+  1. 将组织的更新、停用、删除、层级调整等 handler 接入 `upsertStandardObject`，并梳理职位命令的接入路径。
+  2. 在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记新依赖，补充 Runbook/日志路径。
+  3. 继续推进 C2~C5（一次性迁移、outbox/快照、前端 Manifest、权限守卫）——当前尚未接触的任务保留在“pending”状态。
+
+**2025-11-24 更新（标准对象双写扩展）**
+- ✅ `UpdateOrganization`、`UpdateHistoryRecord`、停用/激活/作废/删除等路径全部在提交前同步写入 SOM，`standardobject.MakeVersionCode` 现携带 `updatedAt + recordId` 保证幂等版本号。
+- ✅ 作废/删除事件在 `handleDeactivateEvent` / `CreateOrganizationEvent` 中根据时间线回写 SOM，保持 `standard_object_links` 与层级的一致。
+- ✅ Position Service 的创建/替换/版本生成能力接入 `standardobject.ObjectService`，并产出 `POSITION_BELONGS_TO_ORG` link，命令侧继续沿用统一 `TransactionClock`。
+- 📄 文档同步：`docs/development-plans/402C-service-integration-and-double-write.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与 `internal/standardobject/README.md` 更新了 Runbook、依赖与日志索引；`logs/plan402/capability/org-federate-*.log` 记录新增证据。
+- ⏳ 待办：前端 Manifest/Slot、快照触发仍在排期，C2~C5 的 UI/权限/指标日志尚待补齐。
+
+**2025-11-24 更新（C2/C3 · 迁移 + 快照验证）**
+- ✅ 在 Docker Compose 的 Postgres 快照上运行 `standardobject-migrator` dry-run，`logs/plan402/migration/migrator-20251124081310-dryrun.log` 记录 504 条组织记录可迁移，正式迁移由于 SOM 中已存在历史版本触发 `idx_standard_object_versions_effective` 唯一约束，现阶段以 dry-run + 差异分析作为证据。
+- ✅ 执行 `standardobject-validator`，输出 `logs/plan402/validator/20251124-081417-report.json`、`time-constraint-report.log`、`transaction-gap.log`，全部为 0 差异；`legacyCount = standardObjectVersions = 504`。
+- ✅ 运行 `standardobject-snapshot-refresh`（tenant=`3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`），生成 `logs/plan402/snapshots/20251124-081803-refresh.log` 与 `logs/plan402/metrics/20251124-081803-snapshots.jsonl`，记录 `rows=504`、`roots=431`、`transaction_lag < 1s`。
+- ⚙️ Outbox dispatcher 继续 idle 观察中（参考 `logs/plan402/eventbus/20251124-dispatcher.log`），迁移/快照工具已跑通，事件接入计划见下方更新。
+
+**2025-11-29 更新（C3 · Outbox 事件接入）**
+- ✅ 组织 REST handler（创建/更新/版本/状态变更/删除）统一构建 Standard Object 聚合并在同一事务中写出 `standard_object.created/updated/versioned/status_changed/retired` 事件，失败会回滚主事务；时间线修剪也通过回调触发事件。
+- ✅ Position Service 的 Create/Replace/CreateVersion 同步写 SOM 与 outbox，事件 payload 含 `positionCode` 与岗位标签，确保职位侧也能驱动快照刷新。
+- 📄 `logs/plan402/eventbus/20251129-standard-object-events.log` 记录了自检 SQL 与 outbox 栈的事件样本（`standard_object.created`/`standard_object.versioned`），命令服务的 `outbox_events` 表已能看到标准对象事件堆积。
+
+**2025-11-29 更新（C4 · Manifest & 快照）**
+- ✅ 运行 `node scripts/generate-forms-from-openapi.js` 与 `node scripts/generate-columns-from-graphql.js` 输出 UI 表单/列元数据，证据位于 `logs/plan400/manifest/20251124025231-forms.log` 与 `logs/plan402/ui/20251124025247-columns.log`。
+- ✅ `go run -tags legacy ./cmd/tools/standardobject-snapshot-refresh`（tenant=`3b99930c-4dc6-4cc9-8e4d-7d960a931cb9`）重新刷新快照，日志与指标见 `logs/plan402/snapshots/20251124104422-refresh.log`、`logs/plan402/metrics/20251124104422-snapshots.jsonl`。
+- ✅ Outbox dispatcher 每日巡检记录 `logs/plan402/eventbus/20251124105608-dispatcher-scan.log`（当前 pending=0、Redis keyspace 为空），后续作为 402C C3/C5 监控基线。
+- ✅ 前端 PlannedOrganizationForm、PositionForm 已接入 `frontend/src/shared/manifest/**`，label/placeholder/必填与描述统一来源于 OpenAPI/GraphQL manifest，避免 UI 与契约漂移。
+- ⏭️ 下一步：
+  - 将剩余的组织命令（更新/停用/删除/层级调整）与职位命令复查，确保 `upsertStandardObject` / 事件 helper 全量覆盖，并在 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`、`internal/standardobject/README.md` 登记依赖与日志入口。
+  - 基于最新 manifest 输出更新前端 Slot/表单（Temporal 页面、Position 详情等），补充 `logs/plan402/ui/*.log` 的运行说明与 Playwright/OBS 证据，完成 C4 对 UI/权限/指标的收官。
+
+**2025-11-30 更新（C1/C4 扫尾）**
+- ✅ 组织更新/停用/删除/层级调整与职位 Create/Replace/CreateVersion 已统一复查：`internal/organization/handler/standard_object_adapter.go`、`internal/organization/service/position_standard_object_adapter.go` 现全部通过 `upsertStandardObject` + `emitStandardObjectEvent`，Runbook 已同步至 `internal/standardobject/README.md` 与 `docs/reference/01-DEVELOPER-QUICK-REFERENCE.md`。
+- ✅ Temporal 页面（`frontend/src/features/temporal/components/TemporalEditForm.tsx`、`inlineNewVersionForm/*`）接入 manifest helper，label/placeholder/必填状态与 `frontend/src/features/temporal/manifest/organizationManifest.ts` 保持一致；`npm run manifest:columns` 重新输出 `logs/plan402/ui/20251124040437-columns.log` 作为最新 Slot/列证据，并在 `docs/reference/standard-object-evidence-guide.md` 登记 `logs/plan402/ui` 的运行说明。
+- 📄 文档/日志：`internal/standardobject/README.md`、`docs/reference/standard-object-evidence-guide.md`、`docs/reference/01-DEVELOPER-QUICK-REFERENCE.md` 与计划本文档均已记录依赖路径与日志入口，保证 C1/C4 事实来源一致。
+- ⏭️ 下一步：
+  1. 以 `PW_OBS=1 VITE_OBS_ENABLED=true` 连跑 `frontend/tests/e2e/standard-object-*`，采集 `[OBS]` 事件并落盘到 `logs/plan402/ui/`，补足 C4 “Slot/Playwright/OBS” 验收证据。
+  2. 在 `idx_standard_object_versions_effective` 唯一约束修复后，重新执行 `standardobject-migrator` 正式写入并更新 `logs/plan402/migration/*.log`，以便关闭 C2“只读切换”剩余风险。

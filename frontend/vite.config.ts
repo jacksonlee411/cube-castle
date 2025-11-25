@@ -26,7 +26,32 @@ export default defineConfig(({ mode }) => {
           res.end(JSON.stringify({ status: 'ok', service: 'frontend-dev', ts: Date.now() }));
         });
       }
-    }
+    },
+    // 强制将已移除的服务端点标记为不可达，供 Phase 1 冗余检测复用
+    {
+      name: 'legacy-service-guard',
+      configureServer(server) {
+        const removedServices = ['/api-gateway', '/api-server', '/query-service', '/sync-service'];
+        server.middlewares.use((req, res, next) => {
+          if (!req.url) {
+            next();
+            return;
+          }
+          const hit = removedServices.find((path) => req.url === path || req.url.startsWith(`${path}/`));
+          if (!hit) {
+            next();
+            return;
+          }
+          res.statusCode = 502;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({
+            success: false,
+            error: 'Plan402DRemovedService',
+            message: `Endpoint ${hit} has been retired by Plan 402D`,
+          }));
+        });
+      },
+    },
   ],
   
   // 开发性能优化

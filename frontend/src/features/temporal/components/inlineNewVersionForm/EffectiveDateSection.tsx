@@ -5,6 +5,11 @@ import { FormField } from '@workday/canvas-kit-react/form-field';
 import { TextInput } from '@workday/canvas-kit-react/text-input';
 import { colors } from '@workday/canvas-kit-react/tokens';
 import temporalEntitySelectors from '@/shared/testids/temporalEntity';
+import {
+  organizationFieldHelperText,
+  organizationFieldLabel,
+  organizationFieldRequired,
+} from '../../manifest/helpers';
 
 export interface EffectiveDateSectionProps {
   value: string;
@@ -19,14 +24,17 @@ const EffectiveDateSection: React.FC<EffectiveDateSectionProps> = ({
   onChange,
   disabled,
 }) => {
+  const label = organizationFieldLabel('effectiveDate', '生效日期');
+  const helperText = organizationFieldHelperText('effectiveDate', error);
+
   return (
     <Box marginBottom="l">
       <Heading size="small" marginBottom="s" color={colors.blueberry600}>
-        生效日期
+        {label}
       </Heading>
       <Box marginLeft="m">
-        <FormField isRequired error={error ? 'error' : undefined}>
-          <FormField.Label>生效日期 *</FormField.Label>
+        <FormField isRequired={organizationFieldRequired('effectiveDate', true)} error={error ? 'error' : undefined}>
+          <FormField.Label>{label}</FormField.Label>
           <FormField.Field>
             <TextInput
               type="date"
@@ -35,7 +43,7 @@ const EffectiveDateSection: React.FC<EffectiveDateSectionProps> = ({
               disabled={disabled}
               data-testid={temporalEntitySelectors.form?.field?.effectiveDate}
             />
-            {error ? <FormField.Hint>{error}</FormField.Hint> : null}
+            {helperText ? <FormField.Hint>{helperText}</FormField.Hint> : null}
           </FormField.Field>
         </FormField>
       </Box>

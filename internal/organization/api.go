@@ -19,18 +19,22 @@ import (
 	servicepkg "cube-castle/internal/organization/service"
 	utilspkg "cube-castle/internal/organization/utils"
 	validatorpkg "cube-castle/internal/organization/validator"
+	standardobject "cube-castle/internal/standardobject"
 	"cube-castle/pkg/database"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
 type CommandModuleDeps struct {
-	DB              *sql.DB
-	Logger          pkglogger.Logger
-	CascadeMaxDepth int
-	SchedulerConfig *configpkg.SchedulerConfig
-	OutboxRepo      database.OutboxRepository
+	DB               *sql.DB
+	Logger           pkglogger.Logger
+	CascadeMaxDepth  int
+	SchedulerConfig  *configpkg.SchedulerConfig
+	OutboxRepo       database.OutboxRepository
+	StandardObjects  standardobject.ObjectService
+	TransactionClock clockpkg.Clock
 }
 
 type OrganizationHandler = handlerpkg.OrganizationHandler
@@ -44,6 +48,7 @@ type QueryRepository = repositorypkg.PostgreSQLRepository
 type QueryRepositoryInterface = resolver.QueryRepository
 type QueryResolver = resolver.Resolver
 type QueryPermissionChecker = resolver.PermissionChecker
+type StandardObjectStore = resolver.StandardObjectStore
 type AssignmentFacade interface {
 	GetAssignments(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
 	GetAssignmentHistory(ctx context.Context, tenantID uuid.UUID, positionCode string, filter *dto.PositionAssignmentFilterInput, pagination *dto.PaginationInput, sorting []dto.PositionAssignmentSortInput) (*dto.PositionAssignmentConnection, error)
@@ -52,12 +57,15 @@ type AssignmentFacade interface {
 }
 
 type CommandModule struct {
-	DB           *sql.DB
-	Logger       pkglogger.Logger
-	Repositories CommandRepositories
-	Services     CommandServices
-	Validator    *validatorpkg.BusinessRuleValidator
-	AuditLogger  *auditpkg.AuditLogger
+	DB               *sql.DB
+	Logger           pkglogger.Logger
+	Repositories     CommandRepositories
+	Services         CommandServices
+	Validator        *validatorpkg.BusinessRuleValidator
+	AuditLogger      *auditpkg.AuditLogger
+	StandardObjects  standardobject.ObjectService
+	TransactionClock clockpkg.Clock
+	OutboxRepo       database.OutboxRepository
 }
 
 type CommandRepositories struct {
@@ -108,6 +116,15 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 	if cascadeDepth <= 0 {
 		cascadeDepth = 4
 	}
+	stdObjects := deps.StandardObjects
+	if stdObjects == nil {
+		stdObjects = standardobject.NewNoopService()
+		logger.Warn("standardobject service not provided; falling back to noop adapter")
+	}
+	clock := deps.TransactionClock
+	if clock == nil {
+		clock = clockpkg.NewSystemClock()
+	}
 
 	orgRepo := repositorypkg.NewOrganizationRepository(deps.DB, logger)
 	jobCatalogRepo := repositorypkg.NewJobCatalogRepository(deps.DB, logger)
@@ -125,7 +142,7 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 		positionAssignmentRepo,
 		logger,
 	)
-	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger, deps.OutboxRepo)
+	positionService := servicepkg.NewPositionService(positionRepo, positionAssignmentRepo, jobCatalogRepo, orgRepo, positionValidator, assignmentValidator, auditLogger, logger, deps.OutboxRepo, stdObjects, clock)
 	jobCatalogValidator := validatorpkg.NewJobCatalogValidationService(jobCatalogRepo, logger)
 	jobCatalogService := servicepkg.NewJobCatalogService(jobCatalogRepo, jobCatalogValidator, auditLogger, logger, deps.OutboxRepo)
 	schedulerService := schedulerpkg.NewService(schedulerpkg.Dependencies{
@@ -155,10 +172,14 @@ func NewCommandModule(deps CommandModuleDeps) (*CommandModule, error) {
 			Position:   positionService,
 			JobCatalog: jobCatalogService,
 		},
-		Validator:   validator,
-		AuditLogger: auditLogger,
+		Validator:        validator,
+		AuditLogger:      auditLogger,
+		StandardObjects:  stdObjects,
+		TransactionClock: clock,
+		OutboxRepo:       deps.OutboxRepo,
 	}
 
+	module.TransactionClock = clock
 	return module, nil
 }
 
@@ -176,6 +197,9 @@ func (m *CommandModule) NewHandlers(deps CommandHandlerDeps) CommandHandlers {
 		m.Repositories.TemporalTimeline,
 		m.Repositories.Hierarchy,
 		m.Validator,
+		m.StandardObjects,
+		m.TransactionClock,
+		m.OutboxRepo,
 	)
 	positionHandler := handlerpkg.NewPositionHandler(m.Services.Position, m.AuditLogger, logger)
 	jobCatalogHandler := handlerpkg.NewJobCatalogHandler(m.Services.JobCatalog, logger)
@@ -214,15 +238,19 @@ func NewQueryRepository(db *sql.DB, redisClient *redis.Client, logger pkglogger.
 	return repositorypkg.NewPostgreSQLRepository(db, redisClient, logger, auditConfig)
 }
 
-func NewQueryResolver(repo QueryRepositoryInterface, assignments resolver.AssignmentProvider, logger pkglogger.Logger, permissions QueryPermissionChecker) *resolver.Resolver {
+func NewQueryResolver(repo QueryRepositoryInterface, assignments resolver.AssignmentProvider, store StandardObjectStore, logger pkglogger.Logger, permissions QueryPermissionChecker) *resolver.Resolver {
 	if assignments != nil {
-		return resolver.NewResolverWithAssignments(repo, assignments, logger, permissions)
+		return resolver.NewResolverWithAssignments(repo, assignments, store, logger, permissions)
 	}
-	return resolver.NewResolver(repo, logger, permissions)
+	return resolver.NewResolver(repo, store, logger, permissions)
 }
 
 func NewAssignmentFacade(repo *repositorypkg.PostgreSQLRepository, redisClient *redis.Client, logger pkglogger.Logger, cacheTTL time.Duration) *AssignmentQueryFacade {
 	return NewAssignmentQueryFacade(repo, redisClient, logger, cacheTTL)
+}
+
+func NewStandardObjectStore(db *sql.DB, clk clockpkg.Clock) StandardObjectStore {
+	return resolver.NewStandardObjectStore(db, clk)
 }
 
 func DefaultAuditHistoryConfig() AuditHistoryConfig {

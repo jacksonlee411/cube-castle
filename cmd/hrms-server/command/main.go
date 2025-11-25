@@ -13,15 +13,19 @@ import (
 	"time"
 
 	authbff "cube-castle/cmd/hrms-server/command/internal/authbff"
+	standardobjectapi "cube-castle/cmd/hrms-server/command/internal/standardobjectapi"
 	outbox "cube-castle/cmd/hrms-server/command/internal/outbox"
 	publicgraphql "cube-castle/cmd/hrms-server/query/publicgraphql"
 	auth "cube-castle/internal/auth"
 	config "cube-castle/internal/config"
 	health "cube-castle/internal/monitoring/health"
 	organization "cube-castle/internal/organization"
+	noadapter "cube-castle/internal/standardobject/adapter/noop"
+	sqlcadapter "cube-castle/internal/standardobject/adapter/sqlc"
 	"cube-castle/pkg/database"
 	"cube-castle/pkg/eventbus"
 	pkglogger "cube-castle/pkg/logger"
+	clockpkg "cube-castle/pkg/temporal/clock"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -74,6 +78,9 @@ func main() {
 	})
 	commandLogger.Info("🚀 启动组织命令服务...")
 	authOnlyMode := os.Getenv("AUTH_ONLY_MODE") == "true"
+	stdObjects := noadapter.Provide()
+	transactionClock := clockpkg.NewSystemClock()
+	commandLogger.Info("标准对象 Port 注入完成（占位实现，等待 SOM 仓储接入）")
 
 	var (
 		dbClient    *database.Database
@@ -110,6 +117,9 @@ func main() {
 		commandLogger.Info("✅ 数据库连接成功")
 		outboxRepo = database.NewOutboxRepository(dbClient)
 		commandLogger.Infof("✅ Outbox 仓储初始化完成（impl=%T）", outboxRepo)
+
+		stdObjects = sqlcadapter.Provide(sqlDB, transactionClock)
+		commandLogger.Infof("✅ 标准对象服务已使用 sqlc adapter（impl=%T）", stdObjects)
 
 		redisClient = openRedis(commandLogger)
 		if redisClient != nil {
@@ -187,7 +197,9 @@ func main() {
 				}
 				return nil
 			}(),
-			OutboxRepo: outboxRepo,
+			OutboxRepo:       outboxRepo,
+			StandardObjects:  stdObjects,
+			TransactionClock: transactionClock,
 		})
 		if err != nil {
 			commandLogger.Errorf("[FATAL] 初始化组织模块失败: %v", err)
@@ -262,6 +274,7 @@ func main() {
 		positionHandler    *organization.PositionHandler
 		jobCatalogHandler  *organization.JobCatalogHandler
 		operationalHandler *organization.OperationalHandler
+		stdObjectHandler   *standardobjectapi.Handler
 	)
 	if !authOnlyMode {
 		commandHandlers = orgModule.NewHandlers(organization.CommandHandlerDeps{
@@ -275,6 +288,7 @@ func main() {
 		jobCatalogHandler = commandHandlers.JobCatalog
 		operationalHandler = commandHandlers.Operational
 		devToolsHandler = commandHandlers.DevTools
+		stdObjectHandler = standardobjectapi.NewHandler(stdObjects, transactionClock, commandLogger)
 	} else {
 		devToolsHandler = organization.NewDevToolsHandler(sqlDB, jwtMiddleware, commandLogger, devMode)
 	}
@@ -318,7 +332,12 @@ func main() {
 		if redisClient != nil {
 			hm.AddChecker(&v9RedisChecker{Name: "redis", Client: redisClient})
 		}
-		r.Get("/health", hm.Handler())
+		apiHealthHandler := hm.Handler()
+		r.Get("/health", apiHealthHandler)
+		r.Get("/health/", apiHealthHandler)
+		// Playwright 与 CDN 健康探针会访问 /api/v1/health（兼容旧入口），此处统一复用同一处理器
+		r.Get("/api/v1/health", apiHealthHandler)
+		r.Get("/api/v1/health/", apiHealthHandler)
 	}
 
 	// Prometheus metrics 端点（无需认证，供监控系统采集）
@@ -418,6 +437,9 @@ func main() {
 				jobCatalogHandler.SetupRoutes(r)
 			}
 			orgHandler.SetupRoutes(r)
+			if stdObjectHandler != nil {
+				stdObjectHandler.SetupRoutes(r)
+			}
 			// 设置运维管理路由 (需要认证)
 			operationalHandler.SetupRoutes(r)
 		})

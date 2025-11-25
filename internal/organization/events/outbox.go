@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"cube-castle/internal/standardobject"
 	"cube-castle/pkg/database"
 	"github.com/google/uuid"
 )
@@ -15,9 +16,10 @@ const (
 	// DefaultSourceCommand 是组织命令服务在事件中的 source 值。
 	DefaultSourceCommand = "command-service"
 
-	aggregateAssignment = "assignment"
-	aggregatePosition   = "position"
-	aggregateJobLevel   = "jobLevel"
+	aggregateAssignment     = "assignment"
+	aggregatePosition       = "position"
+	aggregateJobLevel       = "jobLevel"
+	aggregateStandardObject = "standardObject"
 
 	// EventAssignmentFilled 表示任命占用。
 	EventAssignmentFilled = "assignment.filled"
@@ -37,6 +39,13 @@ const (
 	EventJobLevelVersionCreated = "jobLevel.versionCreated"
 	// EventJobLevelVersionConflict 表示职级版本冲突。
 	EventJobLevelVersionConflict = "jobLevel.versionConflict"
+
+	// 标准对象事件。
+	EventStandardObjectCreated       = "standard_object.created"
+	EventStandardObjectUpdated       = "standard_object.updated"
+	EventStandardObjectVersioned     = "standard_object.versioned"
+	EventStandardObjectStatusChanged = "standard_object.status_changed"
+	EventStandardObjectRetired       = "standard_object.retired"
 )
 
 // Context 描述 outbox 事件的通用上下文。
@@ -141,4 +150,36 @@ func newOutboxEvent(eventType, aggregateType, aggregateID string, ctx Context, a
 	event.EventType = eventType
 	event.Payload = string(raw)
 	return event, nil
+}
+
+// NewStandardObjectEvent 构造 standard_object.* 事件。
+func NewStandardObjectEvent(eventType string, ctx Context, aggregate standardobject.ObjectAggregate, attributes map[string]interface{}) (*database.OutboxEvent, error) {
+	kernel := aggregate.Kernel
+	version := aggregate.Version
+	baseAttributes := map[string]interface{}{
+		"objectType":           string(kernel.ObjectType),
+		"code":                 strings.TrimSpace(kernel.Code),
+		"tenantCode":           strings.TrimSpace(kernel.TenantCode),
+		"status":               string(kernel.Status),
+		"displayName":          kernel.DisplayName,
+		"versionCode":          version.VersionCode,
+		"isCurrent":            version.IsCurrent,
+		"transactionTimestamp": version.TransactionFrom.UTC().Format(time.RFC3339Nano),
+		"effectiveDate":        version.EffectiveDate.UTC().Format(time.RFC3339),
+		"occurredAt":           time.Now().UTC().Format(time.RFC3339Nano),
+	}
+	if version.EndDate != nil {
+		baseAttributes["endDate"] = version.EndDate.UTC().Format(time.RFC3339)
+	}
+	if version.TransactionTo != nil {
+		baseAttributes["transactionUntil"] = version.TransactionTo.UTC().Format(time.RFC3339Nano)
+	}
+	for k, v := range attributes {
+		if k == "" || v == nil {
+			continue
+		}
+		baseAttributes[k] = v
+	}
+	aggregateID := fmt.Sprintf("%s:%s", strings.ToLower(string(kernel.ObjectType)), strings.TrimSpace(kernel.Code))
+	return newOutboxEvent(eventType, aggregateStandardObject, aggregateID, ctx, baseAttributes)
 }

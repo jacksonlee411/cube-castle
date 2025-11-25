@@ -343,7 +343,29 @@ POST   /api/v1/workforce/employees          # 创建员工（Core HR：workforce
 PATCH  /api/v1/workforce/employees/{id}     # 更新员工状态/岗位（203号计划）
 POST   /api/v1/contracts                    # 创建劳动合同（Core HR：contract v1，203号计划）
 POST   /auth/dev-token         # 生成令牌 (仅DEV模式)
+
+# Standard Object REST Port（Plan 402D 启用，只写 SOM 三表）
+POST   /api/v1/standard-objects/{objectType}                # 创建 SOM Kernel + 初始版本
+POST   /api/v1/standard-objects/{objectType}/{code}/versions # 追加版本（append-only）
+PATCH  /api/v1/standard-objects/{objectType}/{code}/status   # 生命周期切换（READY/ACTIVE/SUSPENDED/RETIRED）
+# 调用须携带 X-Tenant-ID、Authorization，与 docs/api/openapi.yaml 一致；日志写入 logs/plan402/cleanup/*（锁切换）与 logs/plan402/migration/*（validator）。
+# objectType 仅接受 ORGANIZATION_UNIT（职位 ROLE 在 402E 解禁）；code 路径参数沿用标准对象 code。
+# 失败时返回 JSON：{"success":false,"error":{"code":...,"message":...},"requestId":...}，可据此排查 Runbook。
 ```
+
+### Standard Object 双写守则
+- 组织命令（创建/更新/版本/停用/激活/作废/删除）复用 `internal/organization/handler/standard_object_adapter.go` 中的 `OrganizationHandler.upsertStandardObject`/`syncOrganizationTimeline`；职位 `Create/Replace/CreateVersion` 则使用 `internal/organization/service/position_standard_object_adapter.go` 的 `PositionService.syncPositionStandardObject`。两侧都在主事务内调用 `standardobject.ObjectService`，失败即回滚。
+- Outbox 事件由 `OrganizationHandler.emitStandardObjectEvent` 与 `PositionService.emitStandardObjectEvent` 统一写入 `standard_object.created/updated/versioned/status_changed/retired`，日志与巡检样本见 `logs/plan402/eventbus/*.log`、`logs/plan402/capability/*.log`。
+- `standardobject.MakeVersionCode(code, effectiveDate, updatedAt, recordId)` 提供幂等版本号，配合 `pkg/temporal/clock` 生成 `transaction_range`，确保同日纠偏不产生冲突。
+- 组织层级 Link (`ORG_HIERARCHY`) 与职位归属 Link (`POSITION_BELONGS_TO_ORG`) 由上述 handler/service 自动维护；若目标对象尚未迁移到 SOM，API 会返回 500，需要先执行 migrator/validator。
+- 运行日志：`logs/plan402/migration/*.log`（migrator/validator）、`logs/plan402/capability/*.log`（federate 证据）、`logs/plan400/manifest/*.log` & `logs/plan402/ui/*.log`（Manifest/Slot + OBS/Playwright 证据）。详见 `docs/reference/standard-object-evidence-guide.md`。
+- 开发自检：执行 `node scripts/quality/architecture-validator.js --rule capabilityContracts`、`make test`、`npm run quality:preflight`，确保 CQRS、Manifest/Slot、命名守卫均通过。
+
+### Manifest & 快照脚本（402C/C4）
+- 表单 manifest：`npm run manifest:forms`（读取 `docs/api/openapi.yaml`，输出 `logs/plan400/manifest/<ts>-forms.log`）
+- 列 manifest：`npm run manifest:columns`（读取 `docs/api/schema.graphql`，输出 `logs/plan402/ui/<ts>-columns.log`）
+- 快照刷新：`go run -tags legacy ./cmd/tools/standardobject-snapshot-refresh -dsn "$DATABASE_URL" -tenant <TENANT_ID>`，默认日志写入 `logs/plan402/snapshots|metrics`
+- Outbox/Redis 巡检：`PGPASSWORD=password psql ...` + `docker exec cubecastle-redis redis-cli info keyspace`，输出到 `logs/plan402/eventbus/<ts>-dispatcher-scan.log`
 
 ### GraphQL查询API (端口8090)
 ```graphql

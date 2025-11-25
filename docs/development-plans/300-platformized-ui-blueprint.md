@@ -75,13 +75,13 @@ P0（1–2 周，最小可用）
 
 P1（2–3 周，实用提效）
 4) OpenAPI → 表单 Schema 生成（命令/表单）
-   - 新增脚本：`scripts/generate-forms-from-openapi.ts`
+   - 新增脚本：`scripts/generate-forms-from-openapi.js`
      - 输入：`docs/api/openapi.yaml`
      - 输出：`frontend/src/generated/forms/*.ts`（Zod/JSON Schema + UI hints）
      - 映射：请求体验证规则→表单校验；枚举/字段描述→控件与占位提示；权限 scope→提交按钮显隐。
    - 前端：统一 Form 引擎消费 schema，减少手写表单。
 5) GraphQL 自省 → 列表列定义生成（查询/列表）
-   - 新增脚本：`scripts/generate-columns-from-graphql.ts`
+   - 新增脚本：`scripts/generate-columns-from-graphql.js`
      - 输入：`docs/api/schema.graphql`
      - 输出：`frontend/src/generated/columns/*.ts`（字段、类型、可排序/过滤）
    - 前端：统一 Table 组件消费列定义，驱动排序/筛选 UI。
@@ -397,7 +397,7 @@ P2 验收
   - 新增 `frontend/src/shared/extension/{manifest.d.ts,registry.ts,slots.ts}`，在 `frontend/src/App.tsx` 注册清单，在 `frontend/src/features/temporal/layout/TemporalEntityLayout.tsx` 渲染插槽。
   - 接入 PBAC 显隐（`useScopes()`）；新增 manifest/slot 校验脚本并挂到 `npm run quality:preflight`；补最小 E2E。
 - 下两周（P1）
-  - 表单：落地 `scripts/generate-forms-from-openapi.ts`，RHF + Zod + Canvas 控件映射；完成 2 个命令表单闭环。
+  - 表单：落地 `scripts/generate-forms-from-openapi.js`，RHF + Zod + Canvas 控件映射；完成 2 个命令表单闭环。
   - 列表：引入 `@tanstack/react-table`；完成一个组织列表“自省→列定义→渲染（排序/过滤）”PoC。
   - 脚手架：`npm run g:feature` 产出 manifest/slot/路由/测试骨架，纳入门禁。
 

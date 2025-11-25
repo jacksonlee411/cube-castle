@@ -73,6 +73,10 @@ var defaultGraphQLQueryPermissions = map[string]string{
 	"jobLevels":       "job-catalog:read",
 }
 
+var permissionAliases = map[string][]string{
+	"position:assignments:read": {"position:read"},
+}
+
 // NewPBACPermissionChecker 返回 PBAC 检查器实例。
 func NewPBACPermissionChecker(db *sql.DB, logger pkglogger.Logger) *PBACPermissionChecker {
 	if logger == nil {
@@ -125,7 +129,7 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 	}
 
 	// 1. PBAC scope 检查
-	if hasScope(scopes, requiredPermission) {
+	if hasScope(scopes, requiredPermission) || hasAliasScope(scopes, requiredPermission) {
 		return nil
 	}
 
@@ -148,6 +152,17 @@ func (p *PBACPermissionChecker) CheckPermission(ctx context.Context, resource st
 	}
 
 	return fmt.Errorf("access denied for query: %s", resource)
+}
+
+func hasAliasScope(scopes []string, permission string) bool {
+	if aliases, ok := permissionAliases[permission]; ok {
+		for _, alias := range aliases {
+			if hasScope(scopes, alias) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // checkUserPermission 检查用户直接权限
